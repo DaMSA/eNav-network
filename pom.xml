@@ -20,6 +20,7 @@
     <module>dma-network-common</module>
     <module>dma-network-client</module>
     <module>dma-network-server</module>
+    <module>dma-network-server-distribution</module>
   </modules>
 
   <repositories>

@@ -36,6 +36,7 @@ import dk.dma.enav.model.shore.ServerId;
  * @author Kasper Nielsen
  */
 public class ENavNetworkServer {
+    public static final int DEFAULT_PORT = 44554;
 
     final ServerId id = new ServerId(1);
 
@@ -92,7 +93,7 @@ public class ENavNetworkServer {
         }
     }
 
-    public synchronized void start() {
+    public synchronized void start() throws Exception {
         if (state == State.INITIALIZED) {
             LOG.info("Server with id = " + id + " starting");
 
@@ -102,11 +103,18 @@ public class ENavNetworkServer {
             try {
                 server.start();
             } catch (Exception e) {
-                // TODO Auto-generated catch block
-                e.printStackTrace();
+                state = State.TERMINATED;
+                server.stop();
+                throw e;
             }
             // Set to running state
             state = State.RUNNING;
+        }
+    }
+
+    public static void main(String[] args) {
+        if (args.length > 0) {
+
         }
     }
 
@@ -116,6 +124,9 @@ public class ENavNetworkServer {
     }
 
     class ShutdownThread extends Thread {
+        ShutdownThread() {
+            setDaemon(true);
+        }
 
         /** {@inheritDoc} */
         @Override

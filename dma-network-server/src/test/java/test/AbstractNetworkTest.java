@@ -17,7 +17,6 @@ package test;
 
 import static org.junit.Assert.assertTrue;
 
-import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.util.HashSet;
 import java.util.Set;
@@ -92,7 +91,7 @@ public class AbstractNetworkTest {
     }
 
     @Before
-    public void setup() throws IOException {
+    public void setup() throws Exception {
         if (useProxy) {
             si = new ENavNetworkServer(12222);
             pt = new ProxyTester(new InetSocketAddress(11111), new InetSocketAddress(12222));

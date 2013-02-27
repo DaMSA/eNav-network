@@ -36,7 +36,7 @@ public class StartStopServerTest {
     }
 
     @Test
-    public void start() throws InterruptedException {
+    public void start() throws Exception {
         ENavNetworkServer s = new ENavNetworkServer(12345);
 
         s.start();
@@ -46,7 +46,7 @@ public class StartStopServerTest {
     }
 
     @Test
-    public void start2() throws InterruptedException {
+    public void start2() throws Exception {
         ENavNetworkServer s = new ENavNetworkServer(12345);
 
         s.start();
