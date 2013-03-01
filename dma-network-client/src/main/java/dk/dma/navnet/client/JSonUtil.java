@@ -31,7 +31,7 @@ class JSonUtil {
         try {
             return om.writeValueAsString(o);
         } catch (JsonProcessingException e) {
-            throw new IllegalArgumentException("Could not be persisted");
+            throw new IllegalArgumentException("Could not be persisted", e);
         }
     }
 
