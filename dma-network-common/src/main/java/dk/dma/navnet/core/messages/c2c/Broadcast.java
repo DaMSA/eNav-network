@@ -19,6 +19,8 @@ import static java.util.Objects.requireNonNull;
 
 import java.io.IOException;
 
+import dk.dma.enav.model.MaritimeId;
+import dk.dma.enav.model.geometry.PositionTime;
 import dk.dma.navnet.core.messages.AbstractMessage;
 import dk.dma.navnet.core.messages.MessageType;
 import dk.dma.navnet.core.messages.ProtocolReader;
@@ -30,23 +32,30 @@ import dk.dma.navnet.core.messages.ProtocolWriter;
  */
 public class Broadcast extends AbstractMessage {
     final String channel;
+
+    final MaritimeId id;
+
     final String message;
+
+    final PositionTime positionTime;
 
     /**
      * @param messageType
      */
-    public Broadcast(String channel, String message) {
+    public Broadcast(MaritimeId id, PositionTime position, String channel, String message) {
         super(MessageType.BROADCAST);
+        this.id = requireNonNull(id);
+        this.positionTime = requireNonNull(position);
         this.channel = requireNonNull(channel);
         this.message = requireNonNull(message);
     }
-
     /**
      * @param messageType
      * @throws IOException
      */
     public Broadcast(ProtocolReader pr) throws IOException {
-        this(pr.takeString(), pr.takeString());
+        this(MaritimeId.create(pr.takeString()), PositionTime.create(pr.takeDouble(), pr.takeDouble(), pr.takeLong()),
+                pr.takeString(), pr.takeString());
     }
 
     /**
@@ -57,15 +66,33 @@ public class Broadcast extends AbstractMessage {
     }
 
     /**
+     * @return the id
+     */
+    public MaritimeId getId() {
+        return id;
+    }
+
+    /**
      * @return the message
      */
     public String getMessage() {
         return message;
     }
 
+    /**
+     * @return the positionTime
+     */
+    public PositionTime getPositionTime() {
+        return positionTime;
+    }
+
     /** {@inheritDoc} */
     @Override
     protected void write(ProtocolWriter w) {
+        w.writeString(id.toString());
+        w.writeDouble(positionTime.getLatitude());
+        w.writeDouble(positionTime.getLongitude());
+        w.writeLong(positionTime.getTime());
         w.writeString(channel);
         w.writeString(message);
     }

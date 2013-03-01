@@ -94,10 +94,10 @@ public class AbstractNetworkTest {
     public void setup() throws Exception {
         if (useProxy) {
             si = new ENavNetworkServer(12222);
-            pt = new ProxyTester(new InetSocketAddress(11111), new InetSocketAddress(12222));
+            pt = new ProxyTester(new InetSocketAddress(43234), new InetSocketAddress(12222));
             pt.start();
         } else {
-            si = new ENavNetworkServer(11111);
+            si = new ENavNetworkServer(43234);
         }
         si.start();
 

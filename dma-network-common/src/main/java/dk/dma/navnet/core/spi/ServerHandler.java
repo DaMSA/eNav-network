@@ -19,6 +19,7 @@ import dk.dma.navnet.core.messages.AbstractMessage;
 import dk.dma.navnet.core.messages.c2c.AbstractRelayedMessage;
 import dk.dma.navnet.core.messages.c2c.Broadcast;
 import dk.dma.navnet.core.messages.s2c.FindServices;
+import dk.dma.navnet.core.messages.s2c.PositionReportMessage;
 import dk.dma.navnet.core.messages.s2c.RegisterService;
 import dk.dma.navnet.core.messages.s2c.connection.HelloMessage;
 
@@ -43,10 +44,14 @@ public abstract class ServerHandler extends AbstractHandler {
             relay((AbstractRelayedMessage) m);
         } else if (m instanceof Broadcast) {
             broadcast(msg, (Broadcast) m);
+        } else if (m instanceof PositionReportMessage) {
+            positionReport((PositionReportMessage) m);
         } else {
-            System.err.println("Received an unknown message " + m.toJSON());
+            unknownMessage(msg, m);
         }
     }
+
+    public void positionReport(PositionReportMessage m) {}
 
     /**
      * @param m
@@ -58,4 +63,8 @@ public abstract class ServerHandler extends AbstractHandler {
     public void relay(AbstractRelayedMessage m) {}
 
     public void registerService(RegisterService m) {}
+
+    public void unknownMessage(String msg, AbstractMessage m) {
+        System.err.println("Received an unknown message " + m.toJSON());
+    };
 }

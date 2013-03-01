@@ -22,6 +22,7 @@ import java.net.ConnectException;
 import java.net.URI;
 import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 
 import org.eclipse.jetty.websocket.client.WebSocketClient;
@@ -30,7 +31,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 import dk.dma.enav.net.ServiceCallback;
 import dk.dma.enav.net.broadcast.BroadcastMessage;
-import dk.dma.enav.util.function.Consumer;
+import dk.dma.enav.net.broadcast.BroadcastProperties;
+import dk.dma.enav.util.function.BiConsumer;
 import dk.dma.navnet.core.messages.c2c.Broadcast;
 import dk.dma.navnet.core.messages.c2c.InvokeService;
 import dk.dma.navnet.core.messages.s2c.connection.ConnectedMessage;
@@ -62,20 +64,26 @@ class ClientConnection extends ClientHandler {
 
     /** {@inheritDoc} */
     @Override
-    public void broadcast(Broadcast m) {
-        String channel = m.getChannel();
-        ObjectMapper om = new ObjectMapper();
+    protected void receivedBroadcast(Broadcast m) {
+        BroadcastMessage bm = null;
+        Class<?> cl = null;
         try {
-            Class<?> cl = Class.forName(channel);
-            Object o = om.readValue(m.getMessage(), cl);
-            CopyOnWriteArraySet<Consumer<BroadcastMessage>> s = cm.subscribers.get(cl);
-            if (s != null) {
-                for (Consumer<BroadcastMessage> c : s) {
-                    c.accept((BroadcastMessage) o);
-                }
-            }
+            String channel = m.getChannel();
+            ObjectMapper om = new ObjectMapper();
+            cl = Class.forName(channel);
+            bm = (BroadcastMessage) om.readValue(m.getMessage(), cl);
         } catch (Exception e) {
             e.printStackTrace();
+        }
+        // Okay vi have a valid broadcast message
+        if (bm != null) {
+            CopyOnWriteArraySet<BiConsumer<BroadcastProperties, BroadcastMessage>> s = cm.subscribers.get(cl);
+            if (s != null) {
+                BroadcastProperties bp = new BroadcastProperties(m.getId(), m.getPositionTime());
+                for (BiConsumer<BroadcastProperties, BroadcastMessage> c : s) {
+                    c.accept(bp, bm);
+                }
+            }
         }
     }
 
@@ -89,12 +97,19 @@ class ClientConnection extends ClientHandler {
     }
 
     public void connect() throws Exception {
-        client.start();
         URI echoUri = new URI(url);
-        client.connect(getListener(), echoUri).get();
-        connected.await(10, TimeUnit.SECONDS);
-        if (connected.getCount() > 0) {
-            throw new ConnectException("Timedout while connecting to " + url);
+        client.start();
+        try {
+            client.connect(getListener(), echoUri).get();
+            connected.await(10, TimeUnit.SECONDS);
+            if (connected.getCount() > 0) {
+                throw new ConnectException("Timedout while connecting to " + url);
+            }
+        } catch (ExecutionException e) {
+            cm.es.shutdown();
+            cm.ses.shutdown();
+            client.stop();
+            throw (Exception) e.getCause();// todo fix throw
         }
     }
 

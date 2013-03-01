@@ -18,6 +18,7 @@ package dk.dma.navnet.core.spi;
 import java.io.IOException;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.locks.ReentrantLock;
 
 import jsr166e.CompletableFuture;
 
@@ -39,6 +40,7 @@ import dk.dma.navnet.core.util.NetworkFutureImpl;
  */
 public abstract class AbstractHandler {
 
+    protected final ReentrantLock lock = new ReentrantLock();
     private final Listener listener = new Listener();
 
     volatile Session session;
@@ -88,7 +90,7 @@ public abstract class AbstractHandler {
         }
     }
 
-    public abstract void handleText(String msg, AbstractMessage m) throws Exception;
+    protected abstract void handleText(String msg, AbstractMessage m) throws Exception;
 
     public final <T> NetworkFutureImpl<T> sendMessage(AbstractRelayedMessage m) {
         sendMessage((AbstractMessage) m);
@@ -112,9 +114,11 @@ public abstract class AbstractHandler {
         RemoteEndpoint r = s == null ? null : s.getRemote();
         if (r != null) {
             try {
-                // System.out.println("Sending " + m);
+                System.out.println("Sending " + m);
                 r.sendString(m);
             } catch (IOException e) {
+                onError(e);
+                failed(e.getMessage());
                 e.printStackTrace();
             }
         } else {
@@ -124,6 +128,10 @@ public abstract class AbstractHandler {
 
     public final void sendMessage(AbstractMessage m) {
         sendRawTextMessage(m.toJSON());
+    }
+
+    protected void failed(String message) {
+
     }
 
     public final void tryClose(int statusCode, String reason) {
@@ -137,6 +145,15 @@ public abstract class AbstractHandler {
         }
     }
 
+    public void onError(Throwable cause) {
+        cause.printStackTrace();
+        System.out.println("ERROR " + cause);
+    }
+
+    protected void closed(int statusCode, String reason) {
+
+    }
+
     public void connected() {}
 
     final class Listener implements WebSocketListener {
@@ -144,43 +161,39 @@ public abstract class AbstractHandler {
         /** {@inheritDoc} */
         @Override
         public final void onWebSocketBinary(byte[] payload, int offset, int len) {
-            tryClose(1003, "Expected text only");
+            tryClose(CloseCodes.BAD_DATA, "Expected text only");
         }
 
         /** {@inheritDoc} */
         @Override
         public final void onWebSocketClose(int statusCode, String reason) {
             session = null;
-            // System.out.println("CLOSED:" + reason);
+            closed(statusCode, reason);
+            System.out.println("CLOSED:" + reason);
         }
 
         /** {@inheritDoc} */
         @Override
         public final void onWebSocketConnect(Session s) {
             session = s;
-            try {
-                // https://bugs.eclipse.org/bugs/show_bug.cgi?id=401427
-                Thread.sleep(100);
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
             connected();
         }
 
         /** {@inheritDoc} */
         @Override
         public final void onWebSocketError(Throwable cause) {
-            cause.printStackTrace();
+            onError(cause);
         }
 
         /** {@inheritDoc} */
         @Override
         public final void onWebSocketText(String message) {
-            // System.out.println("Received: " + message);
+            System.out.println("Received: " + message);
             try {
                 AbstractMessage m = AbstractMessage.read(message);
                 handleText0(message, m);
-            } catch (IOException e) {
+            } catch (Throwable e) {
+                tryClose(5004, e.getMessage());
                 e.printStackTrace();
             }
         }

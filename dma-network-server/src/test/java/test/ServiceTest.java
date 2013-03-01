@@ -35,7 +35,7 @@ import dk.dma.enav.service.ship.GetNameService.Reply;
  * @author Kasper Nielsen
  */
 @Ignore
-public class TestFoo extends AbstractNetworkTest {
+public class ServiceTest extends AbstractNetworkTest {
     public static final MaritimeId ID1 = MaritimeId.create("mmsi://1");
     public static final MaritimeId ID6 = MaritimeId.create("mmsi://6");
 

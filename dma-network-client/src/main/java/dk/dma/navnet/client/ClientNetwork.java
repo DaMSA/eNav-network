@@ -42,15 +42,15 @@ import dk.dma.enav.net.NetworkFuture;
 import dk.dma.enav.net.ServiceCallback;
 import dk.dma.enav.net.ServiceRegistration;
 import dk.dma.enav.net.broadcast.BroadcastMessage;
+import dk.dma.enav.net.broadcast.BroadcastProperties;
 import dk.dma.enav.service.spi.InitiatingMessage;
 import dk.dma.enav.service.spi.MaritimeService;
 import dk.dma.enav.service.spi.MaritimeServiceMessage;
-import dk.dma.enav.util.function.Consumer;
+import dk.dma.enav.util.function.BiConsumer;
 import dk.dma.enav.util.function.Supplier;
 import dk.dma.navnet.core.messages.c2c.Broadcast;
 import dk.dma.navnet.core.messages.c2c.InvokeService;
 import dk.dma.navnet.core.messages.s2c.FindServices;
-import dk.dma.navnet.core.messages.s2c.PositionReportMessage;
 import dk.dma.navnet.core.messages.s2c.RegisterService;
 import dk.dma.navnet.core.util.NetworkFutureImpl;
 
@@ -70,19 +70,21 @@ public class ClientNetwork implements MaritimeNetworkConnection {
 
     final ConcurrentHashMap<String, InternalServiceCallbackRegistration> registeredServices = new ConcurrentHashMap<>();
 
-    private final ScheduledExecutorService ses = Executors.newSingleThreadScheduledExecutor();
+    final ScheduledExecutorService ses = Executors.newSingleThreadScheduledExecutor();
 
     private volatile NetState state = NetState.CREATED;
 
-    final ConcurrentHashMapV8<Class<? extends BroadcastMessage>, CopyOnWriteArraySet<Consumer<BroadcastMessage>>> subscribers = new ConcurrentHashMapV8<>();
+    final ConcurrentHashMapV8<Class<? extends BroadcastMessage>, CopyOnWriteArraySet<BiConsumer<BroadcastProperties, BroadcastMessage>>> subscribers = new ConcurrentHashMapV8<>();
 
     private final CountDownLatch terminated = new CountDownLatch(1);
+    final Supplier<PositionTime> positionSupplier;
 
     /**
      * @param clientId
      */
-    protected ClientNetwork(MaritimeId clientId) {
+    ClientNetwork(MaritimeId clientId, Supplier<PositionTime> positionSupplier) {
         this.clientId = requireNonNull(clientId);
+        this.positionSupplier = requireNonNull(positionSupplier);
     }
 
     /** {@inheritDoc} */
@@ -94,7 +96,8 @@ public class ClientNetwork implements MaritimeNetworkConnection {
     /** {@inheritDoc} */
     @Override
     public NetworkFuture<Void> broadcast(BroadcastMessage message) {
-        Broadcast b = new Broadcast(message.channel(), JSonUtil.persistAndEscape(message));
+        Broadcast b = new Broadcast(clientId, positionSupplier.get(), message.channel(),
+                JSonUtil.persistAndEscape(message));
         connection.sendMessage(b);
         return null;
     }
@@ -177,43 +180,6 @@ public class ClientNetwork implements MaritimeNetworkConnection {
         // new ObjectName("dk.dma.net:name=connection"));
     }
 
-    /**
-     * {@inheritDoc}
-     */
-    // void incomingPacket(final PersistentConnection con, final Packet p) throws Exception {
-    // if (p.b == Packet.CONNECTION_DISCONNECTED) {
-    // lock.lock();
-    // try {
-    // state = NetState.TERMINATED;
-    // ses.shutdown();
-    // es.shutdown();
-    // terminated.countDown();
-    // registeredServices.clear();
-    // } finally {
-    // lock.unlock();
-    // }
-    // } else if (p.b == Packet.INVOKE_SERVICE) {
-    // MaritimeServiceMessage<?> m = p.payloadToObject();
-    // Class<? extends MaritimeService> serviceType = m.getServiceType();
-    // @SuppressWarnings("unchecked")
-    // ServiceCallback<Object, Object> impl = (ServiceCallback<Object, Object>) registeredServices
-    // .get(serviceType);
-    // impl.process(m, new ServiceCallback.Context<Object>() {
-    // public void complete(Object result) {
-    // requireNonNull(result);
-    // con.packetWrite(p.replyWith(result));
-    // }
-    //
-    // public void fail(Throwable cause) {
-    // requireNonNull(cause);
-    // con.packetWrite(p.replyWithFailure(cause));
-    // }
-    // });
-    // } else {
-    // System.out.println("Dont know about " + p.b);
-    // }
-    // }
-
     /** {@inheritDoc} */
     @Override
     public <T extends MaritimeServiceMessage<?>, S extends MaritimeService, E extends MaritimeServiceMessage<T> & InitiatingMessage> ServiceRegistration registerService(
@@ -246,28 +212,28 @@ public class ClientNetwork implements MaritimeNetworkConnection {
     /** {@inheritDoc} */
     @SuppressWarnings("unchecked")
     @Override
-    public <T extends BroadcastMessage> void subscribe(Class<T> messageType, Consumer<T> consumer) {
-        CopyOnWriteArraySet<Consumer<BroadcastMessage>> set = subscribers
+    public <T extends BroadcastMessage> void subscribe(Class<T> messageType, BiConsumer<BroadcastProperties, T> consumer) {
+        CopyOnWriteArraySet<BiConsumer<BroadcastProperties, BroadcastMessage>> set = subscribers
                 .computeIfAbsent(
                         messageType,
-                        new ConcurrentHashMapV8.Fun<Class<? extends BroadcastMessage>, CopyOnWriteArraySet<Consumer<BroadcastMessage>>>() {
-                            public CopyOnWriteArraySet<Consumer<BroadcastMessage>> apply(
+                        new ConcurrentHashMapV8.Fun<Class<? extends BroadcastMessage>, CopyOnWriteArraySet<BiConsumer<BroadcastProperties, BroadcastMessage>>>() {
+                            public CopyOnWriteArraySet<BiConsumer<BroadcastProperties, BroadcastMessage>> apply(
                                     Class<? extends BroadcastMessage> t) {
                                 return new CopyOnWriteArraySet<>();
                             }
                         });
 
-        set.add((Consumer<BroadcastMessage>) consumer);
+        set.add((BiConsumer<BroadcastProperties, BroadcastMessage>) consumer);
     }
 
     public static MaritimeNetworkConnection create(MaritimeNetworkConnectionBuilder builder) throws IOException {
-        final ClientNetwork cc = new ClientNetwork(builder.getId());
-        // HostAndPort hap = HostAndPort.fromString(builder.getNodes());
+        final Supplier<PositionTime> positionSupplier = builder.getPositionSupplier();
+        final ClientNetwork cc = new ClientNetwork(builder.getId(), positionSupplier);
 
         // final PersistentConnection mc = Client2ServerConnection.connect(cc, builder.getId(),
         // new InetSocketAddress(hap.getHostText(), hap.getPort()));
 
-        final ClientConnection mc = new ClientConnection("ws://localhost:11111", cc);
+        final ClientConnection mc = new ClientConnection("ws://" + builder.getHost(), cc);
         try {
             mc.connect();
         } catch (Exception e) {
@@ -275,7 +241,6 @@ public class ClientNetwork implements MaritimeNetworkConnection {
         }
 
         cc.connection = mc;
-        final Supplier<PositionTime> positionSupplier = builder.getPositionSupplier();
         if (positionSupplier != null) {
             cc.ses.scheduleAtFixedRate(new Runnable() {
                 @Override
@@ -283,7 +248,7 @@ public class ClientNetwork implements MaritimeNetworkConnection {
                     try {
                         PositionTime pt = positionSupplier.get();
                         if (pt != null) {
-                            mc.sendMessage(new PositionReportMessage(pt));
+                            // mc.sendMessage(new PositionReportMessage(pt));
                         }
                     } catch (Exception e) {
                         e.printStackTrace();

@@ -29,7 +29,7 @@ public abstract class ClientHandler extends AbstractHandler {
 
     /** {@inheritDoc} */
     @Override
-    public final void handleText(String msg, AbstractMessage m) {
+    protected final void handleText(String msg, AbstractMessage m) {
         if (m instanceof WelcomeMessage) {
             welcome((WelcomeMessage) m);
         } else if (m instanceof ConnectedMessage) {
@@ -37,27 +37,30 @@ public abstract class ClientHandler extends AbstractHandler {
         } else if (m instanceof InvokeService) {
             invokeService((InvokeService) m);
         } else if (m instanceof Broadcast) {
-            broadcast((Broadcast) m);
+            receivedBroadcast((Broadcast) m);
         } else {
-            System.err.println("Received an unknown message " + m.toJSON());
+            unknownMessage(msg, m);
         }
     }
 
     /**
      * @param m
      */
-    public void broadcast(Broadcast m) {}
+    protected void receivedBroadcast(Broadcast m) {}
 
     /**
      * @param m
      */
-    public void invokeService(InvokeService m) {}
+    protected void invokeService(InvokeService m) {}
 
     /**
      * @param m
      */
-    public void connected(ConnectedMessage m) {}
+    protected void connected(ConnectedMessage m) {}
 
-    public void welcome(WelcomeMessage m) {}
+    protected void welcome(WelcomeMessage m) {}
 
+    protected void unknownMessage(String msg, AbstractMessage m) {
+        System.err.println("Received an unknown message " + m.toJSON());
+    };
 }

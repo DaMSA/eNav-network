@@ -85,13 +85,17 @@ class ConnectionManager {
     }
 
     void disconnected(ServerConnection connection) {
-
+        connections.remove(connection.clientId.toString());
     }
 
-    void broadcast(ServerConnection self, String msg, Broadcast broadcast) {
-        for (ServerConnection sc : connections.values()) {
+    void broadcast(ServerConnection self, final String msg, Broadcast broadcast) {
+        for (final ServerConnection sc : connections.values()) {
             if (sc != self) {
-                sc.sendRawTextMessage(msg);
+                server.deamonPool.execute(new Runnable() {
+                    public void run() {
+                        sc.sendRawTextMessage(msg);
+                    }
+                });
             }
         }
     }

@@ -23,7 +23,7 @@ import com.fasterxml.jackson.databind.SerializationFeature;
  * 
  * @author Kasper Nielsen
  */
-public class JSonUtil {
+class JSonUtil {
 
     public static String persist(Object o) {
         ObjectMapper om = new ObjectMapper();

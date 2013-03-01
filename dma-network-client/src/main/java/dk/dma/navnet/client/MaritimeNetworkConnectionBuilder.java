@@ -20,7 +20,6 @@ import dk.dma.enav.model.MaritimeId;
 import dk.dma.enav.model.geometry.PositionTime;
 import dk.dma.enav.net.MaritimeNetworkConnection;
 import dk.dma.enav.util.function.Supplier;
-import dk.dma.navnet.client.ClientNetwork;
 
 /**
  * 
@@ -30,9 +29,15 @@ public class MaritimeNetworkConnectionBuilder {
 
     private final MaritimeId id;
 
-    private String nodes = "localhost:11111";
+    private String nodes = "localhost:43234";
 
-    private Supplier<PositionTime> positionSupplier;
+    private Supplier<PositionTime> positionSupplier = new Supplier<PositionTime>() {
+
+        @Override
+        public PositionTime get() {
+            return PositionTime.create(0, 0, 0);
+        }
+    };
 
     MaritimeNetworkConnectionBuilder(MaritimeId id) {
         this.id = requireNonNull(id);
@@ -49,7 +54,7 @@ public class MaritimeNetworkConnectionBuilder {
         return id;
     }
 
-    public String getNodes() {
+    public String getHost() {
         return nodes;
     }
 
@@ -58,11 +63,6 @@ public class MaritimeNetworkConnectionBuilder {
      */
     public Supplier<PositionTime> getPositionSupplier() {
         return positionSupplier;
-    }
-
-    public MaritimeNetworkConnectionBuilder setBootstrapNodes(String nodes) {
-        this.nodes = nodes;
-        return this;
     }
 
     public MaritimeNetworkConnectionBuilder setHost(String host) {

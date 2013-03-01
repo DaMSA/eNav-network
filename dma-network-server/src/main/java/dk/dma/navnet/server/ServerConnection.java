@@ -25,6 +25,7 @@ import dk.dma.enav.model.MaritimeId;
 import dk.dma.navnet.core.messages.c2c.AbstractRelayedMessage;
 import dk.dma.navnet.core.messages.c2c.Broadcast;
 import dk.dma.navnet.core.messages.s2c.FindServices;
+import dk.dma.navnet.core.messages.s2c.PositionReportMessage;
 import dk.dma.navnet.core.messages.s2c.RegisterService;
 import dk.dma.navnet.core.messages.s2c.connection.ConnectedMessage;
 import dk.dma.navnet.core.messages.s2c.connection.HelloMessage;
@@ -45,6 +46,13 @@ public class ServerConnection extends ServerHandler {
 
     State state = State.CREATED;
 
+    /** {@inheritDoc} */
+    @Override
+    public void onError(Throwable cause) {
+        cm.server.tracker.remove(this);
+        cm.server.at.disconnected(this);
+    }
+
     ServerConnection(ConnectionManager cm) {
         this.cm = requireNonNull(cm);
     }
@@ -53,6 +61,14 @@ public class ServerConnection extends ServerHandler {
     @Override
     public void broadcast(String msg, Broadcast m) {
         cm.broadcast(this, msg, m);
+    }
+
+    /** {@inheritDoc} */
+    @Override
+    protected void closed(int statusCode, String reason) {
+        cm.server.tracker.remove(this);
+        cm.server.at.disconnected(this);
+        super.closed(statusCode, reason);
     }
 
     /** {@inheritDoc} */
@@ -80,6 +96,12 @@ public class ServerConnection extends ServerHandler {
         clientId = m.getClientId();
         cm.addConnection(m.getClientId().toString(), this);
         sendMessage(new ConnectedMessage(uuid.toString()));
+    }
+
+    /** {@inheritDoc} */
+    @Override
+    public void positionReport(PositionReportMessage m) {
+        cm.server.tracker.update(this, m.getPositionTime());
     }
 
     /** {@inheritDoc} */

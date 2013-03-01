@@ -27,7 +27,8 @@ import org.junit.Test;
 import test.stubs.BroadcastTestMessage;
 import dk.dma.enav.model.MaritimeId;
 import dk.dma.enav.net.MaritimeNetworkConnection;
-import dk.dma.enav.util.function.Consumer;
+import dk.dma.enav.net.broadcast.BroadcastProperties;
+import dk.dma.enav.util.function.BiConsumer;
 
 /**
  * 
@@ -42,8 +43,8 @@ public class BroadcastTest extends AbstractNetworkTest {
         MaritimeNetworkConnection c1 = newClient(ID1);
         MaritimeNetworkConnection c2 = newClient(ID6);
         final CountDownLatch cdl = new CountDownLatch(1);
-        c2.subscribe(BroadcastTestMessage.class, new Consumer<BroadcastTestMessage>() {
-            public void accept(BroadcastTestMessage t) {
+        c2.subscribe(BroadcastTestMessage.class, new BiConsumer<BroadcastProperties, BroadcastTestMessage>() {
+            public void accept(BroadcastProperties props, BroadcastTestMessage t) {
                 assertEquals("fooo", t.getName());
                 cdl.countDown();
             }
@@ -59,8 +60,8 @@ public class BroadcastTest extends AbstractNetworkTest {
         final CountDownLatch cdl = new CountDownLatch(10);
 
         for (MaritimeNetworkConnection mnc : newClients(10)) {
-            mnc.subscribe(BroadcastTestMessage.class, new Consumer<BroadcastTestMessage>() {
-                public void accept(BroadcastTestMessage t) {
+            mnc.subscribe(BroadcastTestMessage.class, new BiConsumer<BroadcastProperties, BroadcastTestMessage>() {
+                public void accept(BroadcastProperties props, BroadcastTestMessage t) {
                     assertEquals("fooo", t.getName());
                     cdl.countDown();
                 }
@@ -76,14 +77,14 @@ public class BroadcastTest extends AbstractNetworkTest {
         MaritimeNetworkConnection c2 = newClient(ID6);
         final CountDownLatch cdl1 = new CountDownLatch(1);
         final CountDownLatch cdl2 = new CountDownLatch(1);
-        c1.subscribe(BroadcastTestMessage.class, new Consumer<BroadcastTestMessage>() {
-            public void accept(BroadcastTestMessage t) {
+        c1.subscribe(BroadcastTestMessage.class, new BiConsumer<BroadcastProperties, BroadcastTestMessage>() {
+            public void accept(BroadcastProperties properties, BroadcastTestMessage t) {
                 assertEquals("fooo", t.getName());
                 cdl1.countDown();
             }
         });
-        c2.subscribe(BroadcastTestMessage.class, new Consumer<BroadcastTestMessage>() {
-            public void accept(BroadcastTestMessage t) {
+        c2.subscribe(BroadcastTestMessage.class, new BiConsumer<BroadcastProperties, BroadcastTestMessage>() {
+            public void accept(BroadcastProperties properties, BroadcastTestMessage t) {
                 assertEquals("fooo", t.getName());
                 cdl2.countDown();
             }

@@ -17,6 +17,7 @@ package dk.dma.navnet.server;
 
 import java.net.InetSocketAddress;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -28,7 +29,6 @@ import org.slf4j.LoggerFactory;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 
 import dk.dma.commons.tracker.PositionTracker;
-import dk.dma.enav.model.MaritimeId;
 import dk.dma.enav.model.shore.ServerId;
 
 /**
@@ -36,7 +36,7 @@ import dk.dma.enav.model.shore.ServerId;
  * @author Kasper Nielsen
  */
 public class ENavNetworkServer {
-    public static final int DEFAULT_PORT = 44554;
+    public static final int DEFAULT_PORT = 43234;
 
     final ServerId id = new ServerId(1);
 
@@ -44,6 +44,9 @@ public class ENavNetworkServer {
     static final Logger LOG = LoggerFactory.getLogger(ENavNetworkServer.class);
 
     final ServiceManager registeredServices = new ServiceManager();
+
+    final ExecutorService deamonPool = Executors.newCachedThreadPool(new ThreadFactoryBuilder()
+            .setNameFormat("deamonPool").setDaemon(true).build());
 
     final ScheduledExecutorService ses = Executors.newSingleThreadScheduledExecutor(new ThreadFactoryBuilder()
             .setNameFormat("PositionTrackerUpdate").setDaemon(true).build());
@@ -58,7 +61,7 @@ public class ENavNetworkServer {
     final CountDownLatch termination = new CountDownLatch(1);
 
     /** The position tracker. */
-    final PositionTracker<MaritimeId> tracker = new PositionTracker<>();
+    final PositionTracker<ServerConnection> tracker = new PositionTracker<>();
 
     final Server server;
 

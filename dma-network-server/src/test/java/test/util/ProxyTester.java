@@ -120,6 +120,7 @@ public class ProxyTester {
         connections.clear();
     }
 
+    @SuppressWarnings("deprecation")
     public void shutdown() throws InterruptedException {
         pause.countDown();
         ses.shutdown();
@@ -129,6 +130,7 @@ public class ProxyTester {
         es.awaitTermination(10, TimeUnit.SECONDS);
     }
 
+    @SuppressWarnings("deprecation")
     private void close(Connection c) {
         if (c != null) {
             Closeables.closeQuietly(c.incoming);
