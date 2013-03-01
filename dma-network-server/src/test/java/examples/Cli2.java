@@ -16,8 +16,8 @@
 package examples;
 
 import dk.dma.enav.net.MaritimeNetworkConnection;
+import dk.dma.enav.net.broadcast.BroadcastListener;
 import dk.dma.enav.net.broadcast.BroadcastProperties;
-import dk.dma.enav.util.function.BiConsumer;
 import dk.dma.navnet.client.MaritimeNetworkConnectionBuilder;
 
 /**
@@ -28,8 +28,8 @@ public class Cli2 {
     public static void main(String[] args) throws Exception {
         MaritimeNetworkConnectionBuilder b = MaritimeNetworkConnectionBuilder.create("mmsi://1234");
         try (MaritimeNetworkConnection c = b.connect()) {
-            c.subscribe(HejMedDig.class, new BiConsumer<BroadcastProperties, HejMedDig>() {
-                public void accept(BroadcastProperties l, HejMedDig r) {
+            c.broadcastListen(HejMedDig.class, new BroadcastListener<HejMedDig>() {
+                public void onMessage(BroadcastProperties l, HejMedDig r) {
                     System.out.println("fik beskeden " + r.getMessage() + " fra " + l.getId());
                 }
             });

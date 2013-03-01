@@ -30,6 +30,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.ReentrantLock;
 
 import jsr166e.CompletableFuture;
@@ -41,12 +42,13 @@ import dk.dma.enav.net.MaritimeNetworkConnection;
 import dk.dma.enav.net.NetworkFuture;
 import dk.dma.enav.net.ServiceCallback;
 import dk.dma.enav.net.ServiceRegistration;
+import dk.dma.enav.net.broadcast.BroadcastListener;
 import dk.dma.enav.net.broadcast.BroadcastMessage;
 import dk.dma.enav.net.broadcast.BroadcastProperties;
+import dk.dma.enav.net.broadcast.BroadcastSubscription;
 import dk.dma.enav.service.spi.InitiatingMessage;
 import dk.dma.enav.service.spi.MaritimeService;
 import dk.dma.enav.service.spi.MaritimeServiceMessage;
-import dk.dma.enav.util.function.BiConsumer;
 import dk.dma.enav.util.function.Supplier;
 import dk.dma.navnet.core.messages.c2c.Broadcast;
 import dk.dma.navnet.core.messages.c2c.InvokeService;
@@ -74,7 +76,7 @@ public class ClientNetwork implements MaritimeNetworkConnection {
 
     private volatile NetState state = NetState.CREATED;
 
-    final ConcurrentHashMapV8<Class<? extends BroadcastMessage>, CopyOnWriteArraySet<BiConsumer<BroadcastProperties, BroadcastMessage>>> subscribers = new ConcurrentHashMapV8<>();
+    final ConcurrentHashMapV8<Class<? extends BroadcastMessage>, CopyOnWriteArraySet<BSubcription>> subscribers = new ConcurrentHashMapV8<>();
 
     private final CountDownLatch terminated = new CountDownLatch(1);
     final Supplier<PositionTime> positionSupplier;
@@ -95,11 +97,11 @@ public class ClientNetwork implements MaritimeNetworkConnection {
 
     /** {@inheritDoc} */
     @Override
-    public NetworkFuture<Void> broadcast(BroadcastMessage message) {
+    public void broadcast(BroadcastMessage message) {
+        requireNonNull(message, "message is null");
         Broadcast b = new Broadcast(clientId, positionSupplier.get(), message.channel(),
                 JSonUtil.persistAndEscape(message));
         connection.sendMessage(b);
-        return null;
     }
 
     /** {@inheritDoc} */
@@ -210,20 +212,18 @@ public class ClientNetwork implements MaritimeNetworkConnection {
     }
 
     /** {@inheritDoc} */
-    @SuppressWarnings("unchecked")
     @Override
-    public <T extends BroadcastMessage> void subscribe(Class<T> messageType, BiConsumer<BroadcastProperties, T> consumer) {
-        CopyOnWriteArraySet<BiConsumer<BroadcastProperties, BroadcastMessage>> set = subscribers
-                .computeIfAbsent(
-                        messageType,
-                        new ConcurrentHashMapV8.Fun<Class<? extends BroadcastMessage>, CopyOnWriteArraySet<BiConsumer<BroadcastProperties, BroadcastMessage>>>() {
-                            public CopyOnWriteArraySet<BiConsumer<BroadcastProperties, BroadcastMessage>> apply(
-                                    Class<? extends BroadcastMessage> t) {
-                                return new CopyOnWriteArraySet<>();
-                            }
-                        });
+    public <T extends BroadcastMessage> BroadcastSubscription broadcastListen(Class<T> messageType,
+            BroadcastListener<T> consumer) {
+        BSubcription sub = new BSubcription(messageType, consumer);
 
-        set.add((BiConsumer<BroadcastProperties, BroadcastMessage>) consumer);
+        subscribers.computeIfAbsent(messageType,
+                new ConcurrentHashMapV8.Fun<Class<? extends BroadcastMessage>, CopyOnWriteArraySet<BSubcription>>() {
+                    public CopyOnWriteArraySet<BSubcription> apply(Class<? extends BroadcastMessage> t) {
+                        return new CopyOnWriteArraySet<>();
+                    }
+                }).add(sub);
+        return sub;
     }
 
     public static MaritimeNetworkConnection create(MaritimeNetworkConnectionBuilder builder) throws IOException {
@@ -266,5 +266,39 @@ public class ClientNetwork implements MaritimeNetworkConnection {
 
     enum NetState {
         CLOSED, CONNECTED, CREATED, TERMINATED;
+    }
+
+    class BSubcription implements BroadcastSubscription {
+        final AtomicLong count = new AtomicLong();
+
+        final BroadcastListener<? extends BroadcastMessage> consumer;
+
+        final Class<?> key;
+
+        /**
+         * @param consumer
+         */
+        BSubcription(Class<?> key, BroadcastListener<? extends BroadcastMessage> consumer) {
+            this.key = requireNonNull(key);
+            this.consumer = requireNonNull(consumer);
+        }
+
+        /** {@inheritDoc} */
+        @Override
+        public long getNumberOfReceivedBroadcasts() {
+            return count.get();
+        }
+
+        @SuppressWarnings({ "unchecked", "rawtypes" })
+        void deliver(BroadcastProperties properties, BroadcastMessage message) {
+            ((BroadcastListener) consumer).onMessage(properties, message);
+            count.incrementAndGet();
+        }
+
+        /** {@inheritDoc} */
+        @Override
+        public void cancel() {
+            subscribers.get(key).remove(this);
+        }
     }
 }

@@ -32,7 +32,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import dk.dma.enav.net.ServiceCallback;
 import dk.dma.enav.net.broadcast.BroadcastMessage;
 import dk.dma.enav.net.broadcast.BroadcastProperties;
-import dk.dma.enav.util.function.BiConsumer;
+import dk.dma.navnet.client.ClientNetwork.BSubcription;
 import dk.dma.navnet.core.messages.c2c.Broadcast;
 import dk.dma.navnet.core.messages.c2c.InvokeService;
 import dk.dma.navnet.core.messages.s2c.connection.ConnectedMessage;
@@ -77,11 +77,11 @@ class ClientConnection extends ClientHandler {
         }
         // Okay vi have a valid broadcast message
         if (bm != null) {
-            CopyOnWriteArraySet<BiConsumer<BroadcastProperties, BroadcastMessage>> s = cm.subscribers.get(cl);
+            CopyOnWriteArraySet<BSubcription> s = cm.subscribers.get(cl);
             if (s != null) {
                 BroadcastProperties bp = new BroadcastProperties(m.getId(), m.getPositionTime());
-                for (BiConsumer<BroadcastProperties, BroadcastMessage> c : s) {
-                    c.accept(bp, bm);
+                for (BSubcription c : s) {
+                    c.deliver(bp, bm);
                 }
             }
         }
