@@ -285,7 +285,7 @@ public class ClientNetwork implements MaritimeNetworkConnection {
 
         /** {@inheritDoc} */
         @Override
-        public long getNumberOfReceivedBroadcasts() {
+        public long getNumberOfReceivedMessages() {
             return count.get();
         }
 
