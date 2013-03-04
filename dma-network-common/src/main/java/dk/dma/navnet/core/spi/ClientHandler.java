@@ -29,7 +29,7 @@ public abstract class ClientHandler extends AbstractHandler {
 
     /** {@inheritDoc} */
     @Override
-    protected final void handleText(String msg, AbstractMessage m) {
+    public final void handleText(String msg, AbstractMessage m) {
         if (m instanceof WelcomeMessage) {
             welcome((WelcomeMessage) m);
         } else if (m instanceof ConnectedMessage) {

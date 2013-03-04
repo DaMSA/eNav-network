@@ -115,15 +115,19 @@ public class ENavNetworkServer {
         }
     }
 
-    public static void main(String[] args) {
-        if (args.length > 0) {
-
-        }
-    }
-
     synchronized void tryTerminate() {
         termination.countDown();
         LOG.info("Server Terminated");
+    }
+
+    public void manage() {
+        // MBeanContainer mbContainer = new MBeanContainer(ManagementFactory.getPlatformMBeanServer());
+        // server. .getContainer().addEventListener(mbContainer);
+        // server.addBean(mbContainer);
+        //
+        // // Register loggers as MBeans
+        // mbContainer.addBean(Log.getLog());
+
     }
 
     class ShutdownThread extends Thread {

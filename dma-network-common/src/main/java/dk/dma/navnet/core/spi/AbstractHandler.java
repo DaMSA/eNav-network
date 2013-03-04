@@ -109,6 +109,10 @@ public abstract class AbstractHandler {
         }
     }
 
+    public final void sendRawTextMessageAsync(String m) {
+
+    }
+
     public final void sendRawTextMessage(String m) {
         Session s = session;
         RemoteEndpoint r = s == null ? null : s.getRemote();

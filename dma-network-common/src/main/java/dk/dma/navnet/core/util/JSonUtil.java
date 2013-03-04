@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package dk.dma.navnet.client;
+package dk.dma.navnet.core.util;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -23,7 +23,7 @@ import com.fasterxml.jackson.databind.SerializationFeature;
  * 
  * @author Kasper Nielsen
  */
-class JSonUtil {
+public class JSonUtil {
 
     public static String persist(Object o) {
         ObjectMapper om = new ObjectMapper();

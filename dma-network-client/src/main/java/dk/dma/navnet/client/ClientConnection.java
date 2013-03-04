@@ -20,19 +20,12 @@ import static java.util.Objects.requireNonNull;
 import java.io.IOException;
 import java.net.ConnectException;
 import java.net.URI;
-import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 
 import org.eclipse.jetty.websocket.client.WebSocketClient;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-
-import dk.dma.enav.net.ServiceCallback;
-import dk.dma.enav.net.broadcast.BroadcastMessage;
-import dk.dma.enav.net.broadcast.BroadcastProperties;
-import dk.dma.navnet.client.ClientNetwork.BSubcription;
 import dk.dma.navnet.core.messages.c2c.Broadcast;
 import dk.dma.navnet.core.messages.c2c.InvokeService;
 import dk.dma.navnet.core.messages.s2c.connection.ConnectedMessage;
@@ -62,31 +55,6 @@ class ClientConnection extends ClientHandler {
         this.url = requireNonNull(url);
     }
 
-    /** {@inheritDoc} */
-    @Override
-    protected void receivedBroadcast(Broadcast m) {
-        BroadcastMessage bm = null;
-        Class<?> cl = null;
-        try {
-            String channel = m.getChannel();
-            ObjectMapper om = new ObjectMapper();
-            cl = Class.forName(channel);
-            bm = (BroadcastMessage) om.readValue(m.getMessage(), cl);
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-        // Okay vi have a valid broadcast message
-        if (bm != null) {
-            CopyOnWriteArraySet<BSubcription> s = cm.subscribers.get(cl);
-            if (s != null) {
-                BroadcastProperties bp = new BroadcastProperties(m.getId(), m.getPositionTime());
-                for (BSubcription c : s) {
-                    c.deliver(bp, bm);
-                }
-            }
-        }
-    }
-
     public void close() throws IOException {
         tryClose(4333, "Goodbye");
         try {
@@ -96,12 +64,12 @@ class ClientConnection extends ClientHandler {
         }
     }
 
-    public void connect() throws Exception {
+    public void connect(long timeout, TimeUnit unit) throws Exception {
         URI echoUri = new URI(url);
         client.start();
         try {
             client.connect(getListener(), echoUri).get();
-            connected.await(10, TimeUnit.SECONDS);
+            connected.await(timeout, unit);
             if (connected.getCount() > 0) {
                 throw new ConnectException("Timedout while connecting to " + url);
             }
@@ -122,32 +90,13 @@ class ClientConnection extends ClientHandler {
     /** {@inheritDoc} */
     @Override
     public void invokeService(InvokeService m) {
-        InternalServiceCallbackRegistration s = cm.registeredServices.get(m.getServiceType());
-        if (s != null) {
-            ServiceCallback<Object, Object> sc = s.c;
-            Object o = null;
-            try {
-                Class<?> mt = Class.forName(s.type.getName() + "$" + m.getServiceMessageType());
-                ObjectMapper om = new ObjectMapper();
-                o = om.readValue(m.getMessage(), mt);
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-            sc.process(o, new ServiceCallback.Context<Object>() {
-                public void complete(Object result) {
-                    requireNonNull(result);
-                    System.out.println("Completed");
-                    // con.packetWrite(p.replyWith(result));
-                }
+        cm.services.receiveInvokeService(m);
+    }
 
-                public void fail(Throwable cause) {
-                    requireNonNull(cause);
-                    System.out.println(cause);
-                    // con.packetWrite(p.replyWithFailure(cause));
-                }
-            });
-        }
-        super.invokeService(m);
+    /** {@inheritDoc} */
+    @Override
+    protected void receivedBroadcast(Broadcast m) {
+        cm.broadcaster.receive(m);
     }
 
     /** {@inheritDoc} */

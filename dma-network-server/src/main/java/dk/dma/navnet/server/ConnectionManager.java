@@ -59,12 +59,10 @@ class ConnectionManager {
     ConnectionManager(ENavNetworkServer server, SocketAddress socketAddress) {
         this.server = requireNonNull(server);
 
+        // Creates the web socket handler that accept incoming requests
         WebSocketHandler wsHandler = new WebSocketHandler() {
-            @Override
             public void configure(WebSocketServletFactory factory) {
                 factory.setCreator(new WebSocketCreator() {
-
-                    @Override
                     public Object createWebSocket(UpgradeRequest req, UpgradeResponse resp) {
                         return new ServerConnection(ConnectionManager.this).getListener();
                     }
@@ -88,9 +86,9 @@ class ConnectionManager {
         connections.remove(connection.clientId.toString());
     }
 
-    void broadcast(ServerConnection self, final String msg, Broadcast broadcast) {
+    void broadcast(ServerConnection sender, final String msg, Broadcast broadcast) {
         for (final ServerConnection sc : connections.values()) {
-            if (sc != self) {
+            if (sc != sender) {
                 server.deamonPool.execute(new Runnable() {
                     public void run() {
                         sc.sendRawTextMessage(msg);

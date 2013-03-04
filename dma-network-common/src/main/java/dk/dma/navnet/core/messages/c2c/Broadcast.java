@@ -19,18 +19,28 @@ import static java.util.Objects.requireNonNull;
 
 import java.io.IOException;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
+
 import dk.dma.enav.model.MaritimeId;
 import dk.dma.enav.model.geometry.PositionTime;
+import dk.dma.enav.net.broadcast.BroadcastMessage;
 import dk.dma.navnet.core.messages.AbstractMessage;
 import dk.dma.navnet.core.messages.MessageType;
 import dk.dma.navnet.core.messages.ProtocolReader;
 import dk.dma.navnet.core.messages.ProtocolWriter;
+import dk.dma.navnet.core.util.JSonUtil;
 
 /**
  * 
  * @author Kasper Nielsen
  */
 public class Broadcast extends AbstractMessage {
+    /** The logger. */
+    static final Logger LOG = LoggerFactory.getLogger(Broadcast.class);
+
     final String channel;
 
     final MaritimeId id;
@@ -49,6 +59,11 @@ public class Broadcast extends AbstractMessage {
         this.channel = requireNonNull(channel);
         this.message = requireNonNull(message);
     }
+
+    public static Broadcast create(MaritimeId sender, PositionTime position, BroadcastMessage message) {
+        return new Broadcast(sender, position, message.channel(), JSonUtil.persistAndEscape(message));
+    }
+
     /**
      * @param messageType
      * @throws IOException
@@ -63,6 +78,11 @@ public class Broadcast extends AbstractMessage {
      */
     public String getChannel() {
         return channel;
+    }
+
+    @SuppressWarnings("unchecked")
+    public Class<BroadcastMessage> getClassFromChannel() throws ClassNotFoundException {
+        return (Class<BroadcastMessage>) Class.forName(channel);
     }
 
     /**
@@ -84,6 +104,19 @@ public class Broadcast extends AbstractMessage {
      */
     public PositionTime getPositionTime() {
         return positionTime;
+    }
+
+    public BroadcastMessage tryRead() {
+        try {
+            Class<BroadcastMessage> cl = getClassFromChannel();
+
+            ObjectMapper om = new ObjectMapper();
+            return om.readValue(getMessage(), cl);
+        } catch (Exception e) {
+            LOG.error("Exception while trying to deserialize an incoming broadcast message ", e);
+            LOG.error(toJSON());
+            return null;
+        }
     }
 
     /** {@inheritDoc} */
