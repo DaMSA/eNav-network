@@ -5,3 +5,5 @@ target
 .project
 .classpath
 /src
+/json.txt
+/ROADMAP.txt
