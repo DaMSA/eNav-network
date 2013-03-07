@@ -37,7 +37,7 @@ class PositionManager implements Runnable {
     static final Logger LOG = LoggerFactory.getLogger(PositionManager.class);
 
     /** Send out a signal no more often than. */
-    static final long MINIMUM_SIGNAL_DURATION = TimeUnit.SECONDS.convert(4, TimeUnit.NANOSECONDS);
+    static final long MINIMUM_SIGNAL_DURATION = TimeUnit.NANOSECONDS.convert(5, TimeUnit.SECONDS);
 
     /** Responsible for creating a current position and time. */
     private final Supplier<PositionTime> positionSupplier;
@@ -46,7 +46,7 @@ class PositionManager implements Runnable {
     private final ClientNetwork c;
 
     /** When we send the last message */
-    private volatile long latestMessage = -MINIMUM_SIGNAL_DURATION; // System.nanoTime>0 so we always send it first time
+    private volatile long latestTime = -MINIMUM_SIGNAL_DURATION; // System.nanoTime>0 so we always send it first time
 
     /**
      * @param connection
@@ -55,13 +55,14 @@ class PositionManager implements Runnable {
     PositionManager(ClientNetwork c, Supplier<PositionTime> positionSupplier) {
         this.c = requireNonNull(c);
         this.positionSupplier = requireNonNull(positionSupplier);
+        System.out.println(MINIMUM_SIGNAL_DURATION);
     }
 
     @Override
     public void run() {
         long now = System.nanoTime();
         // Only send a message if it is more MINIMUM_SIGNAL_DURATION time since the last signal
-        if (now - latestMessage < MINIMUM_SIGNAL_DURATION) {
+        if (now - latestTime < MINIMUM_SIGNAL_DURATION) {
             return;
         }
 
@@ -73,7 +74,7 @@ class PositionManager implements Runnable {
         }
 
         if (t != null) {
-            latestMessage = now;
+            latestTime = now;
             c.connection.sendMessage(new PositionReportMessage(t));
         }
     }

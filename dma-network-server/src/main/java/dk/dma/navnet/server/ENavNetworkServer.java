@@ -65,6 +65,10 @@ public class ENavNetworkServer {
 
     final Server server;
 
+    public ENavNetworkServer() {
+        this(DEFAULT_PORT);
+    }
+
     public ENavNetworkServer(int port) {
         server = new Server(new InetSocketAddress(port));
         at = new ConnectionManager(this, new InetSocketAddress(port));
