@@ -22,7 +22,7 @@
     </dependency>
     <dependency>
       <groupId>dk.dma.enav</groupId>
-      <artifactId>enav-service-common</artifactId>
+      <artifactId>enav-common</artifactId>
       <version>${project.version}</version>
     </dependency>
     <dependency>

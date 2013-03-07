@@ -25,10 +25,10 @@ import java.util.concurrent.TimeUnit;
 import org.junit.Test;
 
 import test.stubs.BroadcastTestMessage;
+import dk.dma.enav.communication.MaritimeNetworkConnection;
+import dk.dma.enav.communication.broadcast.BroadcastListener;
+import dk.dma.enav.communication.broadcast.BroadcastMessageHeader;
 import dk.dma.enav.model.MaritimeId;
-import dk.dma.enav.net.MaritimeNetworkConnection;
-import dk.dma.enav.net.broadcast.BroadcastListener;
-import dk.dma.enav.net.broadcast.BroadcastProperties;
 
 /**
  * 
@@ -44,7 +44,7 @@ public class BroadcastTest extends AbstractNetworkTest {
         MaritimeNetworkConnection c2 = newClient(ID6);
         final CountDownLatch cdl = new CountDownLatch(1);
         c2.broadcastListen(BroadcastTestMessage.class, new BroadcastListener<BroadcastTestMessage>() {
-            public void onMessage(BroadcastProperties props, BroadcastTestMessage t) {
+            public void onMessage(BroadcastMessageHeader props, BroadcastTestMessage t) {
                 assertEquals("fooo", t.getName());
                 cdl.countDown();
             }
@@ -61,7 +61,7 @@ public class BroadcastTest extends AbstractNetworkTest {
 
         for (MaritimeNetworkConnection mnc : newClients(10)) {
             mnc.broadcastListen(BroadcastTestMessage.class, new BroadcastListener<BroadcastTestMessage>() {
-                public void onMessage(BroadcastProperties props, BroadcastTestMessage t) {
+                public void onMessage(BroadcastMessageHeader props, BroadcastTestMessage t) {
                     assertEquals("fooo", t.getName());
                     cdl.countDown();
                 }
@@ -78,13 +78,13 @@ public class BroadcastTest extends AbstractNetworkTest {
         final CountDownLatch cdl1 = new CountDownLatch(1);
         final CountDownLatch cdl2 = new CountDownLatch(1);
         c1.broadcastListen(BroadcastTestMessage.class, new BroadcastListener<BroadcastTestMessage>() {
-            public void onMessage(BroadcastProperties properties, BroadcastTestMessage t) {
+            public void onMessage(BroadcastMessageHeader properties, BroadcastTestMessage t) {
                 assertEquals("fooo", t.getName());
                 cdl1.countDown();
             }
         });
         c2.broadcastListen(BroadcastTestMessage.class, new BroadcastListener<BroadcastTestMessage>() {
-            public void onMessage(BroadcastProperties properties, BroadcastTestMessage t) {
+            public void onMessage(BroadcastMessageHeader properties, BroadcastTestMessage t) {
                 assertEquals("fooo", t.getName());
                 cdl2.countDown();
             }

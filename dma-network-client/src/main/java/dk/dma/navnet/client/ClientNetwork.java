@@ -26,19 +26,19 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.ReentrantLock;
 
+import dk.dma.enav.communication.MaritimeNetworkConnection;
+import dk.dma.enav.communication.NetworkFuture;
+import dk.dma.enav.communication.broadcast.BroadcastListener;
+import dk.dma.enav.communication.broadcast.BroadcastMessage;
+import dk.dma.enav.communication.broadcast.BroadcastSubscription;
+import dk.dma.enav.communication.service.ServiceInitiationPoint;
+import dk.dma.enav.communication.service.ServiceInvocationCallback;
+import dk.dma.enav.communication.service.ServiceRegistration;
+import dk.dma.enav.communication.service.spi.InitiatingMessage;
+import dk.dma.enav.communication.service.spi.MaritimeServiceMessage;
 import dk.dma.enav.model.MaritimeId;
 import dk.dma.enav.model.geometry.Area;
 import dk.dma.enav.model.geometry.PositionTime;
-import dk.dma.enav.net.MaritimeNetworkConnection;
-import dk.dma.enav.net.NetworkFuture;
-import dk.dma.enav.net.ServiceCallback;
-import dk.dma.enav.net.ServiceRegistration;
-import dk.dma.enav.net.broadcast.BroadcastListener;
-import dk.dma.enav.net.broadcast.BroadcastMessage;
-import dk.dma.enav.net.broadcast.BroadcastSubscription;
-import dk.dma.enav.service.spi.InitiatingMessage;
-import dk.dma.enav.service.spi.MaritimeService;
-import dk.dma.enav.service.spi.MaritimeServiceMessage;
 import dk.dma.navnet.core.util.NetworkFutureImpl;
 
 /**
@@ -115,22 +115,22 @@ public class ClientNetwork implements MaritimeNetworkConnection {
 
     /** {@inheritDoc} */
     @Override
-    public NetworkFuture<Map<MaritimeId, String>> findServices(String serviceType) {
+    public NetworkFuture<Map<MaritimeId, String>> serviceFind(String serviceType) {
         return services.findServices(serviceType);
     }
 
     /** {@inheritDoc} */
     @Override
-    public <T extends MaritimeServiceMessage<?>, S extends MaritimeService, E extends MaritimeServiceMessage<T> & InitiatingMessage> ServiceRegistration registerService(
-            S service, ServiceCallback<E, T> b) {
-        return services.registerService(service, b);
+    public <T, S extends MaritimeServiceMessage<T> & InitiatingMessage> NetworkFutureImpl<T> serviceInvoke(
+            MaritimeId id, S msg) {
+        return services.invokeService(id, msg);
     }
 
     /** {@inheritDoc} */
     @Override
-    public <T, S extends MaritimeServiceMessage<T> & InitiatingMessage> NetworkFutureImpl<T> invokeService(
-            MaritimeId id, S msg) {
-        return services.invokeService(id, msg);
+    public <T, E extends MaritimeServiceMessage<T>> ServiceRegistration serviceRegister(ServiceInitiationPoint<E> sip,
+            ServiceInvocationCallback<E, T> callback) {
+        return services.serviceRegister(sip, callback);
     }
 
     /* LIFECYCLE METHODS */
@@ -202,4 +202,5 @@ public class ClientNetwork implements MaritimeNetworkConnection {
     enum State {
         CLOSED, CONNECTED, CREATED, TERMINATED;
     }
+
 }

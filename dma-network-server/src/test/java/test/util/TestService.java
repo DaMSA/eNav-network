@@ -16,10 +16,10 @@
 package test.util;
 
 import static java.util.Objects.requireNonNull;
+import dk.dma.enav.communication.service.spi.InitiatingMessage;
+import dk.dma.enav.communication.service.spi.MaritimeService;
+import dk.dma.enav.communication.service.spi.MaritimeServiceMessage;
 import dk.dma.enav.model.MaritimeId;
-import dk.dma.enav.service.spi.InitiatingMessage;
-import dk.dma.enav.service.spi.MaritimeService;
-import dk.dma.enav.service.spi.MaritimeServiceMessage;
 
 /**
  * 
@@ -27,13 +27,7 @@ import dk.dma.enav.service.spi.MaritimeServiceMessage;
  */
 public class TestService extends MaritimeService {
 
-    public TestService() {
-        super("dma.test.service");
-    }
-
     public static class TestInit extends MaritimeServiceMessage<TestReply> implements InitiatingMessage {
-        /** serialVersionUID. */
-        private static final long serialVersionUID = 1L;
 
         private final long id;
 
@@ -80,9 +74,6 @@ public class TestService extends MaritimeService {
     }
 
     public static class TestReply extends MaritimeServiceMessage<Void> {
-
-        /** serialVersionUID. */
-        private static final long serialVersionUID = 1L;
 
         private final TestInit testInit;
         final long timestamp = System.nanoTime();

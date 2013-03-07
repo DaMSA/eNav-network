@@ -27,15 +27,20 @@ import java.util.concurrent.TimeoutException;
 
 import jsr166e.CompletableFuture;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import dk.dma.enav.communication.NetworkFuture;
+import dk.dma.enav.communication.service.ServiceInitiationPoint;
+import dk.dma.enav.communication.service.ServiceInvocationCallback;
+import dk.dma.enav.communication.service.ServiceInvocationCallback.FailureCode;
+import dk.dma.enav.communication.service.ServiceRegistration;
+import dk.dma.enav.communication.service.spi.InitiatingMessage;
+import dk.dma.enav.communication.service.spi.MaritimeService;
+import dk.dma.enav.communication.service.spi.MaritimeServiceMessage;
 import dk.dma.enav.model.MaritimeId;
-import dk.dma.enav.net.NetworkFuture;
-import dk.dma.enav.net.ServiceCallback;
-import dk.dma.enav.net.ServiceRegistration;
-import dk.dma.enav.service.spi.InitiatingMessage;
-import dk.dma.enav.service.spi.MaritimeService;
-import dk.dma.enav.service.spi.MaritimeServiceMessage;
 import dk.dma.navnet.core.messages.c2c.InvokeService;
 import dk.dma.navnet.core.messages.s2c.FindServices;
 import dk.dma.navnet.core.messages.s2c.RegisterService;
@@ -47,57 +52,28 @@ import dk.dma.navnet.core.util.NetworkFutureImpl;
  * @author Kasper Nielsen
  */
 class ClientServiceManager {
-    final ConcurrentHashMap<String, InternalServiceCallbackRegistration> registeredServices = new ConcurrentHashMap<>();
+
+    /** The logger. */
+    static final Logger LOG = LoggerFactory.getLogger(ClientServiceManager.class);
+
+    /** The network */
     final ClientNetwork c;
 
+    /** A map of subscribers. ChannelName -> List of listeners. */
+    final ConcurrentHashMap<String, Registration> listeners = new ConcurrentHashMap<>();
+
     /**
-     * @param clientNetwork
+     * Creates a new instance of this class.
+     * 
+     * @param network
+     *            the network
      */
-    public ClientServiceManager(ClientNetwork clientNetwork) {
+    ClientServiceManager(ClientNetwork clientNetwork) {
         this.c = requireNonNull(clientNetwork);
     }
 
     /** {@inheritDoc} */
-    public void receiveInvokeService(InvokeService m) {
-        InternalServiceCallbackRegistration s = registeredServices.get(m.getServiceType());
-        if (s != null) {
-            ServiceCallback<Object, Object> sc = s.c;
-            Object o = null;
-            try {
-                Class<?> mt = Class.forName(s.type.getName() + "$" + m.getServiceMessageType());
-                ObjectMapper om = new ObjectMapper();
-                o = om.readValue(m.getMessage(), mt);
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-            sc.process(o, new ServiceCallback.Context<Object>() {
-                public void complete(Object result) {
-                    requireNonNull(result);
-                    System.out.println("Completed");
-                    // con.packetWrite(p.replyWith(result));
-                }
-
-                public void fail(Throwable cause) {
-                    requireNonNull(cause);
-                    System.out.println(cause);
-                    // con.packetWrite(p.replyWithFailure(cause));
-                }
-            });
-        }
-    }
-
-    /** {@inheritDoc} */
-    public <T, S extends MaritimeServiceMessage<T> & InitiatingMessage> NetworkFutureImpl<T> invokeService(
-            MaritimeId id, S msg) {
-        InvokeService is = new InvokeService(1, UUID.randomUUID().toString(), msg.serviceName(), msg.messageName(),
-                JSonUtil.persistAndEscape(msg));
-        is.setDestination(id.toString());
-        is.setSource(c.clientId.toString());
-        return c.connection.sendMessage(is);
-    }
-
-    /** {@inheritDoc} */
-    public NetworkFuture<Map<MaritimeId, String>> findServices(final String serviceType) {
+    NetworkFuture<Map<MaritimeId, String>> findServices(final String serviceType) {
         return NetworkFutureImpl.wrap(c.connection.sendMessage(new FindServices(serviceType)).thenApply(
                 new CompletableFuture.Fun<String[], Map<MaritimeId, String>>() {
                     @Override
@@ -112,12 +88,48 @@ class ClientServiceManager {
     }
 
     /** {@inheritDoc} */
-    public <T extends MaritimeServiceMessage<?>, S extends MaritimeService, E extends MaritimeServiceMessage<T> & InitiatingMessage> ServiceRegistration registerService(
-            S service, ServiceCallback<E, T> b) {
-        if (registeredServices.putIfAbsent(service.getName(),
-                new InternalServiceCallbackRegistration(service.getClass(), b)) != null) {
-            throw new IllegalArgumentException("A service of the specified type has already been registered");
+    <T, S extends MaritimeServiceMessage<T> & InitiatingMessage> NetworkFutureImpl<T> invokeService(MaritimeId id, S msg) {
+        InvokeService is = new InvokeService(1, UUID.randomUUID().toString(), msg.serviceName(), msg.messageName(),
+                JSonUtil.persistAndEscape(msg));
+        is.setDestination(id.toString());
+        is.setSource(c.clientId.toString());
+        return c.connection.sendMessage(is);
+    }
+
+    /** {@inheritDoc} */
+    @SuppressWarnings("null")
+    void receiveInvokeService(InvokeService m) {
+        Registration s = listeners.get(m.getServiceType());
+        if (s != null) {
+            ServiceInvocationCallback<Object, Object> sc = null;// s.c;
+            Object o = null;
+            try {
+                Class<?> mt = null;// Class.forName(s.type.getName() + "$" + m.getServiceMessageType());
+                ObjectMapper om = new ObjectMapper();
+                o = om.readValue(m.getMessage(), mt);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+            sc.process(o, new ServiceInvocationCallback.Context<Object>() {
+                public void complete(Object result) {
+                    requireNonNull(result);
+                    System.out.println("Completed");
+                    // con.packetWrite(p.replyWith(result));
+                }
+
+                @Override
+                public void fail(FailureCode fc, String message) {}
+            });
         }
+    }
+
+    /** {@inheritDoc} */
+    <T extends MaritimeServiceMessage<?>, S extends MaritimeService, E extends MaritimeServiceMessage<T> & InitiatingMessage> ServiceRegistration serviceRegister(
+            S service, ServiceInvocationCallback<E, T> b) {
+        // if (listeners.putIfAbsent(service.getName(), new Registration(service.getClass(), b)) != null) {
+        // throw new IllegalArgumentException(
+        // "A service of the specified type has already been registered. Can only register one at a time");
+        // }
         final NetworkFutureImpl<Void> stp = c.connection.sendMessage(new RegisterService(service.getName()));
         // final NetworkFutureImpl<Void> stp = null;// connection.withReply(null, Packet.REGISTER_SERVICE, service);
         return new ServiceRegistration() {
@@ -136,20 +148,34 @@ class ClientServiceManager {
             public void cancel() {
                 throw new UnsupportedOperationException();
             }
+
+            @Override
+            public State getState() {
+                throw new UnsupportedOperationException();
+            }
         };
     }
 
-    class InternalServiceCallbackRegistration {
-        final Class<? extends MaritimeService> type;
-
-        final ServiceCallback<Object, Object> c;
-
-        @SuppressWarnings("unchecked")
-        InternalServiceCallbackRegistration(Class<? extends MaritimeService> type, ServiceCallback<?, ?> c) {
-            this.type = requireNonNull(type);
-            this.c = (ServiceCallback<Object, Object>) requireNonNull(c);
+    /** {@inheritDoc} */
+    public <T, E extends MaritimeServiceMessage<T>> ServiceRegistration serviceRegister(ServiceInitiationPoint<E> sip,
+            ServiceInvocationCallback<E, T> callback) {
+        if (listeners.putIfAbsent(sip.getName(), new Registration(sip, callback)) != null) {
+            throw new IllegalArgumentException(
+                    "A service of the specified type has already been registered. Can only register one at a time");
         }
+        // final NetworkFutureImpl<Void> stp = c.connection.sendMessage(new RegisterService(service.getName()));
+        return null;
+    }
 
+    class Registration {
+        final ServiceInvocationCallback<?, ?> c;
+
+        final ServiceInitiationPoint<?> sip;
+
+        Registration(ServiceInitiationPoint<?> sip, ServiceInvocationCallback<?, ?> c) {
+            this.sip = requireNonNull(sip);
+            this.c = requireNonNull(c);
+        }
     }
 
 }

@@ -15,7 +15,7 @@
  */
 package examples;
 
-import dk.dma.enav.net.broadcast.BroadcastMessage;
+import dk.dma.enav.communication.broadcast.BroadcastMessage;
 
 /**
  * 

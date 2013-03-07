@@ -39,15 +39,18 @@ import dk.dma.navnet.core.spi.ClientHandler;
  */
 class ClientConnection extends ClientHandler {
 
-    final WebSocketClient client = new WebSocketClient();
+    /** The actual websocket client. Changes when reconnecting. */
+    private volatile WebSocketClient client = new WebSocketClient();
 
     final ClientNetwork cm;
+
     final CountDownLatch connected = new CountDownLatch(1);
 
     long nextReplyId;
 
     State state = State.CREATED;
 
+    /** The URL to connect to. */
     private final String url;
 
     ClientConnection(String url, ClientNetwork cm) {
@@ -83,13 +86,13 @@ class ClientConnection extends ClientHandler {
 
     /** {@inheritDoc} */
     @Override
-    public void connected(ConnectedMessage m) {
+    protected void connected(ConnectedMessage m) {
         connected.countDown();
     }
 
     /** {@inheritDoc} */
     @Override
-    public void invokeService(InvokeService m) {
+    protected void invokeService(InvokeService m) {
         cm.services.receiveInvokeService(m);
     }
 
@@ -101,7 +104,7 @@ class ClientConnection extends ClientHandler {
 
     /** {@inheritDoc} */
     @Override
-    public void welcome(WelcomeMessage m) {
+    protected void welcome(WelcomeMessage m) {
         sendMessage(new HelloMessage(cm.clientId, "enavClient/1.0", "", 2));
     }
 

@@ -15,9 +15,9 @@
  */
 package examples;
 
-import dk.dma.enav.net.MaritimeNetworkConnection;
-import dk.dma.enav.net.broadcast.BroadcastListener;
-import dk.dma.enav.net.broadcast.BroadcastProperties;
+import dk.dma.enav.communication.MaritimeNetworkConnection;
+import dk.dma.enav.communication.broadcast.BroadcastListener;
+import dk.dma.enav.communication.broadcast.BroadcastMessageHeader;
 import dk.dma.navnet.client.MaritimeNetworkConnectionBuilder;
 
 /**
@@ -29,7 +29,7 @@ public class Cli2 {
         MaritimeNetworkConnectionBuilder b = MaritimeNetworkConnectionBuilder.create("mmsi://1234");
         try (MaritimeNetworkConnection c = b.connect()) {
             c.broadcastListen(HejMedDig.class, new BroadcastListener<HejMedDig>() {
-                public void onMessage(BroadcastProperties l, HejMedDig r) {
+                public void onMessage(BroadcastMessageHeader l, HejMedDig r) {
                     System.out.println("fik beskeden " + r.getMessage() + " fra " + l.getId());
                 }
             });

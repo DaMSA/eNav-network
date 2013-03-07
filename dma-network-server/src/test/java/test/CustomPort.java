@@ -18,7 +18,7 @@ package test;
 import org.junit.Test;
 
 import test.stubs.HelloWorld;
-import dk.dma.enav.net.MaritimeNetworkConnection;
+import dk.dma.enav.communication.MaritimeNetworkConnection;
 import dk.dma.navnet.client.MaritimeNetworkConnectionBuilder;
 import dk.dma.navnet.server.ENavNetworkServer;
 

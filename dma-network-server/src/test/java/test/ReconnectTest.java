@@ -29,10 +29,10 @@ import org.junit.Test;
 import test.util.TestService;
 import test.util.TestService.TestInit;
 import test.util.TestService.TestReply;
+import dk.dma.enav.communication.MaritimeNetworkConnection;
+import dk.dma.enav.communication.NetworkFuture;
+import dk.dma.enav.communication.service.ServiceInvocationCallback;
 import dk.dma.enav.model.MaritimeId;
-import dk.dma.enav.net.MaritimeNetworkConnection;
-import dk.dma.enav.net.NetworkFuture;
-import dk.dma.enav.net.ServiceCallback;
 
 /**
  * 
@@ -52,7 +52,7 @@ public class ReconnectTest extends AbstractNetworkTest {
     public void randomKilling() throws Exception {
         final AtomicInteger ai = new AtomicInteger();
         MaritimeNetworkConnection c1 = newClient(ID1);
-        c1.registerService(new TestService(), new ServiceCallback<TestService.TestInit, TestService.TestReply>() {
+        c1.serviceRegister(null, new ServiceInvocationCallback<TestService.TestInit, TestService.TestReply>() {
             public void process(TestService.TestInit l, Context<TestService.TestReply> context) {
                 context.complete(l.reply());
                 ai.incrementAndGet();
@@ -68,7 +68,7 @@ public class ReconnectTest extends AbstractNetworkTest {
         for (int i = 0; i < 100; i++) {
             for (int j = 0; j < 100; j++) {
                 TestService.TestInit init = new TestService.TestInit(i * 100 + j, ID6, ID1);
-                set.put(init, c6.invokeService(ID1, init));
+                set.put(init, c6.serviceInvoke(ID1, init));
                 System.out.println("SEND " + init);
             }
             for (Map.Entry<TestInit, NetworkFuture<TestService.TestReply>> f : set.entrySet()) {
@@ -91,7 +91,7 @@ public class ReconnectTest extends AbstractNetworkTest {
     public void randomKilling2() throws Exception {
         final AtomicInteger ai = new AtomicInteger();
         MaritimeNetworkConnection c1 = newClient(ID1);
-        c1.registerService(new TestService(), new ServiceCallback<TestService.TestInit, TestService.TestReply>() {
+        c1.serviceRegister(null, new ServiceInvocationCallback<TestService.TestInit, TestService.TestReply>() {
             public void process(TestService.TestInit l, Context<TestService.TestReply> context) {
                 context.complete(l.reply());
                 ai.incrementAndGet();
@@ -106,7 +106,7 @@ public class ReconnectTest extends AbstractNetworkTest {
         assertEquals(2, si.getNumberOfConnections());
         for (int j = 0; j < 10; j++) {
             TestService.TestInit init = new TestService.TestInit(j, ID6, ID1);
-            set.put(init, c6.invokeService(ID1, init));
+            set.put(init, c6.serviceInvoke(ID1, init));
             System.out.println("SEND " + init);
         }
         for (Map.Entry<TestInit, NetworkFuture<TestService.TestReply>> f : set.entrySet()) {
@@ -129,7 +129,7 @@ public class ReconnectTest extends AbstractNetworkTest {
     public void singleClient() throws Exception {
         final AtomicInteger ai = new AtomicInteger();
         MaritimeNetworkConnection c1 = newClient(ID1);
-        c1.registerService(new TestService(), new ServiceCallback<TestService.TestInit, TestService.TestReply>() {
+        c1.serviceRegister(null, new ServiceInvocationCallback<TestService.TestInit, TestService.TestReply>() {
             public void process(TestService.TestInit l, Context<TestService.TestReply> context) {
                 context.complete(l.reply());
                 ai.incrementAndGet();
@@ -142,7 +142,7 @@ public class ReconnectTest extends AbstractNetworkTest {
         for (int i = 0; i < 100; i++) {
             pt.killAll();
             TestInit ti = new TestInit(i, ID1, ID6);
-            assertEquals(ti.getId(), c6.invokeService(ID1, ti).get(5, TimeUnit.SECONDS).getInit().getId());
+            assertEquals(ti.getId(), c6.serviceInvoke(ID1, ti).get(5, TimeUnit.SECONDS).getInit().getId());
         }
 
         System.out.println(ai);

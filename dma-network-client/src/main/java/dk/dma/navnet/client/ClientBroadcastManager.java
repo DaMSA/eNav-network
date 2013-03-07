@@ -25,10 +25,10 @@ import jsr166e.ConcurrentHashMapV8;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import dk.dma.enav.net.broadcast.BroadcastListener;
-import dk.dma.enav.net.broadcast.BroadcastMessage;
-import dk.dma.enav.net.broadcast.BroadcastProperties;
-import dk.dma.enav.net.broadcast.BroadcastSubscription;
+import dk.dma.enav.communication.broadcast.BroadcastListener;
+import dk.dma.enav.communication.broadcast.BroadcastMessage;
+import dk.dma.enav.communication.broadcast.BroadcastMessageHeader;
+import dk.dma.enav.communication.broadcast.BroadcastSubscription;
 import dk.dma.navnet.core.messages.c2c.Broadcast;
 
 /**
@@ -44,8 +44,8 @@ class ClientBroadcastManager {
     /** The network */
     final ClientNetwork c;
 
-    /** A map of subscribers. ChannelName -> List of listeners. */
-    final ConcurrentHashMapV8<String, CopyOnWriteArraySet<Subcription>> subscribers = new ConcurrentHashMapV8<>();
+    /** A map of listeners. ChannelName -> List of listeners. */
+    final ConcurrentHashMapV8<String, CopyOnWriteArraySet<Listener>> listeners = new ConcurrentHashMapV8<>();
 
     /**
      * Creates a new instance of this class.
@@ -67,10 +67,10 @@ class ClientBroadcastManager {
      * @return a subscription
      */
     <T extends BroadcastMessage> BroadcastSubscription listenFor(Class<T> messageType, BroadcastListener<T> listener) {
-        Subcription sub = new Subcription(getChannelName(messageType), listener);
-        subscribers.computeIfAbsent(messageType.getCanonicalName(),
-                new ConcurrentHashMapV8.Fun<String, CopyOnWriteArraySet<Subcription>>() {
-                    public CopyOnWriteArraySet<Subcription> apply(String t) {
+        Listener sub = new Listener(getChannelName(messageType), listener);
+        listeners.computeIfAbsent(messageType.getCanonicalName(),
+                new ConcurrentHashMapV8.Fun<String, CopyOnWriteArraySet<Listener>>() {
+                    public CopyOnWriteArraySet<Listener> apply(String t) {
                         return new CopyOnWriteArraySet<>();
                     }
                 }).add(sub);
@@ -84,13 +84,13 @@ class ClientBroadcastManager {
      *            the broadcast that was received
      */
     void receive(Broadcast broadcast) {
-        CopyOnWriteArraySet<Subcription> set = subscribers.get(broadcast.getChannel());
+        CopyOnWriteArraySet<Listener> set = listeners.get(broadcast.getChannel());
         if (set != null && !set.isEmpty()) {
             final BroadcastMessage bm = broadcast.tryRead();
-            final BroadcastProperties bp = new BroadcastProperties(broadcast.getId(), broadcast.getPositionTime());
+            final BroadcastMessageHeader bp = new BroadcastMessageHeader(broadcast.getId(), broadcast.getPositionTime());
 
             // Deliver to each listener
-            for (final Subcription s : set) {
+            for (final Listener s : set) {
                 c.es.execute(new Runnable() {
                     @Override
                     public void run() {
@@ -119,21 +119,21 @@ class ClientBroadcastManager {
     }
 
     /** The default implementation of BroadcastSubscription. */
-    class Subcription implements BroadcastSubscription {
+    class Listener implements BroadcastSubscription {
 
         /** The number of messages received. */
         private final AtomicLong count = new AtomicLong();
 
-        /** The type of broadcast messages */
+        /** The type of broadcast messages. */
         private final String key;
 
-        /** The listener */
+        /** The listener. */
         private final BroadcastListener<? extends BroadcastMessage> listener;
 
         /**
          * @param listener
          */
-        Subcription(String key, BroadcastListener<? extends BroadcastMessage> listener) {
+        Listener(String key, BroadcastListener<? extends BroadcastMessage> listener) {
             this.key = requireNonNull(key);
             this.listener = requireNonNull(listener);
         }
@@ -141,11 +141,11 @@ class ClientBroadcastManager {
         /** {@inheritDoc} */
         @Override
         public void cancel() {
-            subscribers.get(key).remove(this);
+            listeners.get(key).remove(this);
         }
 
         @SuppressWarnings({ "unchecked", "rawtypes" })
-        void deliver(BroadcastProperties properties, BroadcastMessage message) {
+        void deliver(BroadcastMessageHeader properties, BroadcastMessage message) {
             try {
                 ((BroadcastListener) listener).onMessage(properties, message);
                 count.incrementAndGet();

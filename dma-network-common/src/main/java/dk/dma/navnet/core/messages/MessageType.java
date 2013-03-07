@@ -41,18 +41,17 @@ public enum MessageType {
 
     POSITION_REPORT(20, PositionReportMessage.class), //
 
+    /* Communication client<->server */
+
     REGISTER_SERVICE(100, RegisterService.class), //
     UNREGISTER_SERVICE(101, RegisterService.class), //
     FIND_SERVICE(102, FindServices.class), //
+
     SUBSCRIBE_CHANNEL(110, RegisterService.class), //
     UNSUBSCRIBE_CHANNEL(111, RegisterService.class), //
-
     ACK(199, AckMessage.class), //
 
-    // /
-
-    // 200, boolean initialMessage, conversation-uuid, service type, msgtype, message
-
+    /* Communication client<->client */
     SERVICE_INVOKE(200, InvokeService.class), //
     BROADCAST(201, Broadcast.class), //
 

@@ -24,7 +24,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
 import jsr166e.CompletableFuture;
-import dk.dma.enav.net.NetworkFuture;
+import dk.dma.enav.communication.NetworkFuture;
 
 /**
  * 
