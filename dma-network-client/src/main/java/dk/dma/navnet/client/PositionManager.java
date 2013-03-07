@@ -55,7 +55,6 @@ class PositionManager implements Runnable {
     PositionManager(ClientNetwork c, Supplier<PositionTime> positionSupplier) {
         this.c = requireNonNull(c);
         this.positionSupplier = requireNonNull(positionSupplier);
-        System.out.println(MINIMUM_SIGNAL_DURATION);
     }
 
     @Override
