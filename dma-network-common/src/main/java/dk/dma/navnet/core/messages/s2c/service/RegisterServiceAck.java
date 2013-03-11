@@ -13,45 +13,29 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package dk.dma.navnet.core.messages.s2c;
+package dk.dma.navnet.core.messages.s2c.service;
 
 import java.io.IOException;
 
-import dk.dma.navnet.core.messages.AbstractMessage;
 import dk.dma.navnet.core.messages.MessageType;
 import dk.dma.navnet.core.messages.ProtocolReader;
-import dk.dma.navnet.core.messages.ProtocolWriter;
+import dk.dma.navnet.core.messages.s2c.AckMessage;
 
 /**
  * 
  * @author Kasper Nielsen
  */
-public abstract class AckMessage extends AbstractMessage {
+public class RegisterServiceAck extends AckMessage {
 
-    final long messageAck;
+    // Area
+    public RegisterServiceAck(ProtocolReader pr) throws IOException {
+        super(MessageType.REGISTER_SERVICE_ACK, pr);
+    }
 
     /**
      * @param messageType
      */
-    public AckMessage(MessageType type, long messageAck) {
-        super(type);
-        this.messageAck = messageAck;
+    public RegisterServiceAck(long id) {
+        super(MessageType.REGISTER_SERVICE_ACK, id);
     }
-
-    public AckMessage(MessageType type, ProtocolReader pr) throws IOException {
-        this(type, pr.takeLong());
-    }
-
-    public long getMessageAck() {
-        return messageAck;
-    }
-
-    /** {@inheritDoc} */
-    @Override
-    protected final void write(ProtocolWriter w) {
-        w.writeLong(messageAck);
-        write0(w);
-    }
-
-    protected void write0(ProtocolWriter w) {};
 }

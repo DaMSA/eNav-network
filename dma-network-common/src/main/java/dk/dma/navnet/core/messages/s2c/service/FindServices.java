@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package dk.dma.navnet.core.messages.s2c;
+package dk.dma.navnet.core.messages.s2c.service;
 
 import static java.util.Objects.requireNonNull;
 
@@ -22,26 +22,36 @@ import java.io.IOException;
 import dk.dma.navnet.core.messages.MessageType;
 import dk.dma.navnet.core.messages.ProtocolReader;
 import dk.dma.navnet.core.messages.ProtocolWriter;
+import dk.dma.navnet.core.messages.s2c.ReplyMessage;
 
 /**
  * 
  * @author Kasper Nielsen
  */
-public class RegisterService extends ReplyMessage<Void> {
+public class FindServices extends ReplyMessage<FindServicesAck> {
 
     final String serviceName;
 
-    public RegisterService(ProtocolReader pr) throws IOException {
-        super(MessageType.REGISTER_SERVICE, pr);
+    final int max;
+
+    public FindServices(ProtocolReader pr) throws IOException {
+        super(MessageType.FIND_SERVICE, pr);
         this.serviceName = requireNonNull(pr.takeString());
+        this.max = pr.takeInt();
     }
 
     /**
      * @param messageType
      */
-    public RegisterService(String serviceName) {
-        super(MessageType.REGISTER_SERVICE);
+    public FindServices(String serviceName, int max) {
+        super(MessageType.FIND_SERVICE);
         this.serviceName = requireNonNull(serviceName);
+        this.max = max;
+
+    }
+
+    public int getMax() {
+        return max;
     }
 
     public String getServiceName() {
@@ -52,5 +62,10 @@ public class RegisterService extends ReplyMessage<Void> {
     @Override
     protected void write0(ProtocolWriter w) {
         w.writeString(serviceName);
+        w.writeInt(max);
+    }
+
+    public FindServicesAck createReply(String[] array) {
+        return new FindServicesAck(getReplyTo(), array);
     }
 }

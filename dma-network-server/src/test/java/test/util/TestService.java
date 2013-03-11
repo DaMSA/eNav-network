@@ -16,7 +16,6 @@
 package test.util;
 
 import static java.util.Objects.requireNonNull;
-import dk.dma.enav.communication.service.spi.InitiatingMessage;
 import dk.dma.enav.communication.service.spi.MaritimeService;
 import dk.dma.enav.communication.service.spi.MaritimeServiceMessage;
 import dk.dma.enav.model.MaritimeId;
@@ -27,7 +26,7 @@ import dk.dma.enav.model.MaritimeId;
  */
 public class TestService extends MaritimeService {
 
-    public static class TestInit extends MaritimeServiceMessage<TestReply> implements InitiatingMessage {
+    public static class TestInit extends MaritimeServiceMessage<TestReply> {
 
         private final long id;
 

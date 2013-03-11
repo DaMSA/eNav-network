@@ -13,45 +13,50 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package dk.dma.navnet.core.messages.s2c;
+package dk.dma.navnet.core.messages.s2c.service;
+
+import static java.util.Objects.requireNonNull;
 
 import java.io.IOException;
 
-import dk.dma.navnet.core.messages.AbstractMessage;
 import dk.dma.navnet.core.messages.MessageType;
 import dk.dma.navnet.core.messages.ProtocolReader;
 import dk.dma.navnet.core.messages.ProtocolWriter;
+import dk.dma.navnet.core.messages.s2c.ReplyMessage;
 
 /**
  * 
  * @author Kasper Nielsen
  */
-public abstract class AckMessage extends AbstractMessage {
+public class RegisterService extends ReplyMessage<RegisterServiceAck> {
 
-    final long messageAck;
+    final String serviceName;
+
+    // Area
+    public RegisterService(ProtocolReader pr) throws IOException {
+        super(MessageType.REGISTER_SERVICE, pr);
+        this.serviceName = requireNonNull(pr.takeString());
+    }
 
     /**
      * @param messageType
      */
-    public AckMessage(MessageType type, long messageAck) {
-        super(type);
-        this.messageAck = messageAck;
+    public RegisterService(String serviceName) {
+        super(MessageType.REGISTER_SERVICE);
+        this.serviceName = requireNonNull(serviceName);
     }
 
-    public AckMessage(MessageType type, ProtocolReader pr) throws IOException {
-        this(type, pr.takeLong());
-    }
-
-    public long getMessageAck() {
-        return messageAck;
+    public String getServiceName() {
+        return serviceName;
     }
 
     /** {@inheritDoc} */
     @Override
-    protected final void write(ProtocolWriter w) {
-        w.writeLong(messageAck);
-        write0(w);
+    protected void write0(ProtocolWriter w) {
+        w.writeString(serviceName);
     }
 
-    protected void write0(ProtocolWriter w) {};
+    public RegisterServiceAck createReply() {
+        return new RegisterServiceAck(getReplyTo());
+    }
 }

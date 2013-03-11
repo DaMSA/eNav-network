@@ -15,6 +15,9 @@
  */
 package dk.dma.navnet.core.messages;
 
+import java.util.Arrays;
+import java.util.Iterator;
+
 /**
  * 
  * @author Kasper Nielsen
@@ -46,6 +49,19 @@ public class ProtocolWriter {
         return this;
     }
 
+    public ProtocolWriter writeStringArray(String... s) {
+        checkFirst();
+        sb.append("[");
+        for (Iterator<String> iterator = Arrays.asList(s).iterator(); iterator.hasNext();) {
+            w(iterator.next());
+            if (iterator.hasNext()) {
+                sb.append(", ");
+            }
+        }
+        sb.append("]");
+        return this;
+    }
+
     public ProtocolWriter writeDouble(double d) {
         checkFirst();
         // TODO quote string
@@ -56,13 +72,15 @@ public class ProtocolWriter {
     public ProtocolWriter writeString(String s) {
         checkFirst();
         // TODO escape string
+        w(s);
+        return this;
+    }
+
+    private void w(String s) {
         if (s == null) {
             sb.append("\\\"\"");
         } else {
             sb.append('"').append(s).append('"');
         }
-
-        return this;
     }
-
 }

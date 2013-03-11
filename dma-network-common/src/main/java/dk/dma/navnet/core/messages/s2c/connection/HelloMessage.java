@@ -31,6 +31,7 @@ import dk.dma.navnet.core.messages.ProtocolWriter;
  */
 public class HelloMessage extends AbstractMessage {
 
+    // include connection type
     private final MaritimeId clientId;
 
     private final String clientInfo;

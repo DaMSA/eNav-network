@@ -20,12 +20,21 @@ import java.io.IOException;
 import dk.dma.navnet.core.messages.MessageType;
 import dk.dma.navnet.core.messages.ProtocolReader;
 import dk.dma.navnet.core.messages.ProtocolWriter;
+import dk.dma.navnet.core.util.JSonUtil;
 
 /**
  * 
  * @author Kasper Nielsen
  */
 public class InvokeService extends AbstractRelayedMessage {
+
+    /** {@inheritDoc} */
+    @Override
+    public String toString() {
+        return "InvokeService [conversationId=" + conversationId + ", message=" + message + ", messageType="
+                + messageType + ", serviceType=" + serviceType + ", status=" + status + ", destination=" + destination
+                + ", source=" + source + "]";
+    }
 
     final String conversationId;
 
@@ -61,9 +70,9 @@ public class InvokeService extends AbstractRelayedMessage {
         super(MessageType.SERVICE_INVOKE, pr);
         status = pr.takeInt();
         conversationId = pr.takeString();
-        message = pr.takeString();
-        messageType = pr.takeString();
         serviceType = pr.takeString();
+        messageType = pr.takeString();
+        message = pr.takeString();
     }
 
     /**
@@ -109,5 +118,16 @@ public class InvokeService extends AbstractRelayedMessage {
         w.writeString(serviceType);
         w.writeString(messageType);
         w.writeString(message);
+    }
+
+    /**
+     * @param result
+     */
+    public InvokeServiceAck createReply(Object result) {
+        InvokeServiceAck isa = new InvokeServiceAck(conversationId, JSonUtil.persistAndEscape(result), result
+                .getClass().getName());
+        isa.setDestination(getSource());
+        isa.setSource(getDestination());
+        return isa;
     }
 }

@@ -28,7 +28,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import dk.dma.enav.model.MaritimeId;
-import dk.dma.navnet.core.messages.s2c.RegisterService;
+import dk.dma.navnet.core.messages.s2c.service.RegisterService;
 
 /**
  * User by a server to hold all services that are available from clients connected to this host.

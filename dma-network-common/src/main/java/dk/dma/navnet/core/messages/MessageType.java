@@ -18,13 +18,15 @@ package dk.dma.navnet.core.messages;
 import static java.util.Objects.requireNonNull;
 import dk.dma.navnet.core.messages.c2c.Broadcast;
 import dk.dma.navnet.core.messages.c2c.InvokeService;
-import dk.dma.navnet.core.messages.s2c.AckMessage;
-import dk.dma.navnet.core.messages.s2c.FindServices;
+import dk.dma.navnet.core.messages.c2c.InvokeServiceAck;
 import dk.dma.navnet.core.messages.s2c.PositionReportMessage;
-import dk.dma.navnet.core.messages.s2c.RegisterService;
 import dk.dma.navnet.core.messages.s2c.connection.ConnectedMessage;
 import dk.dma.navnet.core.messages.s2c.connection.HelloMessage;
 import dk.dma.navnet.core.messages.s2c.connection.WelcomeMessage;
+import dk.dma.navnet.core.messages.s2c.service.FindServices;
+import dk.dma.navnet.core.messages.s2c.service.FindServicesAck;
+import dk.dma.navnet.core.messages.s2c.service.RegisterService;
+import dk.dma.navnet.core.messages.s2c.service.RegisterServiceAck;
 
 /**
  * 
@@ -37,48 +39,50 @@ public enum MessageType {
     HELLO(2, HelloMessage.class), // 1. message from client 2 server
     CONNECTED(3, ConnectedMessage.class), // 2. message from server 2 client
 
+    // Channel Switched + men er jo naesten det samme som reconnect
+    // nej lige saa snart man er connected, starter man med at sende beskeder der
+    // Client maa saa vente til den har receivet faerdigt paa den anden hvorefter den
+    // lukker den gamle kanal
+    // Man kunne ogsaa receive beskeder over begge kanaller.
+    // Hvis de har et fortloebende id kan man jo bare smide dublikater vaek
+
     // TimedOut???, eller er det en close besked
 
     POSITION_REPORT(20, PositionReportMessage.class), //
 
     /* Communication client<->server */
-
+    // AREA, type of recipiants
     REGISTER_SERVICE(100, RegisterService.class), //
+    // ok + service registration id
+    // registration idet bruges baade til
+    // at unregistrere
+    REGISTER_SERVICE_ACK(104, RegisterServiceAck.class),
+
+    // servicen der skal unregistreres
     UNREGISTER_SERVICE(101, RegisterService.class), //
+    // 00 unregistreret, 01 unknown id
+    UNREGISTER_SERVICE_ACK(105, RegisterService.class), //
+
     FIND_SERVICE(102, FindServices.class), //
 
-    SUBSCRIBE_CHANNEL(110, RegisterService.class), //
-    UNSUBSCRIBE_CHANNEL(111, RegisterService.class), //
-    ACK(199, AckMessage.class), //
+    FIND_SERVICE_ACK(106, FindServicesAck.class), //
+
+    // id, status code (0 ok, 1
+
+    // SUBSCRIBE_CHANNEL(110, RegisterService.class), //
+    // UNSUBSCRIBE_CHANNEL(111, RegisterService.class), //
 
     /* Communication client<->client */
     SERVICE_INVOKE(200, InvokeService.class), //
     BROADCAST(201, Broadcast.class), //
+    SERVICE_INVOKE_ACK(202, InvokeServiceAck.class), //
 
     // BROADCAST(11) {
     // // Har man et topic/channal man broadcaster paa.
     // // f.eks. warning (channel)
     // // SearchAndRescue channel
     // // imo.xxx channels are reserved channels.
-    // @Override
-    // AbstractTextMessage read(ProtocolReader pr) throws IOException {
-    // return new PositionReportMessage(pr.takeDouble(), pr.takeDouble(), pr.takeLong());
-    // }
-    // },
-    //
-    // REGISTER_SERVICE(20) {
-    // @Override
-    // AbstractTextMessage read(ProtocolReader pr) throws IOException {
-    // return new ConnectedMessage(pr.takeString());
-    // }
-    // },
-    // ACK(29) {
-    // @Override
-    // AbstractTextMessage read(ProtocolReader pr) throws IOException {
-    // return new ConnectedMessage(pr.takeString());
-    // }
-    // }
-    //
+
     ;
 
     final int type;

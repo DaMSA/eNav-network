@@ -18,6 +18,7 @@ package dk.dma.navnet.client;
 import static java.util.Objects.requireNonNull;
 
 import java.io.IOException;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
@@ -31,10 +32,10 @@ import dk.dma.enav.communication.NetworkFuture;
 import dk.dma.enav.communication.broadcast.BroadcastListener;
 import dk.dma.enav.communication.broadcast.BroadcastMessage;
 import dk.dma.enav.communication.broadcast.BroadcastSubscription;
+import dk.dma.enav.communication.service.InvocationCallback;
+import dk.dma.enav.communication.service.ServiceEndpoint;
 import dk.dma.enav.communication.service.ServiceInitiationPoint;
-import dk.dma.enav.communication.service.ServiceInvocationCallback;
 import dk.dma.enav.communication.service.ServiceRegistration;
-import dk.dma.enav.communication.service.spi.InitiatingMessage;
 import dk.dma.enav.communication.service.spi.MaritimeServiceMessage;
 import dk.dma.enav.model.MaritimeId;
 import dk.dma.enav.model.geometry.Area;
@@ -109,27 +110,14 @@ public class ClientNetwork implements MaritimeNetworkConnection {
 
     /** {@inheritDoc} */
     @Override
-    public NetworkFutureImpl<Map<MaritimeId, PositionTime>> findAll(Area shape) {
+    public NetworkFutureImpl<Map<MaritimeId, PositionTime>> findAllPeers(Area shape) {
         throw new UnsupportedOperationException("Not yet implemented");
     }
 
     /** {@inheritDoc} */
     @Override
-    public NetworkFuture<Map<MaritimeId, String>> serviceFind(String serviceType) {
-        return services.findServices(serviceType);
-    }
-
-    /** {@inheritDoc} */
-    @Override
-    public <T, S extends MaritimeServiceMessage<T> & InitiatingMessage> NetworkFutureImpl<T> serviceInvoke(
-            MaritimeId id, S msg) {
-        return services.invokeService(id, msg);
-    }
-
-    /** {@inheritDoc} */
-    @Override
     public <T, E extends MaritimeServiceMessage<T>> ServiceRegistration serviceRegister(ServiceInitiationPoint<E> sip,
-            ServiceInvocationCallback<E, T> callback) {
+            InvocationCallback<E, T> callback) {
         return services.serviceRegister(sip, callback);
     }
 
@@ -201,6 +189,34 @@ public class ClientNetwork implements MaritimeNetworkConnection {
 
     enum State {
         CLOSED, CONNECTED, CREATED, TERMINATED;
+    }
+
+    /** {@inheritDoc} */
+    @Override
+    public <T, E extends MaritimeServiceMessage<T>> NetworkFuture<ServiceEndpoint<E, T>> serviceFindOne(
+            ServiceInitiationPoint<E> sip) {
+        return services.serviceFindOne(sip);
+    }
+
+    /** {@inheritDoc} */
+    @Override
+    public <T, E extends MaritimeServiceMessage<T>> NetworkFuture<ServiceEndpoint<E, T>> serviceFindOne(
+            ServiceInitiationPoint<E> sip, MaritimeId id) {
+        return null;
+    }
+
+    /** {@inheritDoc} */
+    @Override
+    public <T, E extends MaritimeServiceMessage<T>> NetworkFuture<List<ServiceEndpoint<E, T>>> serviceFind(
+            ServiceInitiationPoint<E> sip) {
+        return null;
+    }
+
+    /** {@inheritDoc} */
+    @Override
+    public <T, S extends MaritimeServiceMessage<T>> NetworkFuture<T> serviceInvoke(MaritimeId id,
+            S initiatingServiceMessage) {
+        return null;
     }
 
 }

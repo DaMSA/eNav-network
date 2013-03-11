@@ -34,6 +34,10 @@ public class NetworkFutureImpl<T> extends CompletableFuture<T> implements Networ
 
     final Class<T> type;
 
+    public NetworkFutureImpl() {
+        this.type = null;
+    }
+
     public NetworkFutureImpl(Class<T> type) {
         this.type = requireNonNull(type);
     }

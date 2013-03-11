@@ -18,10 +18,11 @@ package dk.dma.navnet.core.spi;
 import dk.dma.navnet.core.messages.AbstractMessage;
 import dk.dma.navnet.core.messages.c2c.AbstractRelayedMessage;
 import dk.dma.navnet.core.messages.c2c.Broadcast;
-import dk.dma.navnet.core.messages.s2c.FindServices;
 import dk.dma.navnet.core.messages.s2c.PositionReportMessage;
-import dk.dma.navnet.core.messages.s2c.RegisterService;
 import dk.dma.navnet.core.messages.s2c.connection.HelloMessage;
+import dk.dma.navnet.core.messages.s2c.service.FindServices;
+import dk.dma.navnet.core.messages.s2c.service.RegisterService;
+import dk.dma.navnet.core.util.NetworkFutureImpl;
 
 /**
  * 
@@ -33,6 +34,12 @@ public abstract class ServerHandler extends AbstractHandler {
 
     /** {@inheritDoc} */
     @Override
+    public final void handleTextReply(String msg, AbstractMessage m, NetworkFutureImpl<?> f) {
+        unknownMessage(msg, m);
+    }
+
+    /** {@inheritDoc} */
+    @Override
     public final void handleText(String msg, AbstractMessage m) {
         if (m instanceof HelloMessage) {
             hello((HelloMessage) m);
@@ -41,11 +48,13 @@ public abstract class ServerHandler extends AbstractHandler {
         } else if (m instanceof FindServices) {
             findService((FindServices) m);
         } else if (m instanceof AbstractRelayedMessage) {
-            relay((AbstractRelayedMessage) m);
+            relay(msg, (AbstractRelayedMessage) m);
         } else if (m instanceof Broadcast) {
             broadcast(msg, (Broadcast) m);
         } else if (m instanceof PositionReportMessage) {
             positionReport((PositionReportMessage) m);
+        } else if (m instanceof FindServices) {
+            findServices((FindServices) m);
         } else {
             unknownMessage(msg, m);
         }
@@ -60,9 +69,11 @@ public abstract class ServerHandler extends AbstractHandler {
 
     public void hello(HelloMessage m) {}
 
-    public void relay(AbstractRelayedMessage m) {}
+    public void relay(String raw, AbstractRelayedMessage m) {}
 
     public void registerService(RegisterService m) {}
+
+    public void findServices(FindServices s) {}
 
     public void unknownMessage(String msg, AbstractMessage m) {
         System.err.println("Received an unknown message " + m.toJSON());

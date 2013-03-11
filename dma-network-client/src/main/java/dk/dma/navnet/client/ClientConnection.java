@@ -28,10 +28,14 @@ import org.eclipse.jetty.websocket.client.WebSocketClient;
 
 import dk.dma.navnet.core.messages.c2c.Broadcast;
 import dk.dma.navnet.core.messages.c2c.InvokeService;
+import dk.dma.navnet.core.messages.c2c.InvokeServiceAck;
 import dk.dma.navnet.core.messages.s2c.connection.ConnectedMessage;
 import dk.dma.navnet.core.messages.s2c.connection.HelloMessage;
 import dk.dma.navnet.core.messages.s2c.connection.WelcomeMessage;
+import dk.dma.navnet.core.messages.s2c.service.FindServicesAck;
+import dk.dma.navnet.core.messages.s2c.service.RegisterServiceAck;
 import dk.dma.navnet.core.spi.ClientHandler;
+import dk.dma.navnet.core.util.NetworkFutureImpl;
 
 /**
  * 
@@ -56,6 +60,24 @@ class ClientConnection extends ClientHandler {
     ClientConnection(String url, ClientNetwork cm) {
         this.cm = requireNonNull(cm);
         this.url = requireNonNull(url);
+    }
+
+    /** {@inheritDoc} */
+    @Override
+    protected void serviceRegisteredAck(RegisterServiceAck a, NetworkFutureImpl<RegisterServiceAck> f) {
+        f.complete(a);
+    }
+
+    /** {@inheritDoc} */
+    @Override
+    protected void serviceFindAck(FindServicesAck a, NetworkFutureImpl<FindServicesAck> f) {
+        f.complete(a);
+    }
+
+    /** {@inheritDoc} */
+    @Override
+    protected void invokeServiceAck(InvokeServiceAck m) {
+        cm.services.receiveInvokeServiceAck(m);
     }
 
     public void close() throws IOException {
@@ -100,6 +122,7 @@ class ClientConnection extends ClientHandler {
     @Override
     protected void receivedBroadcast(Broadcast m) {
         cm.broadcaster.receive(m);
+
     }
 
     /** {@inheritDoc} */
@@ -111,4 +134,5 @@ class ClientConnection extends ClientHandler {
     enum State {
         CONNECTED, CREATED, DISCONNECTED
     }
+
 }

@@ -17,14 +17,10 @@ package dk.dma.navnet.core.messages.s2c;
 
 import java.io.IOException;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
-
 import dk.dma.navnet.core.messages.AbstractMessage;
 import dk.dma.navnet.core.messages.MessageType;
 import dk.dma.navnet.core.messages.ProtocolReader;
 import dk.dma.navnet.core.messages.ProtocolWriter;
-import dk.dma.navnet.core.spi.AbstractHandler;
 
 /**
  * 
@@ -33,7 +29,6 @@ import dk.dma.navnet.core.spi.AbstractHandler;
 public abstract class ReplyMessage<T> extends AbstractMessage {
 
     long replyTo;
-    AbstractHandler handler;
 
     public ReplyMessage(MessageType messageType, ProtocolReader pr) throws IOException {
         super(messageType);
@@ -51,24 +46,8 @@ public abstract class ReplyMessage<T> extends AbstractMessage {
         this.replyTo = replyTo;
     }
 
-    public void setCallback(AbstractHandler handler) {
-        this.handler = handler;
-    }
-
-    @SuppressWarnings("unchecked")
-    public Class<T> getType() {
-        return (Class<T>) Void.class;
-    }
-
-    // replyTo skal saettes saaledes
-    // at de bliver skrevet i samme raekkefoelge som de bliver nummereret
-
-    public void reply(T value) {
-        try {
-            reply0(value);
-        } catch (JsonProcessingException e) {
-            e.printStackTrace();
-        }
+    public long getReplyTo() {
+        return replyTo;
     }
 
     /** {@inheritDoc} */
@@ -79,19 +58,4 @@ public abstract class ReplyMessage<T> extends AbstractMessage {
     }
 
     protected abstract void write0(ProtocolWriter w);
-
-    public void reply0(T value) throws JsonProcessingException {
-        if (value != null) {
-            String val = new ObjectMapper().writeValueAsString(value);
-            val = val.replace("\"", "\\\"");
-            System.out.println("VALL " + val);
-            handler.sendMessage(new AckMessage(replyTo, 0, val));
-        } else {
-            handler.sendMessage(new AckMessage(replyTo, 0, ""));
-        }
-    }
-
-    public void replyWithFailure(int code, String message) {
-
-    }
 }

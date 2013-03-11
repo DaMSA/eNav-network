@@ -20,13 +20,9 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.ReentrantLock;
 
-import jsr166e.CompletableFuture;
-
 import org.eclipse.jetty.websocket.api.RemoteEndpoint;
 import org.eclipse.jetty.websocket.api.Session;
 import org.eclipse.jetty.websocket.api.WebSocketListener;
-
-import com.fasterxml.jackson.databind.ObjectMapper;
 
 import dk.dma.navnet.core.messages.AbstractMessage;
 import dk.dma.navnet.core.messages.c2c.AbstractRelayedMessage;
@@ -55,32 +51,22 @@ public abstract class AbstractHandler {
         return listener;
     }
 
-    @SuppressWarnings({ "unchecked", "rawtypes" })
-    void handleText0(String msg, AbstractMessage m) throws IOException {
-        if (m instanceof ReplyMessage) {
-            ((ReplyMessage<?>) m).setCallback(this);
-        }
-
+    void handleText0(String msg, AbstractMessage m) {
         if (m instanceof AckMessage) {
             AckMessage am = (AckMessage) m;
             NetworkFutureImpl<?> f = acks.remove(am.getMessageAck());
             if (f == null) {
                 System.err.println("Orphaned packet with id " + am.getMessageAck() + " registered " + acks.keySet()
                         + ", local " + "" + " p = ");
-                // System.err.println(p.destination.equals(localId));
-            } else if (am.getStatusCode() > 0) {
-                f.completeExceptionally(new Exception(am.getMessage()));
+                // TODO close connection with error
             } else {
-                if (f.getType() == Void.class) {
-                    ((CompletableFuture) f).complete(null);
-                } else {
-                    ObjectMapper mapper = new ObjectMapper();
-                    System.out.println("parsing: " + am.getMessage() + " to " + f.getType());
-                    Object o = mapper.readValue(am.getMessage(), f.getType());
-                    ((CompletableFuture) f).complete(o);
+                try {
+                    handleTextReply(msg, m, f);
+                } catch (Exception e) {
+                    e.printStackTrace();
                 }
             }
-            System.out.println("RELEASING " + am.getMessageAck() + ", remaining " + acks.keySet());
+            // System.out.println("RELEASING " + am.getMessageAck() + ", remaining " + acks.keySet());
         } else {
             try {
                 handleText(msg, m);
@@ -89,6 +75,8 @@ public abstract class AbstractHandler {
             }
         }
     }
+
+    protected abstract void handleTextReply(String msg, AbstractMessage m, NetworkFutureImpl<?> f) throws Exception;
 
     protected abstract void handleText(String msg, AbstractMessage m) throws Exception;
 
@@ -101,7 +89,7 @@ public abstract class AbstractHandler {
         // we need to send the messages in the same order as they are numbered for now
         synchronized (ai) {
             long id = ai.incrementAndGet();
-            NetworkFutureImpl<T> f = new NetworkFutureImpl<>(m.getType());
+            NetworkFutureImpl<T> f = new NetworkFutureImpl<>();
             acks.put(id, f);
             m.setReplyTo(id);
             sendMessage((AbstractMessage) m);
@@ -197,8 +185,8 @@ public abstract class AbstractHandler {
                 AbstractMessage m = AbstractMessage.read(message);
                 handleText0(message, m);
             } catch (Throwable e) {
-                tryClose(5004, e.getMessage());
                 e.printStackTrace();
+                tryClose(5004, e.getMessage());
             }
         }
     }

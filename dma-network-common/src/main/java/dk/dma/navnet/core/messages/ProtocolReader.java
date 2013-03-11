@@ -18,6 +18,7 @@ package dk.dma.navnet.core.messages;
 import static java.util.Objects.requireNonNull;
 
 import java.io.IOException;
+import java.util.ArrayList;
 
 import com.fasterxml.jackson.core.JsonFactory;
 import com.fasterxml.jackson.core.JsonParser;
@@ -66,5 +67,16 @@ public class ProtocolReader {
             throw new IOException("Expected an String, but was '" + jp.getText() + "'");
         }
         return jp.getText();
+    }
+
+    public String[] takeStringArray() throws IOException {
+        if (jp.nextToken() != JsonToken.START_ARRAY) {
+            throw new IOException("Expected an String, but was '" + jp.getText() + "'");
+        }
+        ArrayList<String> result = new ArrayList<>();
+        while (jp.nextToken() != JsonToken.END_ARRAY) {
+            result.add(jp.getText());
+        }
+        return result.toArray(new String[result.size()]);
     }
 }

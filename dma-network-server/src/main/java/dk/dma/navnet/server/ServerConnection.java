@@ -24,12 +24,12 @@ import java.util.UUID;
 import dk.dma.enav.model.MaritimeId;
 import dk.dma.navnet.core.messages.c2c.AbstractRelayedMessage;
 import dk.dma.navnet.core.messages.c2c.Broadcast;
-import dk.dma.navnet.core.messages.s2c.FindServices;
 import dk.dma.navnet.core.messages.s2c.PositionReportMessage;
-import dk.dma.navnet.core.messages.s2c.RegisterService;
 import dk.dma.navnet.core.messages.s2c.connection.ConnectedMessage;
 import dk.dma.navnet.core.messages.s2c.connection.HelloMessage;
 import dk.dma.navnet.core.messages.s2c.connection.WelcomeMessage;
+import dk.dma.navnet.core.messages.s2c.service.FindServices;
+import dk.dma.navnet.core.messages.s2c.service.RegisterService;
 import dk.dma.navnet.core.spi.ServerHandler;
 
 /**
@@ -80,13 +80,11 @@ public class ServerConnection extends ServerHandler {
     /** {@inheritDoc} */
     @Override
     public void findService(FindServices m) {
-        System.out.println("Trying to find " + m.getServiceName());
         List<String> list = new ArrayList<>();
         for (MaritimeId id : cm.server.registeredServices.findServicesOfType(m.getServiceName()).keySet()) {
             list.add(id.toString());
         }
-
-        m.reply(list.toArray(new String[list.size()]));
+        sendMessage(m.createReply(list.toArray(new String[list.size()])));
     }
 
     /** {@inheritDoc} */
@@ -108,19 +106,19 @@ public class ServerConnection extends ServerHandler {
     @Override
     public void registerService(RegisterService m) {
         cm.server.registeredServices.registerService(clientId, m);
-        m.reply(null);
+        sendMessage(m.createReply());
     }
 
     /** {@inheritDoc} */
     @Override
-    public void relay(AbstractRelayedMessage m) {
+    public void relay(String raw, AbstractRelayedMessage m) {
         String d = m.getDestination();
         ServerConnection c = cm.getConnection(d);
         if (c == null) {
             System.err.println("Unknown destination " + d);
             System.err.println("Available " + cm.getAllConnectionIds());
         } else {
-            c.sendRawTextMessage(m.toJSON());
+            c.sendRawTextMessage(raw);
         }
     }
 

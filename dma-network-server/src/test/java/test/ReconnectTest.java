@@ -31,7 +31,7 @@ import test.util.TestService.TestInit;
 import test.util.TestService.TestReply;
 import dk.dma.enav.communication.MaritimeNetworkConnection;
 import dk.dma.enav.communication.NetworkFuture;
-import dk.dma.enav.communication.service.ServiceInvocationCallback;
+import dk.dma.enav.communication.service.InvocationCallback;
 import dk.dma.enav.model.MaritimeId;
 
 /**
@@ -52,7 +52,7 @@ public class ReconnectTest extends AbstractNetworkTest {
     public void randomKilling() throws Exception {
         final AtomicInteger ai = new AtomicInteger();
         MaritimeNetworkConnection c1 = newClient(ID1);
-        c1.serviceRegister(null, new ServiceInvocationCallback<TestService.TestInit, TestService.TestReply>() {
+        c1.serviceRegister(null, new InvocationCallback<TestService.TestInit, TestService.TestReply>() {
             public void process(TestService.TestInit l, Context<TestService.TestReply> context) {
                 context.complete(l.reply());
                 ai.incrementAndGet();
@@ -91,7 +91,7 @@ public class ReconnectTest extends AbstractNetworkTest {
     public void randomKilling2() throws Exception {
         final AtomicInteger ai = new AtomicInteger();
         MaritimeNetworkConnection c1 = newClient(ID1);
-        c1.serviceRegister(null, new ServiceInvocationCallback<TestService.TestInit, TestService.TestReply>() {
+        c1.serviceRegister(null, new InvocationCallback<TestService.TestInit, TestService.TestReply>() {
             public void process(TestService.TestInit l, Context<TestService.TestReply> context) {
                 context.complete(l.reply());
                 ai.incrementAndGet();
@@ -129,7 +129,7 @@ public class ReconnectTest extends AbstractNetworkTest {
     public void singleClient() throws Exception {
         final AtomicInteger ai = new AtomicInteger();
         MaritimeNetworkConnection c1 = newClient(ID1);
-        c1.serviceRegister(null, new ServiceInvocationCallback<TestService.TestInit, TestService.TestReply>() {
+        c1.serviceRegister(null, new InvocationCallback<TestService.TestInit, TestService.TestReply>() {
             public void process(TestService.TestInit l, Context<TestService.TestReply> context) {
                 context.complete(l.reply());
                 ai.incrementAndGet();

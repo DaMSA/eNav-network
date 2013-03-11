@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package dk.dma.navnet.core.messages.s2c;
+package dk.dma.navnet.core.messages.s2c.service;
 
 import static java.util.Objects.requireNonNull;
 
@@ -22,30 +22,32 @@ import java.io.IOException;
 import dk.dma.navnet.core.messages.MessageType;
 import dk.dma.navnet.core.messages.ProtocolReader;
 import dk.dma.navnet.core.messages.ProtocolWriter;
+import dk.dma.navnet.core.messages.s2c.AckMessage;
 
 /**
  * 
  * @author Kasper Nielsen
  */
-public class FindServices extends ReplyMessage<String[]> {
+public class FindServicesAck extends AckMessage {
 
-    final String serviceName;
+    final String[] maritimeIds;
 
-    public FindServices(ProtocolReader pr) throws IOException {
-        super(MessageType.FIND_SERVICE, pr);
-        this.serviceName = requireNonNull(pr.takeString());
+    public FindServicesAck(ProtocolReader pr) throws IOException {
+        super(MessageType.FIND_SERVICE_ACK, pr);
+        this.maritimeIds = requireNonNull(pr.takeStringArray());
     }
 
     /**
      * @param messageType
      */
-    public FindServices(String serviceName) {
-        super(MessageType.FIND_SERVICE);
-        this.serviceName = requireNonNull(serviceName);
+    public FindServicesAck(long id, String[] ids) {
+        super(MessageType.FIND_SERVICE_ACK, id);
+        this.maritimeIds = requireNonNull(ids);
+
     }
 
-    public String getServiceName() {
-        return serviceName;
+    public String[] getMax() {
+        return maritimeIds;
     }
 
     public final Class<String[]> getType() {
@@ -55,6 +57,6 @@ public class FindServices extends ReplyMessage<String[]> {
     /** {@inheritDoc} */
     @Override
     protected void write0(ProtocolWriter w) {
-        w.writeString(serviceName);
+        w.writeStringArray(maritimeIds);
     }
 }

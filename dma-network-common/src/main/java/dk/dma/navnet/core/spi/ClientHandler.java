@@ -18,14 +18,30 @@ package dk.dma.navnet.core.spi;
 import dk.dma.navnet.core.messages.AbstractMessage;
 import dk.dma.navnet.core.messages.c2c.Broadcast;
 import dk.dma.navnet.core.messages.c2c.InvokeService;
+import dk.dma.navnet.core.messages.c2c.InvokeServiceAck;
 import dk.dma.navnet.core.messages.s2c.connection.ConnectedMessage;
 import dk.dma.navnet.core.messages.s2c.connection.WelcomeMessage;
+import dk.dma.navnet.core.messages.s2c.service.FindServicesAck;
+import dk.dma.navnet.core.messages.s2c.service.RegisterServiceAck;
+import dk.dma.navnet.core.util.NetworkFutureImpl;
 
 /**
  * 
  * @author Kasper Nielsen
  */
 public abstract class ClientHandler extends AbstractHandler {
+    /** {@inheritDoc} */
+    @SuppressWarnings("unchecked")
+    @Override
+    public final void handleTextReply(String msg, AbstractMessage m, NetworkFutureImpl<?> f) {
+        if (m instanceof RegisterServiceAck) {
+            serviceRegisteredAck((RegisterServiceAck) m, (NetworkFutureImpl<RegisterServiceAck>) f);
+        } else if (m instanceof FindServicesAck) {
+            serviceFindAck((FindServicesAck) m, (NetworkFutureImpl<FindServicesAck>) f);
+        } else {
+            unknownMessage(msg, m);
+        }
+    }
 
     /** {@inheritDoc} */
     @Override
@@ -36,6 +52,8 @@ public abstract class ClientHandler extends AbstractHandler {
             connected((ConnectedMessage) m);
         } else if (m instanceof InvokeService) {
             invokeService((InvokeService) m);
+        } else if (m instanceof InvokeServiceAck) {
+            invokeServiceAck((InvokeServiceAck) m);
         } else if (m instanceof Broadcast) {
             receivedBroadcast((Broadcast) m);
         } else {
@@ -46,7 +64,16 @@ public abstract class ClientHandler extends AbstractHandler {
     /**
      * @param m
      */
+    protected void invokeServiceAck(InvokeServiceAck m) {}
+
+    /**
+     * @param m
+     */
     protected void receivedBroadcast(Broadcast m) {}
+
+    protected void serviceFindAck(FindServicesAck a, NetworkFutureImpl<FindServicesAck> f) {}
+
+    protected void serviceRegisteredAck(RegisterServiceAck a, NetworkFutureImpl<RegisterServiceAck> f) {}
 
     /**
      * @param m
