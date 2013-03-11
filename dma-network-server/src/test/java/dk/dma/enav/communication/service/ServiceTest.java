@@ -62,10 +62,12 @@ public class ServiceTest extends AbstractNetworkTest {
             }
         }).awaitRegistered(4, TimeUnit.SECONDS);
 
-        MaritimeNetworkConnection c2 = newClient(ID6);
-        ServiceEndpoint<GetName, Reply> end = c2.serviceFindOne(HelloService.GET_NAME).get(6, TimeUnit.SECONDS);
-        assertEquals(ID1, end.getId());
-        NetworkFuture<Reply> f = end.invoke(new HelloService.GetName());
-        assertEquals("foo123", f.get(4, TimeUnit.SECONDS).getName());
+        for (MaritimeNetworkConnection c : newClients(20)) {
+            ServiceEndpoint<GetName, Reply> end = c.serviceFindOne(HelloService.GET_NAME).get(6, TimeUnit.SECONDS);
+            assertEquals(ID1, end.getId());
+            NetworkFuture<Reply> f = end.invoke(new HelloService.GetName());
+            assertEquals("foo123", f.get(4, TimeUnit.SECONDS).getName());
+
+        }
     }
 }
