@@ -50,11 +50,11 @@ public class AbstractNetworkTest {
 
     ExecutorService es = Executors.newCachedThreadPool();
 
-    AbstractNetworkTest() {
+    public AbstractNetworkTest() {
         this(false);
     }
 
-    AbstractNetworkTest(boolean useProxy) {
+    public AbstractNetworkTest(boolean useProxy) {
         this.useProxy = useProxy;
     }
 

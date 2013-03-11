@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package test;
+package dk.dma.enav.communication.broadcast;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -24,6 +24,7 @@ import java.util.concurrent.TimeUnit;
 
 import org.junit.Test;
 
+import test.AbstractNetworkTest;
 import test.stubs.BroadcastTestMessage;
 import dk.dma.enav.communication.MaritimeNetworkConnection;
 import dk.dma.enav.communication.broadcast.BroadcastListener;
