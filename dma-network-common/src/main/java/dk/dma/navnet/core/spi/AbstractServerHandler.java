@@ -16,11 +16,11 @@
 package dk.dma.navnet.core.spi;
 
 import dk.dma.navnet.core.messages.AbstractMessage;
+import dk.dma.navnet.core.messages.auxiliary.HelloMessage;
+import dk.dma.navnet.core.messages.auxiliary.PositionReportMessage;
 import dk.dma.navnet.core.messages.c2c.AbstractRelayedMessage;
-import dk.dma.navnet.core.messages.c2c.Broadcast;
-import dk.dma.navnet.core.messages.s2c.PositionReportMessage;
-import dk.dma.navnet.core.messages.s2c.connection.HelloMessage;
-import dk.dma.navnet.core.messages.s2c.service.FindServices;
+import dk.dma.navnet.core.messages.c2c.broadcast.BroadcastMsg;
+import dk.dma.navnet.core.messages.s2c.service.FindService;
 import dk.dma.navnet.core.messages.s2c.service.RegisterService;
 import dk.dma.navnet.core.util.NetworkFutureImpl;
 
@@ -28,9 +28,9 @@ import dk.dma.navnet.core.util.NetworkFutureImpl;
  * 
  * @author Kasper Nielsen
  */
-public abstract class ServerHandler extends AbstractHandler {
+public abstract class AbstractServerHandler extends AbstractHandler {
 
-    public void findService(FindServices m) {}
+    public void findService(FindService m) {}
 
     /** {@inheritDoc} */
     @Override
@@ -45,16 +45,16 @@ public abstract class ServerHandler extends AbstractHandler {
             hello((HelloMessage) m);
         } else if (m instanceof RegisterService) {
             registerService((RegisterService) m);
-        } else if (m instanceof FindServices) {
-            findService((FindServices) m);
+        } else if (m instanceof FindService) {
+            findService((FindService) m);
         } else if (m instanceof AbstractRelayedMessage) {
             relay(msg, (AbstractRelayedMessage) m);
-        } else if (m instanceof Broadcast) {
-            broadcast(msg, (Broadcast) m);
+        } else if (m instanceof BroadcastMsg) {
+            broadcast(msg, (BroadcastMsg) m);
         } else if (m instanceof PositionReportMessage) {
             positionReport((PositionReportMessage) m);
-        } else if (m instanceof FindServices) {
-            findServices((FindServices) m);
+        } else if (m instanceof FindService) {
+            findServices((FindService) m);
         } else {
             unknownMessage(msg, m);
         }
@@ -65,7 +65,7 @@ public abstract class ServerHandler extends AbstractHandler {
     /**
      * @param m
      */
-    public void broadcast(String msg, Broadcast m) {}
+    public void broadcast(String msg, BroadcastMsg m) {}
 
     public void hello(HelloMessage m) {}
 
@@ -73,7 +73,7 @@ public abstract class ServerHandler extends AbstractHandler {
 
     public void registerService(RegisterService m) {}
 
-    public void findServices(FindServices s) {}
+    public void findServices(FindService s) {}
 
     public void unknownMessage(String msg, AbstractMessage m) {
         System.err.println("Received an unknown message " + m.toJSON());

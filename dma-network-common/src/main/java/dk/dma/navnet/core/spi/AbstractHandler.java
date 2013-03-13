@@ -24,6 +24,7 @@ import org.eclipse.jetty.websocket.api.RemoteEndpoint;
 import org.eclipse.jetty.websocket.api.Session;
 import org.eclipse.jetty.websocket.api.WebSocketListener;
 
+import dk.dma.enav.communication.CloseReason;
 import dk.dma.navnet.core.messages.AbstractMessage;
 import dk.dma.navnet.core.messages.c2c.AbstractRelayedMessage;
 import dk.dma.navnet.core.messages.s2c.AckMessage;
@@ -153,7 +154,7 @@ public abstract class AbstractHandler {
         /** {@inheritDoc} */
         @Override
         public final void onWebSocketBinary(byte[] payload, int offset, int len) {
-            tryClose(CloseCodes.BAD_DATA, "Expected text only");
+            tryClose(CloseReason.BAD_DATA, "Expected text only");
         }
 
         /** {@inheritDoc} */

@@ -13,13 +13,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package dk.dma.navnet.core.messages.c2c;
+package dk.dma.navnet.core.messages.c2c.service;
 
 import java.io.IOException;
 
 import dk.dma.navnet.core.messages.MessageType;
-import dk.dma.navnet.core.messages.ProtocolReader;
-import dk.dma.navnet.core.messages.ProtocolWriter;
+import dk.dma.navnet.core.messages.c2c.AbstractRelayedMessage;
+import dk.dma.navnet.core.messages.util.TextMessageReader;
+import dk.dma.navnet.core.messages.util.TextMessageWriter;
 import dk.dma.navnet.core.util.JSonUtil;
 
 /**
@@ -27,14 +28,6 @@ import dk.dma.navnet.core.util.JSonUtil;
  * @author Kasper Nielsen
  */
 public class InvokeService extends AbstractRelayedMessage {
-
-    /** {@inheritDoc} */
-    @Override
-    public String toString() {
-        return "InvokeService [conversationId=" + conversationId + ", message=" + message + ", messageType="
-                + messageType + ", serviceType=" + serviceType + ", status=" + status + ", destination=" + destination
-                + ", source=" + source + "]";
-    }
 
     final String conversationId;
 
@@ -66,13 +59,24 @@ public class InvokeService extends AbstractRelayedMessage {
      * @param messageType
      * @throws IOException
      */
-    public InvokeService(ProtocolReader pr) throws IOException {
+    public InvokeService(TextMessageReader pr) throws IOException {
         super(MessageType.SERVICE_INVOKE, pr);
         status = pr.takeInt();
         conversationId = pr.takeString();
         serviceType = pr.takeString();
         messageType = pr.takeString();
         message = pr.takeString();
+    }
+
+    /**
+     * @param result
+     */
+    public InvokeServiceResult createReply(Object result) {
+        InvokeServiceResult isa = new InvokeServiceResult(conversationId, JSonUtil.persistAndEscape(result), result
+                .getClass().getName());
+        isa.setDestination(getSource());
+        isa.setSource(getDestination());
+        return isa;
     }
 
     /**
@@ -112,22 +116,19 @@ public class InvokeService extends AbstractRelayedMessage {
 
     /** {@inheritDoc} */
     @Override
-    protected void write0(ProtocolWriter w) {
+    public String toString() {
+        return "InvokeService [conversationId=" + conversationId + ", message=" + message + ", messageType="
+                + messageType + ", serviceType=" + serviceType + ", status=" + status + ", destination="
+                + getDestination() + ", source=" + getSource() + "]";
+    }
+
+    /** {@inheritDoc} */
+    @Override
+    protected void write0(TextMessageWriter w) {
         w.writeInt(status);
         w.writeString(conversationId);
         w.writeString(serviceType);
         w.writeString(messageType);
         w.writeString(message);
-    }
-
-    /**
-     * @param result
-     */
-    public InvokeServiceAck createReply(Object result) {
-        InvokeServiceAck isa = new InvokeServiceAck(conversationId, JSonUtil.persistAndEscape(result), result
-                .getClass().getName());
-        isa.setDestination(getSource());
-        isa.setSource(getDestination());
-        return isa;
     }
 }

@@ -26,22 +26,22 @@ import java.util.concurrent.TimeUnit;
 
 import org.eclipse.jetty.websocket.client.WebSocketClient;
 
-import dk.dma.navnet.core.messages.c2c.Broadcast;
-import dk.dma.navnet.core.messages.c2c.InvokeService;
-import dk.dma.navnet.core.messages.c2c.InvokeServiceAck;
-import dk.dma.navnet.core.messages.s2c.connection.ConnectedMessage;
-import dk.dma.navnet.core.messages.s2c.connection.HelloMessage;
-import dk.dma.navnet.core.messages.s2c.connection.WelcomeMessage;
-import dk.dma.navnet.core.messages.s2c.service.FindServicesAck;
-import dk.dma.navnet.core.messages.s2c.service.RegisterServiceAck;
-import dk.dma.navnet.core.spi.ClientHandler;
+import dk.dma.navnet.core.messages.auxiliary.ConnectedMessage;
+import dk.dma.navnet.core.messages.auxiliary.HelloMessage;
+import dk.dma.navnet.core.messages.auxiliary.WelcomeMessage;
+import dk.dma.navnet.core.messages.c2c.broadcast.BroadcastMsg;
+import dk.dma.navnet.core.messages.c2c.service.InvokeService;
+import dk.dma.navnet.core.messages.c2c.service.InvokeServiceResult;
+import dk.dma.navnet.core.messages.s2c.service.FindServiceResult;
+import dk.dma.navnet.core.messages.s2c.service.RegisterServiceResult;
+import dk.dma.navnet.core.spi.AbstractClientHandler;
 import dk.dma.navnet.core.util.NetworkFutureImpl;
 
 /**
  * 
  * @author Kasper Nielsen
  */
-class ClientConnection extends ClientHandler {
+class ClientHandler extends AbstractClientHandler {
 
     /** The actual websocket client. Changes when reconnecting. */
     private volatile WebSocketClient client = new WebSocketClient();
@@ -57,26 +57,26 @@ class ClientConnection extends ClientHandler {
     /** The URL to connect to. */
     private final String url;
 
-    ClientConnection(String url, ClientNetwork cm) {
+    ClientHandler(String url, ClientNetwork cm) {
         this.cm = requireNonNull(cm);
         this.url = requireNonNull(url);
     }
 
     /** {@inheritDoc} */
     @Override
-    protected void serviceRegisteredAck(RegisterServiceAck a, NetworkFutureImpl<RegisterServiceAck> f) {
+    protected void serviceRegisteredAck(RegisterServiceResult a, NetworkFutureImpl<RegisterServiceResult> f) {
         f.complete(a);
     }
 
     /** {@inheritDoc} */
     @Override
-    protected void serviceFindAck(FindServicesAck a, NetworkFutureImpl<FindServicesAck> f) {
+    protected void serviceFindAck(FindServiceResult a, NetworkFutureImpl<FindServiceResult> f) {
         f.complete(a);
     }
 
     /** {@inheritDoc} */
     @Override
-    protected void invokeServiceAck(InvokeServiceAck m) {
+    protected void invokeServiceAck(InvokeServiceResult m) {
         cm.services.receiveInvokeServiceAck(m);
     }
 
@@ -120,7 +120,7 @@ class ClientConnection extends ClientHandler {
 
     /** {@inheritDoc} */
     @Override
-    protected void receivedBroadcast(Broadcast m) {
+    protected void receivedBroadcast(BroadcastMsg m) {
         cm.broadcaster.receive(m);
 
     }

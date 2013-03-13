@@ -17,6 +17,7 @@ package dk.dma.navnet.client;
 
 import static java.util.Objects.requireNonNull;
 
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
@@ -34,18 +35,17 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 import dk.dma.enav.communication.NetworkFuture;
 import dk.dma.enav.communication.service.InvocationCallback;
-import dk.dma.enav.communication.service.InvocationCallback.FailureCode;
 import dk.dma.enav.communication.service.ServiceEndpoint;
 import dk.dma.enav.communication.service.ServiceInitiationPoint;
 import dk.dma.enav.communication.service.ServiceRegistration;
 import dk.dma.enav.communication.service.spi.MaritimeServiceMessage;
 import dk.dma.enav.model.MaritimeId;
-import dk.dma.navnet.core.messages.c2c.InvokeService;
-import dk.dma.navnet.core.messages.c2c.InvokeServiceAck;
-import dk.dma.navnet.core.messages.s2c.service.FindServices;
-import dk.dma.navnet.core.messages.s2c.service.FindServicesAck;
+import dk.dma.navnet.core.messages.c2c.service.InvokeService;
+import dk.dma.navnet.core.messages.c2c.service.InvokeServiceResult;
+import dk.dma.navnet.core.messages.s2c.service.FindService;
+import dk.dma.navnet.core.messages.s2c.service.FindServiceResult;
 import dk.dma.navnet.core.messages.s2c.service.RegisterService;
-import dk.dma.navnet.core.messages.s2c.service.RegisterServiceAck;
+import dk.dma.navnet.core.messages.s2c.service.RegisterServiceResult;
 import dk.dma.navnet.core.util.JSonUtil;
 import dk.dma.navnet.core.util.NetworkFutureImpl;
 
@@ -76,6 +76,11 @@ class ClientServiceManager {
         this.c = requireNonNull(clientNetwork);
     }
 
+    public <T, E extends MaritimeServiceMessage<T>> NetworkFuture<List<ServiceEndpoint<E, T>>> serviceFind(
+            ServiceInitiationPoint<E> sip) {
+        return null;
+    }
+
     /** {@inheritDoc} */
     NetworkFuture<Map<MaritimeId, String>> findServices(final String serviceType) {
         // return NetworkFutureImpl.wrap(c.connection.sendMessage(new FindServices(serviceType)).thenApply(
@@ -94,13 +99,13 @@ class ClientServiceManager {
 
     <T, E extends MaritimeServiceMessage<T>> NetworkFuture<ServiceEndpoint<E, T>> serviceFindOne(
             final ServiceInitiationPoint<E> sip) {
-        final NetworkFutureImpl<FindServicesAck> f = c.connection.sendMessage(new FindServices(sip.getName(), 1));
+        final NetworkFutureImpl<FindServiceResult> f = c.connection.sendMessage(new FindService(sip.getName(), 1));
 
         final NetworkFutureImpl<ServiceEndpoint<E, T>> result = new NetworkFutureImpl<>();
 
-        f.thenAcceptAsync(new CompletableFuture.Action<FindServicesAck>() {
+        f.thenAcceptAsync(new CompletableFuture.Action<FindServiceResult>() {
             @Override
-            public void accept(FindServicesAck ack) {
+            public void accept(FindServiceResult ack) {
                 String[] st = ack.getMax();
                 if (st.length > 0) {
                     result.complete(new SI<E, T>(MaritimeId.create(st[0]), sip));
@@ -120,10 +125,10 @@ class ClientServiceManager {
         is.setDestination(id.toString());
         is.setSource(c.clientId.toString());
         final NetworkFutureImpl<T> f = new NetworkFutureImpl<>();
-        NetworkFutureImpl<InvokeServiceAck> fr = new NetworkFutureImpl<>();
+        NetworkFutureImpl<InvokeServiceResult> fr = new NetworkFutureImpl<>();
         invokers.put(is.getConversationId(), fr);
         fr.thenAcceptAsync(new CompletableFuture.Action<Object>() {
-            @Override
+            @SuppressWarnings("unchecked")
             public void accept(Object ack) {
                 f.complete((T) ack);
             }
@@ -156,7 +161,25 @@ class ClientServiceManager {
                 }
 
                 @Override
-                public void fail(FailureCode fc, String message) {}
+                public MaritimeId getCaller() {
+                    return null;
+                }
+
+                @Override
+                public void failWithIllegalAccess(String message) {
+                    throw new UnsupportedOperationException();
+                }
+
+                @Override
+                public void failWithIllegalInput(String message) {
+                    throw new UnsupportedOperationException();
+                }
+
+                @Override
+                public void failWithInternalError(String message) {
+                    throw new UnsupportedOperationException();
+                }
+
             });
         } else {
             System.err.println("Could not find service " + m.getServiceType() + " from " + listeners.keySet());
@@ -165,7 +188,7 @@ class ClientServiceManager {
 
     /** {@inheritDoc} */
     @SuppressWarnings({ "rawtypes", "unchecked" })
-    void receiveInvokeServiceAck(InvokeServiceAck m) {
+    void receiveInvokeServiceAck(InvokeServiceResult m) {
         NetworkFutureImpl f = invokers.get(m.getUuid());
         if (f != null) {
             Object o = null;
@@ -191,10 +214,10 @@ class ClientServiceManager {
             throw new IllegalArgumentException(
                     "A service of the specified type has already been registered. Can only register one at a time");
         }
-        final NetworkFutureImpl<RegisterServiceAck> f = c.connection.sendMessage(new RegisterService(sip.getName()));
-        f.thenAcceptAsync(new CompletableFuture.Action<RegisterServiceAck>() {
+        final NetworkFutureImpl<RegisterServiceResult> f = c.connection.sendMessage(new RegisterService(sip.getName()));
+        f.thenAcceptAsync(new CompletableFuture.Action<RegisterServiceResult>() {
             @Override
-            public void accept(RegisterServiceAck ack) {
+            public void accept(RegisterServiceResult ack) {
                 reg.replied.countDown();
             }
         });

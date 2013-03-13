@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package dk.dma.navnet.core.messages;
+package dk.dma.navnet.core.messages.util;
 
 import java.util.Arrays;
 import java.util.Iterator;
@@ -22,11 +22,11 @@ import java.util.Iterator;
  * 
  * @author Kasper Nielsen
  */
-public class ProtocolWriter {
-    final StringBuilder sb = new StringBuilder();
+public class TextMessageWriter {
+    public final StringBuilder sb = new StringBuilder();
     boolean notFirst;
 
-    ProtocolWriter() {
+    public TextMessageWriter() {
         sb.append("[");
     }
 
@@ -37,19 +37,19 @@ public class ProtocolWriter {
         notFirst = true;
     }
 
-    public ProtocolWriter writeInt(int i) {
+    public TextMessageWriter writeInt(int i) {
         checkFirst();
         sb.append(i);
         return this;
     }
 
-    public ProtocolWriter writeLong(long l) {
+    public TextMessageWriter writeLong(long l) {
         checkFirst();
         sb.append(l);
         return this;
     }
 
-    public ProtocolWriter writeStringArray(String... s) {
+    public TextMessageWriter writeStringArray(String... s) {
         checkFirst();
         sb.append("[");
         for (Iterator<String> iterator = Arrays.asList(s).iterator(); iterator.hasNext();) {
@@ -62,14 +62,14 @@ public class ProtocolWriter {
         return this;
     }
 
-    public ProtocolWriter writeDouble(double d) {
+    public TextMessageWriter writeDouble(double d) {
         checkFirst();
         // TODO quote string
         sb.append(d);
         return this;
     }
 
-    public ProtocolWriter writeString(String s) {
+    public TextMessageWriter writeString(String s) {
         checkFirst();
         // TODO escape string
         w(s);

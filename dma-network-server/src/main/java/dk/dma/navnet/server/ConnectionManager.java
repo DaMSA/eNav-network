@@ -35,7 +35,7 @@ import org.eclipse.jetty.websocket.servlet.WebSocketServletFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import dk.dma.navnet.core.messages.c2c.Broadcast;
+import dk.dma.navnet.core.messages.c2c.broadcast.BroadcastMsg;
 
 /**
  * Keeps track of all connections from the server and out.
@@ -86,7 +86,7 @@ class ConnectionManager {
         connections.remove(connection.clientId.toString());
     }
 
-    void broadcast(ServerConnection sender, final String msg, Broadcast broadcast) {
+    void broadcast(ServerConnection sender, final String msg, BroadcastMsg broadcast) {
         for (final ServerConnection sc : connections.values()) {
             if (sc != sender) {
                 server.deamonPool.execute(new Runnable() {

@@ -16,17 +16,17 @@
 package dk.dma.navnet.core.messages;
 
 import static java.util.Objects.requireNonNull;
-import dk.dma.navnet.core.messages.c2c.Broadcast;
-import dk.dma.navnet.core.messages.c2c.InvokeService;
-import dk.dma.navnet.core.messages.c2c.InvokeServiceAck;
-import dk.dma.navnet.core.messages.s2c.PositionReportMessage;
-import dk.dma.navnet.core.messages.s2c.connection.ConnectedMessage;
-import dk.dma.navnet.core.messages.s2c.connection.HelloMessage;
-import dk.dma.navnet.core.messages.s2c.connection.WelcomeMessage;
-import dk.dma.navnet.core.messages.s2c.service.FindServices;
-import dk.dma.navnet.core.messages.s2c.service.FindServicesAck;
+import dk.dma.navnet.core.messages.auxiliary.ConnectedMessage;
+import dk.dma.navnet.core.messages.auxiliary.HelloMessage;
+import dk.dma.navnet.core.messages.auxiliary.PositionReportMessage;
+import dk.dma.navnet.core.messages.auxiliary.WelcomeMessage;
+import dk.dma.navnet.core.messages.c2c.broadcast.BroadcastMsg;
+import dk.dma.navnet.core.messages.c2c.service.InvokeService;
+import dk.dma.navnet.core.messages.c2c.service.InvokeServiceResult;
+import dk.dma.navnet.core.messages.s2c.service.FindService;
+import dk.dma.navnet.core.messages.s2c.service.FindServiceResult;
 import dk.dma.navnet.core.messages.s2c.service.RegisterService;
-import dk.dma.navnet.core.messages.s2c.service.RegisterServiceAck;
+import dk.dma.navnet.core.messages.s2c.service.RegisterServiceResult;
 
 /**
  * 
@@ -56,16 +56,16 @@ public enum MessageType {
     // ok + service registration id
     // registration idet bruges baade til
     // at unregistrere
-    REGISTER_SERVICE_ACK(104, RegisterServiceAck.class),
+    REGISTER_SERVICE_ACK(104, RegisterServiceResult.class),
 
     // servicen der skal unregistreres
     UNREGISTER_SERVICE(101, RegisterService.class), //
     // 00 unregistreret, 01 unknown id
     UNREGISTER_SERVICE_ACK(105, RegisterService.class), //
 
-    FIND_SERVICE(102, FindServices.class), //
+    FIND_SERVICE(102, FindService.class), //
 
-    FIND_SERVICE_ACK(106, FindServicesAck.class), //
+    FIND_SERVICE_ACK(106, FindServiceResult.class), //
 
     // id, status code (0 ok, 1
 
@@ -74,8 +74,8 @@ public enum MessageType {
 
     /* Communication client<->client */
     SERVICE_INVOKE(200, InvokeService.class), //
-    BROADCAST(201, Broadcast.class), //
-    SERVICE_INVOKE_ACK(202, InvokeServiceAck.class), //
+    BROADCAST(201, BroadcastMsg.class), //
+    SERVICE_INVOKE_ACK(202, InvokeServiceResult.class), //
 
     // BROADCAST(11) {
     // // Har man et topic/channal man broadcaster paa.

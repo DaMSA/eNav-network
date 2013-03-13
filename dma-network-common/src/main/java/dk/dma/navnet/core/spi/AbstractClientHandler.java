@@ -16,28 +16,28 @@
 package dk.dma.navnet.core.spi;
 
 import dk.dma.navnet.core.messages.AbstractMessage;
-import dk.dma.navnet.core.messages.c2c.Broadcast;
-import dk.dma.navnet.core.messages.c2c.InvokeService;
-import dk.dma.navnet.core.messages.c2c.InvokeServiceAck;
-import dk.dma.navnet.core.messages.s2c.connection.ConnectedMessage;
-import dk.dma.navnet.core.messages.s2c.connection.WelcomeMessage;
-import dk.dma.navnet.core.messages.s2c.service.FindServicesAck;
-import dk.dma.navnet.core.messages.s2c.service.RegisterServiceAck;
+import dk.dma.navnet.core.messages.auxiliary.ConnectedMessage;
+import dk.dma.navnet.core.messages.auxiliary.WelcomeMessage;
+import dk.dma.navnet.core.messages.c2c.broadcast.BroadcastMsg;
+import dk.dma.navnet.core.messages.c2c.service.InvokeService;
+import dk.dma.navnet.core.messages.c2c.service.InvokeServiceResult;
+import dk.dma.navnet.core.messages.s2c.service.FindServiceResult;
+import dk.dma.navnet.core.messages.s2c.service.RegisterServiceResult;
 import dk.dma.navnet.core.util.NetworkFutureImpl;
 
 /**
  * 
  * @author Kasper Nielsen
  */
-public abstract class ClientHandler extends AbstractHandler {
+public abstract class AbstractClientHandler extends AbstractHandler {
     /** {@inheritDoc} */
     @SuppressWarnings("unchecked")
     @Override
     public final void handleTextReply(String msg, AbstractMessage m, NetworkFutureImpl<?> f) {
-        if (m instanceof RegisterServiceAck) {
-            serviceRegisteredAck((RegisterServiceAck) m, (NetworkFutureImpl<RegisterServiceAck>) f);
-        } else if (m instanceof FindServicesAck) {
-            serviceFindAck((FindServicesAck) m, (NetworkFutureImpl<FindServicesAck>) f);
+        if (m instanceof RegisterServiceResult) {
+            serviceRegisteredAck((RegisterServiceResult) m, (NetworkFutureImpl<RegisterServiceResult>) f);
+        } else if (m instanceof FindServiceResult) {
+            serviceFindAck((FindServiceResult) m, (NetworkFutureImpl<FindServiceResult>) f);
         } else {
             unknownMessage(msg, m);
         }
@@ -52,10 +52,10 @@ public abstract class ClientHandler extends AbstractHandler {
             connected((ConnectedMessage) m);
         } else if (m instanceof InvokeService) {
             invokeService((InvokeService) m);
-        } else if (m instanceof InvokeServiceAck) {
-            invokeServiceAck((InvokeServiceAck) m);
-        } else if (m instanceof Broadcast) {
-            receivedBroadcast((Broadcast) m);
+        } else if (m instanceof InvokeServiceResult) {
+            invokeServiceAck((InvokeServiceResult) m);
+        } else if (m instanceof BroadcastMsg) {
+            receivedBroadcast((BroadcastMsg) m);
         } else {
             unknownMessage(msg, m);
         }
@@ -64,16 +64,16 @@ public abstract class ClientHandler extends AbstractHandler {
     /**
      * @param m
      */
-    protected void invokeServiceAck(InvokeServiceAck m) {}
+    protected void invokeServiceAck(InvokeServiceResult m) {}
 
     /**
      * @param m
      */
-    protected void receivedBroadcast(Broadcast m) {}
+    protected void receivedBroadcast(BroadcastMsg m) {}
 
-    protected void serviceFindAck(FindServicesAck a, NetworkFutureImpl<FindServicesAck> f) {}
+    protected void serviceFindAck(FindServiceResult a, NetworkFutureImpl<FindServiceResult> f) {}
 
-    protected void serviceRegisteredAck(RegisterServiceAck a, NetworkFutureImpl<RegisterServiceAck> f) {}
+    protected void serviceRegisteredAck(RegisterServiceResult a, NetworkFutureImpl<RegisterServiceResult> f) {}
 
     /**
      * @param m

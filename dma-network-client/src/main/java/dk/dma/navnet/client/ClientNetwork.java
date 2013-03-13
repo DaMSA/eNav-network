@@ -56,7 +56,7 @@ public class ClientNetwork implements MaritimeNetworkConnection {
     final MaritimeId clientId;
 
     /** The single connection to a server. */
-    final ClientConnection connection;
+    final ClientHandler connection;
 
     /** An {@link ExecutorService} for running various tasks. */
     final ExecutorService es = Executors.newCachedThreadPool();
@@ -90,7 +90,7 @@ public class ClientNetwork implements MaritimeNetworkConnection {
         this.positionManager = new PositionManager(this, builder.getPositionSupplier());
         this.broadcaster = new ClientBroadcastManager(this);
         this.services = new ClientServiceManager(this);
-        this.connection = new ClientConnection("ws://" + builder.getHost(), this);
+        this.connection = new ClientHandler("ws://" + builder.getHost(), this);
     }
 
     /* DELEGATING METHODS */
@@ -112,6 +112,34 @@ public class ClientNetwork implements MaritimeNetworkConnection {
     @Override
     public NetworkFutureImpl<Map<MaritimeId, PositionTime>> findAllPeers(Area shape) {
         throw new UnsupportedOperationException("Not yet implemented");
+    }
+
+    /** {@inheritDoc} */
+    @Override
+    public <T, E extends MaritimeServiceMessage<T>> NetworkFuture<ServiceEndpoint<E, T>> serviceFindOne(
+            ServiceInitiationPoint<E> sip) {
+        return services.serviceFindOne(sip);
+    }
+
+    /** {@inheritDoc} */
+    @Override
+    public <T, E extends MaritimeServiceMessage<T>> NetworkFuture<ServiceEndpoint<E, T>> serviceFindOne(
+            ServiceInitiationPoint<E> sip, MaritimeId id) {
+        throw new UnsupportedOperationException();
+    }
+
+    /** {@inheritDoc} */
+    @Override
+    public <T, E extends MaritimeServiceMessage<T>> NetworkFuture<List<ServiceEndpoint<E, T>>> serviceFind(
+            ServiceInitiationPoint<E> sip) {
+        return services.serviceFind(sip);
+    }
+
+    /** {@inheritDoc} */
+    @Override
+    public <T, S extends MaritimeServiceMessage<T>> NetworkFuture<T> serviceInvoke(MaritimeId id,
+            S initiatingServiceMessage) {
+        throw new UnsupportedOperationException();
     }
 
     /** {@inheritDoc} */
@@ -189,34 +217,6 @@ public class ClientNetwork implements MaritimeNetworkConnection {
 
     enum State {
         CLOSED, CONNECTED, CREATED, TERMINATED;
-    }
-
-    /** {@inheritDoc} */
-    @Override
-    public <T, E extends MaritimeServiceMessage<T>> NetworkFuture<ServiceEndpoint<E, T>> serviceFindOne(
-            ServiceInitiationPoint<E> sip) {
-        return services.serviceFindOne(sip);
-    }
-
-    /** {@inheritDoc} */
-    @Override
-    public <T, E extends MaritimeServiceMessage<T>> NetworkFuture<ServiceEndpoint<E, T>> serviceFindOne(
-            ServiceInitiationPoint<E> sip, MaritimeId id) {
-        return null;
-    }
-
-    /** {@inheritDoc} */
-    @Override
-    public <T, E extends MaritimeServiceMessage<T>> NetworkFuture<List<ServiceEndpoint<E, T>>> serviceFind(
-            ServiceInitiationPoint<E> sip) {
-        return null;
-    }
-
-    /** {@inheritDoc} */
-    @Override
-    public <T, S extends MaritimeServiceMessage<T>> NetworkFuture<T> serviceInvoke(MaritimeId id,
-            S initiatingServiceMessage) {
-        return null;
     }
 
 }

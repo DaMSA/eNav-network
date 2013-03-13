@@ -19,8 +19,8 @@ import java.io.IOException;
 
 import dk.dma.navnet.core.messages.AbstractMessage;
 import dk.dma.navnet.core.messages.MessageType;
-import dk.dma.navnet.core.messages.ProtocolReader;
-import dk.dma.navnet.core.messages.ProtocolWriter;
+import dk.dma.navnet.core.messages.util.TextMessageReader;
+import dk.dma.navnet.core.messages.util.TextMessageWriter;
 
 /**
  * 
@@ -39,7 +39,7 @@ public abstract class AbstractRelayedMessage extends AbstractMessage {
         super(messageType);
     }
 
-    public AbstractRelayedMessage(MessageType messageType, ProtocolReader pr) throws IOException {
+    public AbstractRelayedMessage(MessageType messageType, TextMessageReader pr) throws IOException {
         super(messageType);
         this.source = pr.takeString();
         this.destination = pr.takeString();
@@ -69,11 +69,11 @@ public abstract class AbstractRelayedMessage extends AbstractMessage {
 
     /** {@inheritDoc} */
     @Override
-    protected final void write(ProtocolWriter w) {
+    protected final void write(TextMessageWriter w) {
         w.writeString(source);
         w.writeString(destination);
         write0(w);
     }
 
-    protected abstract void write0(ProtocolWriter w);
+    protected abstract void write0(TextMessageWriter w);
 }

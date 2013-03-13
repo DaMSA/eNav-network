@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package dk.dma.navnet.core.messages.s2c.connection;
+package dk.dma.navnet.core.messages.auxiliary;
 
 import static java.util.Objects.requireNonNull;
 
@@ -22,8 +22,8 @@ import java.io.IOException;
 import dk.dma.enav.model.MaritimeId;
 import dk.dma.navnet.core.messages.AbstractMessage;
 import dk.dma.navnet.core.messages.MessageType;
-import dk.dma.navnet.core.messages.ProtocolReader;
-import dk.dma.navnet.core.messages.ProtocolWriter;
+import dk.dma.navnet.core.messages.util.TextMessageReader;
+import dk.dma.navnet.core.messages.util.TextMessageWriter;
 
 /**
  * 
@@ -38,7 +38,7 @@ public class HelloMessage extends AbstractMessage {
 
     private final String reconnectId;
 
-    public HelloMessage(ProtocolReader pr) throws IOException {
+    public HelloMessage(TextMessageReader pr) throws IOException {
         this(MaritimeId.create(pr.takeString()), pr.takeString(), pr.takeString(), 123);
     }
 
@@ -75,7 +75,7 @@ public class HelloMessage extends AbstractMessage {
 
     /** {@inheritDoc} */
     @Override
-    protected void write(ProtocolWriter w) {
+    protected void write(TextMessageWriter w) {
         w.writeString(clientId.toString());
         w.writeString(clientInfo);
         w.writeString(reconnectId);

@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package dk.dma.navnet.core.messages.s2c;
+package dk.dma.navnet.core.messages.auxiliary;
 
 import static java.util.Objects.requireNonNull;
 
@@ -22,8 +22,8 @@ import java.io.IOException;
 import dk.dma.enav.model.geometry.PositionTime;
 import dk.dma.navnet.core.messages.AbstractMessage;
 import dk.dma.navnet.core.messages.MessageType;
-import dk.dma.navnet.core.messages.ProtocolReader;
-import dk.dma.navnet.core.messages.ProtocolWriter;
+import dk.dma.navnet.core.messages.util.TextMessageReader;
+import dk.dma.navnet.core.messages.util.TextMessageWriter;
 
 /**
  * 
@@ -45,7 +45,7 @@ public class PositionReportMessage extends AbstractMessage {
         this.positionTime = requireNonNull(position);
     }
 
-    public PositionReportMessage(ProtocolReader pr) throws IOException {
+    public PositionReportMessage(TextMessageReader pr) throws IOException {
         this(pr.takeDouble(), pr.takeDouble(), pr.takeLong());
     }
 
@@ -58,7 +58,7 @@ public class PositionReportMessage extends AbstractMessage {
 
     /** {@inheritDoc} */
     @Override
-    protected void write(ProtocolWriter w) {
+    protected void write(TextMessageWriter w) {
         w.writeDouble(positionTime.getLatitude());
         w.writeDouble(positionTime.getLongitude());
         w.writeLong(positionTime.getTime());

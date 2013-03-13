@@ -13,40 +13,29 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package dk.dma.navnet.core.messages.s2c.connection;
-
-import static java.util.Objects.requireNonNull;
+package dk.dma.navnet.core.messages.s2c.service;
 
 import java.io.IOException;
 
-import dk.dma.navnet.core.messages.AbstractMessage;
 import dk.dma.navnet.core.messages.MessageType;
-import dk.dma.navnet.core.messages.ProtocolReader;
-import dk.dma.navnet.core.messages.ProtocolWriter;
+import dk.dma.navnet.core.messages.s2c.AckMessage;
+import dk.dma.navnet.core.messages.util.TextMessageReader;
 
 /**
  * 
  * @author Kasper Nielsen
  */
-public class ConnectedMessage extends AbstractMessage {
+public class RegisterServiceResult extends AckMessage {
 
-    private final String connectionId;
-
-    public ConnectedMessage(ProtocolReader pr) throws IOException {
-        this(pr.takeString());
+    // Area
+    public RegisterServiceResult(TextMessageReader pr) throws IOException {
+        super(MessageType.REGISTER_SERVICE_ACK, pr);
     }
 
     /**
      * @param messageType
      */
-    public ConnectedMessage(String connectionId) {
-        super(MessageType.CONNECTED);
-        this.connectionId = requireNonNull(connectionId);
-    }
-
-    /** {@inheritDoc} */
-    @Override
-    public void write(ProtocolWriter w) {
-        w.writeString(connectionId);
+    public RegisterServiceResult(long id) {
+        super(MessageType.REGISTER_SERVICE_ACK, id);
     }
 }

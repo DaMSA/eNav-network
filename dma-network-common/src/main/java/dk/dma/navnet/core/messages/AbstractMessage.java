@@ -19,6 +19,9 @@ import java.io.IOException;
 import java.util.Map.Entry;
 import java.util.TreeMap;
 
+import dk.dma.navnet.core.messages.util.TextMessageReader;
+import dk.dma.navnet.core.messages.util.TextMessageWriter;
+
 /**
  * 
  * @author Kasper Nielsen
@@ -48,22 +51,22 @@ public abstract class AbstractMessage {
     }
 
     public String toJSON() {
-        ProtocolWriter w = new ProtocolWriter();
+        TextMessageWriter w = new TextMessageWriter();
         w.writeInt(messageType.type);
         write(w);
         String s = w.sb.append("]").toString();
         return s;
     }
 
-    protected abstract void write(ProtocolWriter w);
+    protected abstract void write(TextMessageWriter w);
 
     public static AbstractMessage read(String msg) throws IOException {
-        ProtocolReader pr = new ProtocolReader(msg);
+        TextMessageReader pr = new TextMessageReader(msg);
         int type = pr.takeInt();
         // TODO guard indexes
         Class<? extends AbstractMessage> cl = types[type].cl;
         try {
-            return cl.getConstructor(ProtocolReader.class).newInstance(pr);
+            return cl.getConstructor(TextMessageReader.class).newInstance(pr);
         } catch (ReflectiveOperationException e) {
             throw new IOException(e);
         }

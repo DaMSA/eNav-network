@@ -13,21 +13,22 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package dk.dma.navnet.core.messages.c2c;
+package dk.dma.navnet.core.messages.c2c.service;
 
 import static java.util.Objects.requireNonNull;
 
 import java.io.IOException;
 
 import dk.dma.navnet.core.messages.MessageType;
-import dk.dma.navnet.core.messages.ProtocolReader;
-import dk.dma.navnet.core.messages.ProtocolWriter;
+import dk.dma.navnet.core.messages.c2c.AbstractRelayedMessage;
+import dk.dma.navnet.core.messages.util.TextMessageReader;
+import dk.dma.navnet.core.messages.util.TextMessageWriter;
 
 /**
  * 
  * @author Kasper Nielsen
  */
-public class InvokeServiceAck extends AbstractRelayedMessage {
+public class InvokeServiceResult extends AbstractRelayedMessage {
 
     final String message;
 
@@ -35,7 +36,7 @@ public class InvokeServiceAck extends AbstractRelayedMessage {
 
     final String uuid;
 
-    public InvokeServiceAck(ProtocolReader pr) throws IOException {
+    public InvokeServiceResult(TextMessageReader pr) throws IOException {
         super(MessageType.SERVICE_INVOKE_ACK, pr);
         this.uuid = requireNonNull(pr.takeString());
         this.message = requireNonNull(pr.takeString());
@@ -45,7 +46,7 @@ public class InvokeServiceAck extends AbstractRelayedMessage {
     /**
      * @param messageType
      */
-    public InvokeServiceAck(String uuid, String message, String replyType) {
+    public InvokeServiceResult(String uuid, String message, String replyType) {
         super(MessageType.SERVICE_INVOKE_ACK);
         this.uuid = uuid;
         this.message = message;
@@ -75,7 +76,7 @@ public class InvokeServiceAck extends AbstractRelayedMessage {
 
     /** {@inheritDoc} */
     @Override
-    protected void write0(ProtocolWriter w) {
+    protected void write0(TextMessageWriter w) {
         w.writeString(uuid);
         w.writeString(message);
         w.writeString(replyType);

@@ -29,7 +29,7 @@ import dk.dma.enav.communication.broadcast.BroadcastListener;
 import dk.dma.enav.communication.broadcast.BroadcastMessage;
 import dk.dma.enav.communication.broadcast.BroadcastMessageHeader;
 import dk.dma.enav.communication.broadcast.BroadcastSubscription;
-import dk.dma.navnet.core.messages.c2c.Broadcast;
+import dk.dma.navnet.core.messages.c2c.broadcast.BroadcastMsg;
 
 /**
  * Manages sending and receiving of broadcasts.
@@ -83,7 +83,7 @@ class ClientBroadcastManager {
      * @param broadcast
      *            the broadcast that was received
      */
-    void receive(Broadcast broadcast) {
+    void receive(BroadcastMsg broadcast) {
         CopyOnWriteArraySet<Listener> set = listeners.get(broadcast.getChannel());
         if (set != null && !set.isEmpty()) {
             final BroadcastMessage bm = broadcast.tryRead();
@@ -109,7 +109,7 @@ class ClientBroadcastManager {
      */
     void send(BroadcastMessage broadcast) {
         requireNonNull(broadcast, "broadcast is null");
-        Broadcast b = Broadcast.create(c.clientId, c.positionManager.getPositionTime(), broadcast);
+        BroadcastMsg b = BroadcastMsg.create(c.clientId, c.positionManager.getPositionTime(), broadcast);
         c.connection.sendMessage(b);
     }
 
@@ -125,7 +125,7 @@ class ClientBroadcastManager {
         private final AtomicLong count = new AtomicLong();
 
         /** The type of broadcast messages. */
-        private final String key;
+        private final String channel;
 
         /** The listener. */
         private final BroadcastListener<? extends BroadcastMessage> listener;
@@ -133,15 +133,15 @@ class ClientBroadcastManager {
         /**
          * @param listener
          */
-        Listener(String key, BroadcastListener<? extends BroadcastMessage> listener) {
-            this.key = requireNonNull(key);
+        Listener(String channel, BroadcastListener<? extends BroadcastMessage> listener) {
+            this.channel = requireNonNull(channel);
             this.listener = requireNonNull(listener);
         }
 
         /** {@inheritDoc} */
         @Override
         public void cancel() {
-            listeners.get(key).remove(this);
+            listeners.get(channel).remove(this);
         }
 
         @SuppressWarnings({ "unchecked", "rawtypes" })
@@ -158,6 +158,12 @@ class ClientBroadcastManager {
         @Override
         public long getNumberOfReceivedMessages() {
             return count.get();
+        }
+
+        /** {@inheritDoc} */
+        @Override
+        public String getChannel() {
+            return channel;
         }
     }
 }

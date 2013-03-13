@@ -13,59 +13,56 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package dk.dma.navnet.core.messages.s2c.service;
+package dk.dma.navnet.core.messages.c2c.service;
 
 import static java.util.Objects.requireNonNull;
 
 import java.io.IOException;
 
 import dk.dma.navnet.core.messages.MessageType;
-import dk.dma.navnet.core.messages.ProtocolReader;
-import dk.dma.navnet.core.messages.ProtocolWriter;
 import dk.dma.navnet.core.messages.s2c.ReplyMessage;
+import dk.dma.navnet.core.messages.s2c.service.FindServiceResult;
+import dk.dma.navnet.core.messages.util.TextMessageReader;
+import dk.dma.navnet.core.messages.util.TextMessageWriter;
 
 /**
  * 
  * @author Kasper Nielsen
  */
-public class FindServices extends ReplyMessage<FindServicesAck> {
+class InvokeServiceHmm extends ReplyMessage<FindServiceResult> {
 
     final String serviceName;
 
-    final int max;
+    final String maritimeId;
 
-    public FindServices(ProtocolReader pr) throws IOException {
-        super(MessageType.FIND_SERVICE, pr);
+    final String message;
+
+    public InvokeServiceHmm(TextMessageReader pr) throws IOException {
+        super(MessageType.SERVICE_INVOKE, pr);
         this.serviceName = requireNonNull(pr.takeString());
-        this.max = pr.takeInt();
+        this.maritimeId = requireNonNull(pr.takeString());
+        this.message = requireNonNull(pr.takeString());
     }
 
     /**
      * @param messageType
      */
-    public FindServices(String serviceName, int max) {
-        super(MessageType.FIND_SERVICE);
+    public InvokeServiceHmm(String serviceName, String maritimeId, String message) {
+        super(MessageType.SERVICE_INVOKE);
         this.serviceName = requireNonNull(serviceName);
-        this.max = max;
-
-    }
-
-    public int getMax() {
-        return max;
-    }
-
-    public String getServiceName() {
-        return serviceName;
+        this.maritimeId = maritimeId;
+        this.message = requireNonNull(message);
     }
 
     /** {@inheritDoc} */
     @Override
-    protected void write0(ProtocolWriter w) {
+    protected void write0(TextMessageWriter w) {
         w.writeString(serviceName);
-        w.writeInt(max);
+        w.writeString(maritimeId);
+        w.writeString(message);
     }
 
-    public FindServicesAck createReply(String[] array) {
-        return new FindServicesAck(getReplyTo(), array);
+    public FindServiceResult createReply(String[] array) {
+        return new FindServiceResult(getReplyTo(), array);
     }
 }

@@ -20,48 +20,52 @@ import static java.util.Objects.requireNonNull;
 import java.io.IOException;
 
 import dk.dma.navnet.core.messages.MessageType;
-import dk.dma.navnet.core.messages.ProtocolReader;
-import dk.dma.navnet.core.messages.ProtocolWriter;
 import dk.dma.navnet.core.messages.s2c.ReplyMessage;
+import dk.dma.navnet.core.messages.util.TextMessageReader;
+import dk.dma.navnet.core.messages.util.TextMessageWriter;
 
 /**
  * 
  * @author Kasper Nielsen
  */
-class InvokeService extends ReplyMessage<FindServicesAck> {
+public class FindService extends ReplyMessage<FindServiceResult> {
 
     final String serviceName;
 
-    final String maritimeId;
+    final int max;
 
-    final String message;
-
-    public InvokeService(ProtocolReader pr) throws IOException {
-        super(MessageType.SERVICE_INVOKE, pr);
+    public FindService(TextMessageReader pr) throws IOException {
+        super(MessageType.FIND_SERVICE, pr);
         this.serviceName = requireNonNull(pr.takeString());
-        this.maritimeId = requireNonNull(pr.takeString());
-        this.message = requireNonNull(pr.takeString());
+        this.max = pr.takeInt();
     }
 
     /**
      * @param messageType
      */
-    public InvokeService(String serviceName, String maritimeId, String message) {
-        super(MessageType.SERVICE_INVOKE);
+    public FindService(String serviceName, int max) {
+        super(MessageType.FIND_SERVICE);
         this.serviceName = requireNonNull(serviceName);
-        this.maritimeId = maritimeId;
-        this.message = requireNonNull(message);
+        this.max = max;
+
+    }
+
+    public int getMax() {
+        return max;
+    }
+
+    public String getServiceName() {
+        return serviceName;
     }
 
     /** {@inheritDoc} */
     @Override
-    protected void write0(ProtocolWriter w) {
+    protected void write0(TextMessageWriter w) {
         w.writeString(serviceName);
-        w.writeString(maritimeId);
-        w.writeString(message);
+        w.writeInt(max);
     }
 
-    public FindServicesAck createReply(String[] array) {
-        return new FindServicesAck(getReplyTo(), array);
+    public FindServiceResult createReply(String[] array) {
+        return new FindServiceResult(getReplyTo(), array);
     }
 }

@@ -20,19 +20,19 @@ import static java.util.Objects.requireNonNull;
 import java.io.IOException;
 
 import dk.dma.navnet.core.messages.MessageType;
-import dk.dma.navnet.core.messages.ProtocolReader;
-import dk.dma.navnet.core.messages.ProtocolWriter;
 import dk.dma.navnet.core.messages.s2c.AckMessage;
+import dk.dma.navnet.core.messages.util.TextMessageReader;
+import dk.dma.navnet.core.messages.util.TextMessageWriter;
 
 /**
  * 
  * @author Kasper Nielsen
  */
-public class FindServicesAck extends AckMessage {
+public class FindServiceResult extends AckMessage {
 
     final String[] maritimeIds;
 
-    public FindServicesAck(ProtocolReader pr) throws IOException {
+    public FindServiceResult(TextMessageReader pr) throws IOException {
         super(MessageType.FIND_SERVICE_ACK, pr);
         this.maritimeIds = requireNonNull(pr.takeStringArray());
     }
@@ -40,7 +40,7 @@ public class FindServicesAck extends AckMessage {
     /**
      * @param messageType
      */
-    public FindServicesAck(long id, String[] ids) {
+    public FindServiceResult(long id, String[] ids) {
         super(MessageType.FIND_SERVICE_ACK, id);
         this.maritimeIds = requireNonNull(ids);
 
@@ -56,7 +56,7 @@ public class FindServicesAck extends AckMessage {
 
     /** {@inheritDoc} */
     @Override
-    protected void write0(ProtocolWriter w) {
+    protected void write0(TextMessageWriter w) {
         w.writeStringArray(maritimeIds);
     }
 }

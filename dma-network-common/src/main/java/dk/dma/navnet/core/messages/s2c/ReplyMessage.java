@@ -19,8 +19,8 @@ import java.io.IOException;
 
 import dk.dma.navnet.core.messages.AbstractMessage;
 import dk.dma.navnet.core.messages.MessageType;
-import dk.dma.navnet.core.messages.ProtocolReader;
-import dk.dma.navnet.core.messages.ProtocolWriter;
+import dk.dma.navnet.core.messages.util.TextMessageReader;
+import dk.dma.navnet.core.messages.util.TextMessageWriter;
 
 /**
  * 
@@ -30,7 +30,7 @@ public abstract class ReplyMessage<T> extends AbstractMessage {
 
     long replyTo;
 
-    public ReplyMessage(MessageType messageType, ProtocolReader pr) throws IOException {
+    public ReplyMessage(MessageType messageType, TextMessageReader pr) throws IOException {
         super(messageType);
         this.replyTo = pr.takeLong();
     }
@@ -52,10 +52,10 @@ public abstract class ReplyMessage<T> extends AbstractMessage {
 
     /** {@inheritDoc} */
     @Override
-    protected final void write(ProtocolWriter w) {
+    protected final void write(TextMessageWriter w) {
         w.writeLong(replyTo);
         write0(w);
     }
 
-    protected abstract void write0(ProtocolWriter w);
+    protected abstract void write0(TextMessageWriter w);
 }

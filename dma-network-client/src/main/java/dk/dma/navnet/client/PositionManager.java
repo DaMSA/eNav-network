@@ -24,7 +24,7 @@ import org.slf4j.LoggerFactory;
 
 import dk.dma.enav.model.geometry.PositionTime;
 import dk.dma.enav.util.function.Supplier;
-import dk.dma.navnet.core.messages.s2c.PositionReportMessage;
+import dk.dma.navnet.core.messages.auxiliary.PositionReportMessage;
 
 /**
  * A runnable that will keep sending a keep alive signal.

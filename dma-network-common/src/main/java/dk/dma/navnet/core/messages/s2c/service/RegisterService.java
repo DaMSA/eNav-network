@@ -20,20 +20,20 @@ import static java.util.Objects.requireNonNull;
 import java.io.IOException;
 
 import dk.dma.navnet.core.messages.MessageType;
-import dk.dma.navnet.core.messages.ProtocolReader;
-import dk.dma.navnet.core.messages.ProtocolWriter;
 import dk.dma.navnet.core.messages.s2c.ReplyMessage;
+import dk.dma.navnet.core.messages.util.TextMessageReader;
+import dk.dma.navnet.core.messages.util.TextMessageWriter;
 
 /**
  * 
  * @author Kasper Nielsen
  */
-public class RegisterService extends ReplyMessage<RegisterServiceAck> {
+public class RegisterService extends ReplyMessage<RegisterServiceResult> {
 
     final String serviceName;
 
     // Area
-    public RegisterService(ProtocolReader pr) throws IOException {
+    public RegisterService(TextMessageReader pr) throws IOException {
         super(MessageType.REGISTER_SERVICE, pr);
         this.serviceName = requireNonNull(pr.takeString());
     }
@@ -52,11 +52,11 @@ public class RegisterService extends ReplyMessage<RegisterServiceAck> {
 
     /** {@inheritDoc} */
     @Override
-    protected void write0(ProtocolWriter w) {
+    protected void write0(TextMessageWriter w) {
         w.writeString(serviceName);
     }
 
-    public RegisterServiceAck createReply() {
-        return new RegisterServiceAck(getReplyTo());
+    public RegisterServiceResult createReply() {
+        return new RegisterServiceResult(getReplyTo());
     }
 }

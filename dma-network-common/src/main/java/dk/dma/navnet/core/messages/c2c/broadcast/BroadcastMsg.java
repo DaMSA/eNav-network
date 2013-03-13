@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package dk.dma.navnet.core.messages.c2c;
+package dk.dma.navnet.core.messages.c2c.broadcast;
 
 import static java.util.Objects.requireNonNull;
 
@@ -29,17 +29,17 @@ import dk.dma.enav.model.MaritimeId;
 import dk.dma.enav.model.geometry.PositionTime;
 import dk.dma.navnet.core.messages.AbstractMessage;
 import dk.dma.navnet.core.messages.MessageType;
-import dk.dma.navnet.core.messages.ProtocolReader;
-import dk.dma.navnet.core.messages.ProtocolWriter;
+import dk.dma.navnet.core.messages.util.TextMessageReader;
+import dk.dma.navnet.core.messages.util.TextMessageWriter;
 import dk.dma.navnet.core.util.JSonUtil;
 
 /**
  * 
  * @author Kasper Nielsen
  */
-public class Broadcast extends AbstractMessage {
+public class BroadcastMsg extends AbstractMessage {
     /** The logger. */
-    static final Logger LOG = LoggerFactory.getLogger(Broadcast.class);
+    static final Logger LOG = LoggerFactory.getLogger(BroadcastMsg.class);
 
     final String channel;
 
@@ -52,7 +52,7 @@ public class Broadcast extends AbstractMessage {
     /**
      * @param messageType
      */
-    public Broadcast(MaritimeId id, PositionTime position, String channel, String message) {
+    public BroadcastMsg(MaritimeId id, PositionTime position, String channel, String message) {
         super(MessageType.BROADCAST);
         this.id = requireNonNull(id);
         this.positionTime = requireNonNull(position);
@@ -60,15 +60,15 @@ public class Broadcast extends AbstractMessage {
         this.message = requireNonNull(message);
     }
 
-    public static Broadcast create(MaritimeId sender, PositionTime position, BroadcastMessage message) {
-        return new Broadcast(sender, position, message.channel(), JSonUtil.persistAndEscape(message));
+    public static BroadcastMsg create(MaritimeId sender, PositionTime position, BroadcastMessage message) {
+        return new BroadcastMsg(sender, position, message.channel(), JSonUtil.persistAndEscape(message));
     }
 
     /**
      * @param messageType
      * @throws IOException
      */
-    public Broadcast(ProtocolReader pr) throws IOException {
+    public BroadcastMsg(TextMessageReader pr) throws IOException {
         this(MaritimeId.create(pr.takeString()), PositionTime.create(pr.takeDouble(), pr.takeDouble(), pr.takeLong()),
                 pr.takeString(), pr.takeString());
     }
@@ -121,7 +121,7 @@ public class Broadcast extends AbstractMessage {
 
     /** {@inheritDoc} */
     @Override
-    protected void write(ProtocolWriter w) {
+    protected void write(TextMessageWriter w) {
         w.writeString(id.toString());
         w.writeDouble(positionTime.getLatitude());
         w.writeDouble(positionTime.getLongitude());

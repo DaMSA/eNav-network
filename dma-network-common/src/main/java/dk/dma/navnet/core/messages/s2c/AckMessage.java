@@ -19,8 +19,8 @@ import java.io.IOException;
 
 import dk.dma.navnet.core.messages.AbstractMessage;
 import dk.dma.navnet.core.messages.MessageType;
-import dk.dma.navnet.core.messages.ProtocolReader;
-import dk.dma.navnet.core.messages.ProtocolWriter;
+import dk.dma.navnet.core.messages.util.TextMessageReader;
+import dk.dma.navnet.core.messages.util.TextMessageWriter;
 
 /**
  * 
@@ -38,7 +38,7 @@ public abstract class AckMessage extends AbstractMessage {
         this.messageAck = messageAck;
     }
 
-    public AckMessage(MessageType type, ProtocolReader pr) throws IOException {
+    public AckMessage(MessageType type, TextMessageReader pr) throws IOException {
         this(type, pr.takeLong());
     }
 
@@ -48,10 +48,10 @@ public abstract class AckMessage extends AbstractMessage {
 
     /** {@inheritDoc} */
     @Override
-    protected final void write(ProtocolWriter w) {
+    protected final void write(TextMessageWriter w) {
         w.writeLong(messageAck);
         write0(w);
     }
 
-    protected void write0(ProtocolWriter w) {};
+    protected void write0(TextMessageWriter w) {};
 }

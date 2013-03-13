@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package dk.dma.navnet.core.messages;
+package dk.dma.navnet.core.messages.util;
 
 import static java.util.Objects.requireNonNull;
 
@@ -28,11 +28,11 @@ import com.fasterxml.jackson.core.JsonToken;
  * 
  * @author Kasper Nielsen
  */
-public class ProtocolReader {
+public class TextMessageReader {
 
     private final JsonParser jp;
 
-    ProtocolReader(String message) throws IOException {
+    public TextMessageReader(String message) throws IOException {
         requireNonNull(message);
         JsonFactory jsonF = new JsonFactory();
         jp = jsonF.createJsonParser(message);

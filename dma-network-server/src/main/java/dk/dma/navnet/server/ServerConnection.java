@@ -22,21 +22,21 @@ import java.util.List;
 import java.util.UUID;
 
 import dk.dma.enav.model.MaritimeId;
+import dk.dma.navnet.core.messages.auxiliary.ConnectedMessage;
+import dk.dma.navnet.core.messages.auxiliary.HelloMessage;
+import dk.dma.navnet.core.messages.auxiliary.PositionReportMessage;
+import dk.dma.navnet.core.messages.auxiliary.WelcomeMessage;
 import dk.dma.navnet.core.messages.c2c.AbstractRelayedMessage;
-import dk.dma.navnet.core.messages.c2c.Broadcast;
-import dk.dma.navnet.core.messages.s2c.PositionReportMessage;
-import dk.dma.navnet.core.messages.s2c.connection.ConnectedMessage;
-import dk.dma.navnet.core.messages.s2c.connection.HelloMessage;
-import dk.dma.navnet.core.messages.s2c.connection.WelcomeMessage;
-import dk.dma.navnet.core.messages.s2c.service.FindServices;
+import dk.dma.navnet.core.messages.c2c.broadcast.BroadcastMsg;
+import dk.dma.navnet.core.messages.s2c.service.FindService;
 import dk.dma.navnet.core.messages.s2c.service.RegisterService;
-import dk.dma.navnet.core.spi.ServerHandler;
+import dk.dma.navnet.core.spi.AbstractServerHandler;
 
 /**
  * 
  * @author Kasper Nielsen
  */
-public class ServerConnection extends ServerHandler {
+public class ServerConnection extends AbstractServerHandler {
 
     volatile MaritimeId clientId;
 
@@ -59,7 +59,7 @@ public class ServerConnection extends ServerHandler {
 
     /** {@inheritDoc} */
     @Override
-    public void broadcast(String msg, Broadcast m) {
+    public void broadcast(String msg, BroadcastMsg m) {
         cm.broadcast(this, msg, m);
     }
 
@@ -79,7 +79,7 @@ public class ServerConnection extends ServerHandler {
 
     /** {@inheritDoc} */
     @Override
-    public void findService(FindServices m) {
+    public void findService(FindService m) {
         List<String> list = new ArrayList<>();
         for (MaritimeId id : cm.server.registeredServices.findServicesOfType(m.getServiceName()).keySet()) {
             list.add(id.toString());
