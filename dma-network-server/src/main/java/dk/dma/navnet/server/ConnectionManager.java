@@ -35,6 +35,7 @@ import org.eclipse.jetty.websocket.servlet.WebSocketServletFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import dk.dma.enav.model.MaritimeId;
 import dk.dma.navnet.core.messages.c2c.broadcast.BroadcastMsg;
 
 /**
@@ -53,8 +54,7 @@ class ConnectionManager {
     /** The actual server */
     final ENavNetworkServer server;
 
-    /** All the current connections. */
-    private final ConcurrentHashMapV8<String, ServerHandler> connections = new ConcurrentHashMapV8<>();
+    final ConcurrentHashMapV8<String, Client> connections = new ConcurrentHashMapV8<>();
 
     ConnectionManager(ENavNetworkServer server, SocketAddress socketAddress) {
         this.server = requireNonNull(server);
@@ -73,21 +73,20 @@ class ConnectionManager {
         server.server.setHandler(wsHandler);
     }
 
-    synchronized ServerHandler addConnection(String id, ServerHandler c) {
-        return connections.put(id, c);
-
-        // Hmm man kan jo ikke bruge persistent connection til noget
-        // Hvis den doer er det jo klients ansvar
-
-        // Jo for serveren skal soerge for at matce det op
+    synchronized ServerHandler addConnection(MaritimeId mid, String id, ServerHandler c) {
+        Client newCH = new Client(mid, server, c);
+        c.holder = newCH;
+        Client ch = connections.put(id, newCH);
+        return ch == null ? null : ch.currentConnection;
     }
 
     void disconnected(ServerHandler connection) {
-        connections.remove(connection.clientId.toString());
+        connections.remove(connection.holder.id.toString());
     }
 
     void broadcast(ServerHandler sender, final BroadcastMsg broadcast) {
-        for (final ServerHandler sc : connections.values()) {
+        for (Client ch : connections.values()) {
+            final ServerHandler sc = ch.currentConnection;
             if (sc != sender) {
                 server.deamonPool.execute(new Runnable() {
                     public void run() {
@@ -111,13 +110,12 @@ class ConnectionManager {
     }
 
     public ServerHandler getConnection(String id) {
-        return connections.get(id);
+        return connections.get(id).currentConnection;
     }
 
     /** Stops accepting any more sockets. */
     void stopAccepting() {
         ses.shutdown();
-
     }
 
     void handleDeadConnection(ServerHandler pc) {
@@ -128,14 +126,13 @@ class ConnectionManager {
 
     class ConnectionChecker implements Runnable {
         /** {@inheritDoc} */
-        @SuppressWarnings("synthetic-access")
         @Override
         public void run() {
             connections.forEachKeyInParallel(new Action<String>() {
                 @Override
                 public void apply(String s) {
-                    connections.computeIfPresent(s, new BiFun<String, ServerHandler, ServerHandler>() {
-                        public ServerHandler apply(String s, ServerHandler pc) {
+                    connections.computeIfPresent(s, new BiFun<String, Client, Client>() {
+                        public Client apply(String s, Client pc) {
                             // if (pc.isDead()) {
                             // handleDeadConnection(pc);
                             // return null;

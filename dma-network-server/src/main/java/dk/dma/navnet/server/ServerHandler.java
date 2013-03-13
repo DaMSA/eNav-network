@@ -21,7 +21,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
-import dk.dma.enav.model.MaritimeId;
+import jsr166e.ConcurrentHashMapV8;
 import dk.dma.navnet.core.messages.auxiliary.ConnectedMessage;
 import dk.dma.navnet.core.messages.auxiliary.HelloMessage;
 import dk.dma.navnet.core.messages.auxiliary.PositionReportMessage;
@@ -36,22 +36,15 @@ import dk.dma.navnet.core.spi.AbstractServerHandler;
  * 
  * @author Kasper Nielsen
  */
-public class ServerHandler extends AbstractServerHandler {
-
-    volatile MaritimeId clientId;
+class ServerHandler extends AbstractServerHandler {
 
     final ConnectionManager cm;
+
+    volatile Client holder;
 
     long nextReplyId;
 
     State state = State.CREATED;
-
-    /** {@inheritDoc} */
-    @Override
-    public void onError(Throwable cause) {
-        cm.server.tracker.remove(this);
-        cm.server.at.disconnected(this);
-    }
 
     ServerHandler(ConnectionManager cm) {
         this.cm = requireNonNull(cm);
@@ -66,7 +59,7 @@ public class ServerHandler extends AbstractServerHandler {
     /** {@inheritDoc} */
     @Override
     protected void closed(int statusCode, String reason) {
-        cm.server.tracker.remove(this);
+        cm.server.tracker.remove(this.holder);
         cm.server.at.disconnected(this);
         super.closed(statusCode, reason);
     }
@@ -79,10 +72,18 @@ public class ServerHandler extends AbstractServerHandler {
 
     /** {@inheritDoc} */
     @Override
-    public void findService(FindService m) {
+    public void findService(final FindService m) {
         List<String> list = new ArrayList<>();
-        for (MaritimeId id : cm.server.registeredServices.findServicesOfType(m.getServiceName()).keySet()) {
-            list.add(id.toString());
+        final ConcurrentHashMapV8<Client, String> map = new ConcurrentHashMapV8<>();
+        cm.connections.forEachValueInParallel(new ConcurrentHashMapV8.Action<Client>() {
+            public void apply(Client r) {
+                if (r.services.hasService(m.getServiceName())) {
+                    map.put(r, "");
+                }
+            }
+        });
+        for (Client ch : map.keySet()) {
+            list.add(ch.id.toString());
         }
         sendMessage(m.createReply(list.toArray(new String[list.size()])));
     }
@@ -91,21 +92,27 @@ public class ServerHandler extends AbstractServerHandler {
     @Override
     public void hello(HelloMessage m) {
         UUID uuid = UUID.randomUUID();
-        clientId = m.getClientId();
-        cm.addConnection(m.getClientId().toString(), this);
+        cm.addConnection(m.getClientId(), m.getClientId().toString(), this);
         sendMessage(new ConnectedMessage(uuid.toString()));
     }
 
     /** {@inheritDoc} */
     @Override
+    public void onError(Throwable cause) {
+        cm.server.tracker.remove(this.holder);
+        cm.server.at.disconnected(this);
+    }
+
+    /** {@inheritDoc} */
+    @Override
     public void positionReport(PositionReportMessage m) {
-        cm.server.tracker.update(this, m.getPositionTime());
+        cm.server.tracker.update(this.holder, m.getPositionTime());
     }
 
     /** {@inheritDoc} */
     @Override
     public void registerService(RegisterService m) {
-        cm.server.registeredServices.registerService(clientId, m);
+        holder.services.registerService(m);
         sendMessage(m.createReply());
     }
 

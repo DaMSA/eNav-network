@@ -43,8 +43,6 @@ public class ENavNetworkServer {
     /** The logger. */
     static final Logger LOG = LoggerFactory.getLogger(ENavNetworkServer.class);
 
-    final ServiceManager registeredServices = new ServiceManager();
-
     final ExecutorService deamonPool = Executors.newCachedThreadPool(new ThreadFactoryBuilder()
             .setNameFormat("deamonPool").setDaemon(true).build());
 
@@ -61,7 +59,7 @@ public class ENavNetworkServer {
     final CountDownLatch termination = new CountDownLatch(1);
 
     /** The position tracker. */
-    final PositionTracker<ServerHandler> tracker = new PositionTracker<>();
+    final PositionTracker<Client> tracker = new PositionTracker<>();
 
     final Server server;
 
