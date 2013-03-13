@@ -23,6 +23,7 @@ import com.google.inject.Injector;
 import dk.dma.commons.app.AbstractCommandLineTool;
 
 /**
+ * Used to start a server from the command line.
  * 
  * @author Kasper Nielsen
  */
@@ -30,10 +31,10 @@ public class Main extends AbstractCommandLineTool {
 
     @Parameter(names = "-port", description = "The port to listen on")
     int port = ENavNetworkServer.DEFAULT_PORT;
+
     volatile ENavNetworkServer server;
 
     public static void main(String[] args) throws Exception {
-        // args = new String[] { "-source", "ais163.sealan.dk:65262", "-store", "localhost" };
         new Main().execute(args);
     }
 
@@ -48,7 +49,8 @@ public class Main extends AbstractCommandLineTool {
         ENavNetworkServer server = new ENavNetworkServer(port);
         server.start();
         this.server = server; // only set it if it started
-        System.out.println("server running on port " + port);
+        System.out.println("Wuhuu Server started! Running on port " + port);
+        System.out.println("Use CTRL+C to stop it");
     }
 
     void kill() {

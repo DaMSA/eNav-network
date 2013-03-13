@@ -36,7 +36,7 @@ import dk.dma.navnet.core.spi.AbstractServerHandler;
  * 
  * @author Kasper Nielsen
  */
-public class ServerConnection extends AbstractServerHandler {
+public class ServerHandler extends AbstractServerHandler {
 
     volatile MaritimeId clientId;
 
@@ -53,7 +53,7 @@ public class ServerConnection extends AbstractServerHandler {
         cm.server.at.disconnected(this);
     }
 
-    ServerConnection(ConnectionManager cm) {
+    ServerHandler(ConnectionManager cm) {
         this.cm = requireNonNull(cm);
     }
 
@@ -113,7 +113,7 @@ public class ServerConnection extends AbstractServerHandler {
     @Override
     public void relay(String raw, AbstractRelayedMessage m) {
         String d = m.getDestination();
-        ServerConnection c = cm.getConnection(d);
+        ServerHandler c = cm.getConnection(d);
         if (c == null) {
             System.err.println("Unknown destination " + d);
             System.err.println("Available " + cm.getAllConnectionIds());

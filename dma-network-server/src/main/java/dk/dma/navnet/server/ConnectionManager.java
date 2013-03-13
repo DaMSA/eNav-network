@@ -54,7 +54,7 @@ class ConnectionManager {
     final ENavNetworkServer server;
 
     /** All the current connections. */
-    private final ConcurrentHashMapV8<String, ServerConnection> connections = new ConcurrentHashMapV8<>();
+    private final ConcurrentHashMapV8<String, ServerHandler> connections = new ConcurrentHashMapV8<>();
 
     ConnectionManager(ENavNetworkServer server, SocketAddress socketAddress) {
         this.server = requireNonNull(server);
@@ -64,7 +64,7 @@ class ConnectionManager {
             public void configure(WebSocketServletFactory factory) {
                 factory.setCreator(new WebSocketCreator() {
                     public Object createWebSocket(UpgradeRequest req, UpgradeResponse resp) {
-                        return new ServerConnection(ConnectionManager.this).getListener();
+                        return new ServerHandler(ConnectionManager.this).getListener();
                     }
                 });
             }
@@ -73,7 +73,7 @@ class ConnectionManager {
         server.server.setHandler(wsHandler);
     }
 
-    synchronized ServerConnection addConnection(String id, ServerConnection c) {
+    synchronized ServerHandler addConnection(String id, ServerHandler c) {
         return connections.put(id, c);
 
         // Hmm man kan jo ikke bruge persistent connection til noget
@@ -82,12 +82,12 @@ class ConnectionManager {
         // Jo for serveren skal soerge for at matce det op
     }
 
-    void disconnected(ServerConnection connection) {
+    void disconnected(ServerHandler connection) {
         connections.remove(connection.clientId.toString());
     }
 
-    void broadcast(ServerConnection sender, final String msg, BroadcastMsg broadcast) {
-        for (final ServerConnection sc : connections.values()) {
+    void broadcast(ServerHandler sender, final String msg, BroadcastMsg broadcast) {
+        for (final ServerHandler sc : connections.values()) {
             if (sc != sender) {
                 server.deamonPool.execute(new Runnable() {
                     public void run() {
@@ -110,7 +110,7 @@ class ConnectionManager {
         return connections.size();
     }
 
-    public ServerConnection getConnection(String id) {
+    public ServerHandler getConnection(String id) {
         return connections.get(id);
     }
 
@@ -120,7 +120,7 @@ class ConnectionManager {
 
     }
 
-    void handleDeadConnection(ServerConnection pc) {
+    void handleDeadConnection(ServerHandler pc) {
         // for all pending
         // send news to sender?
         // but not if they are dead
@@ -134,8 +134,8 @@ class ConnectionManager {
             connections.forEachKeyInParallel(new Action<String>() {
                 @Override
                 public void apply(String s) {
-                    connections.computeIfPresent(s, new BiFun<String, ServerConnection, ServerConnection>() {
-                        public ServerConnection apply(String s, ServerConnection pc) {
+                    connections.computeIfPresent(s, new BiFun<String, ServerHandler, ServerHandler>() {
+                        public ServerHandler apply(String s, ServerHandler pc) {
                             // if (pc.isDead()) {
                             // handleDeadConnection(pc);
                             // return null;

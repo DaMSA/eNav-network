@@ -61,7 +61,7 @@ public class ENavNetworkServer {
     final CountDownLatch termination = new CountDownLatch(1);
 
     /** The position tracker. */
-    final PositionTracker<ServerConnection> tracker = new PositionTracker<>();
+    final PositionTracker<ServerHandler> tracker = new PositionTracker<>();
 
     final Server server;
 
@@ -94,8 +94,6 @@ public class ENavNetworkServer {
         } else if (state == State.RUNNING) {
             LOG.info("Shutting down server");
             state = State.SHUTDOWN;
-
-            // at.stopAccepting();
             new ShutdownThread().start();
         }
     }
@@ -124,16 +122,6 @@ public class ENavNetworkServer {
         LOG.info("Server Terminated");
     }
 
-    public void manage() {
-        // MBeanContainer mbContainer = new MBeanContainer(ManagementFactory.getPlatformMBeanServer());
-        // server. .getContainer().addEventListener(mbContainer);
-        // server.addBean(mbContainer);
-        //
-        // // Register loggers as MBeans
-        // mbContainer.addBean(Log.getLog());
-
-    }
-
     class ShutdownThread extends Thread {
         ShutdownThread() {
             setDaemon(true);
@@ -143,13 +131,13 @@ public class ENavNetworkServer {
         @Override
         public void run() {
             LOG.info("Shutdown thread started");
+            System.out.println("Stopping for acceptance of new connections");
             try {
                 server.stop();
             } catch (Exception e) {
-                // TODO Auto-generated catch block
                 e.printStackTrace();
             }
-            LOG.info("JettyServer stopped");
+            LOG.info("Acceptance of new connections stopped, closing existing");
             int size = at.getNumberOfConnections();
             if (size > 0) {
                 LOG.info("Shutting down " + size + " connections");

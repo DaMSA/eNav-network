@@ -15,6 +15,8 @@
  */
 package dk.dma.navnet.core.messages;
 
+import static java.util.Objects.requireNonNull;
+
 import java.io.IOException;
 import java.util.Map.Entry;
 import java.util.TreeMap;
@@ -27,27 +29,46 @@ import dk.dma.navnet.core.messages.util.TextMessageWriter;
  * @author Kasper Nielsen
  */
 public abstract class AbstractMessage {
-    static final MessageType M = MessageType.CONNECTED;
-    static final MessageType[] types;
-    private final MessageType messageType;
-
-    public AbstractMessage(MessageType messageType) {
-        this.messageType = messageType;
-    }
+    static final MessageType[] TYPES;
 
     static {
         TreeMap<Integer, MessageType> m = new TreeMap<>();
         for (MessageType mt : MessageType.values()) {
             m.put(mt.type, mt);
         }
-        types = new MessageType[m.lastKey() + 1];
+        TYPES = new MessageType[m.lastKey() + 1];
         for (Entry<Integer, MessageType> e : m.entrySet()) {
-            types[e.getKey()] = e.getValue();
+            TYPES[e.getKey()] = e.getValue();
         }
     }
 
-    public MessageType getMessageType() {
+    /** The type of message. */
+    private final MessageType messageType;
+
+    /**
+     * Creates a new AbstractMessage.
+     * 
+     * @param messageType
+     *            the type of message
+     * @throws NullPointerException
+     *             if the specified message type is null
+     */
+    public AbstractMessage(MessageType messageType) {
+        this.messageType = requireNonNull(messageType);
+    }
+
+    /**
+     * Returns the message type.
+     * 
+     * @return the message type
+     */
+    public final MessageType getMessageType() {
         return messageType;
+    }
+
+    static Class<? extends AbstractMessage> getType(int type) {
+        Class<? extends AbstractMessage> cl = TYPES[type].cl;
+        return cl;
     }
 
     public String toJSON() {
@@ -64,7 +85,7 @@ public abstract class AbstractMessage {
         TextMessageReader pr = new TextMessageReader(msg);
         int type = pr.takeInt();
         // TODO guard indexes
-        Class<? extends AbstractMessage> cl = types[type].cl;
+        Class<? extends AbstractMessage> cl = getType(type);
         try {
             return cl.getConstructor(TextMessageReader.class).newInstance(pr);
         } catch (ReflectiveOperationException e) {
