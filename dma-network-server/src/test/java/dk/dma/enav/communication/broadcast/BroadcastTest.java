@@ -24,8 +24,8 @@ import java.util.concurrent.TimeUnit;
 
 import org.junit.Test;
 
-import test.AbstractNetworkTest;
 import test.stubs.BroadcastTestMessage;
+import dk.dma.enav.communication.AbstractNetworkTest;
 import dk.dma.enav.communication.MaritimeNetworkConnection;
 import dk.dma.enav.communication.broadcast.BroadcastListener;
 import dk.dma.enav.communication.broadcast.BroadcastMessageHeader;

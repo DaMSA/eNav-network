@@ -23,6 +23,9 @@ import dk.dma.enav.communication.broadcast.BroadcastMessage;
  */
 public class BroadcastTestMessage extends BroadcastMessage {
 
+    /** The name of the channel that this broadcast is sent via. */
+    public static final String CHANNEL = "test.broadcast";
+
     private String name;
 
     public BroadcastTestMessage() {}

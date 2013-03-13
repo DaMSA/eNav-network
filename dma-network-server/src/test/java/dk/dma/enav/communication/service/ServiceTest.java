@@ -21,10 +21,10 @@ import java.util.concurrent.TimeUnit;
 
 import org.junit.Test;
 
-import test.AbstractNetworkTest;
 import test.stubs.HelloService;
 import test.stubs.HelloService.GetName;
 import test.stubs.HelloService.Reply;
+import dk.dma.enav.communication.AbstractNetworkTest;
 import dk.dma.enav.communication.MaritimeNetworkConnection;
 import dk.dma.enav.communication.NetworkFuture;
 import dk.dma.enav.model.MaritimeId;

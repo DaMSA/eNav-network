@@ -13,13 +13,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package test;
+package dk.dma.enav.communication.service;
 
 import java.util.concurrent.TimeUnit;
 
 import org.junit.Ignore;
 import org.junit.Test;
 
+import dk.dma.enav.communication.AbstractNetworkTest;
 import dk.dma.enav.communication.MaritimeNetworkConnection;
 import dk.dma.enav.communication.broadcast.BroadcastMessage;
 import dk.dma.enav.communication.service.InvocationCallback;
@@ -32,7 +33,7 @@ import dk.dma.enav.service.ship.GetNameService.Reply;
  * @author Kasper Nielsen
  */
 @Ignore
-public class ServiceTest extends AbstractNetworkTest {
+public class OldServiceTest extends AbstractNetworkTest {
     public static final MaritimeId ID1 = MaritimeId.create("mmsi://1");
     public static final MaritimeId ID6 = MaritimeId.create("mmsi://6");
 

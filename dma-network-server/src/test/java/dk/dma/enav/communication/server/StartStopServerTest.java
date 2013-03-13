@@ -13,13 +13,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package dk.dma.navnet.server;
+package dk.dma.enav.communication.server;
 
 import static org.junit.Assert.assertTrue;
 
 import java.util.concurrent.TimeUnit;
 
 import org.junit.Test;
+
+import dk.dma.navnet.server.ENavNetworkServer;
 
 /**
  * 
