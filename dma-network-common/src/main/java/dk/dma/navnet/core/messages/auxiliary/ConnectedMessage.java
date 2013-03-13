@@ -19,7 +19,7 @@ import static java.util.Objects.requireNonNull;
 
 import java.io.IOException;
 
-import dk.dma.navnet.core.messages.AbstractMessage;
+import dk.dma.navnet.core.messages.AbstractTextMessage;
 import dk.dma.navnet.core.messages.MessageType;
 import dk.dma.navnet.core.messages.util.TextMessageReader;
 import dk.dma.navnet.core.messages.util.TextMessageWriter;
@@ -28,7 +28,7 @@ import dk.dma.navnet.core.messages.util.TextMessageWriter;
  * 
  * @author Kasper Nielsen
  */
-public class ConnectedMessage extends AbstractMessage {
+public class ConnectedMessage extends AbstractTextMessage {
 
     private final String connectionId;
 

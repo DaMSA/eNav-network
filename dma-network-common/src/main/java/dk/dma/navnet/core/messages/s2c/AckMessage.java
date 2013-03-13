@@ -17,7 +17,7 @@ package dk.dma.navnet.core.messages.s2c;
 
 import java.io.IOException;
 
-import dk.dma.navnet.core.messages.AbstractMessage;
+import dk.dma.navnet.core.messages.AbstractTextMessage;
 import dk.dma.navnet.core.messages.MessageType;
 import dk.dma.navnet.core.messages.util.TextMessageReader;
 import dk.dma.navnet.core.messages.util.TextMessageWriter;
@@ -26,7 +26,7 @@ import dk.dma.navnet.core.messages.util.TextMessageWriter;
  * 
  * @author Kasper Nielsen
  */
-public abstract class AckMessage extends AbstractMessage {
+public abstract class AckMessage extends AbstractTextMessage {
 
     final long messageAck;
 

@@ -15,7 +15,7 @@
  */
 package dk.dma.navnet.core.spi;
 
-import dk.dma.navnet.core.messages.AbstractMessage;
+import dk.dma.navnet.core.messages.AbstractTextMessage;
 import dk.dma.navnet.core.messages.auxiliary.ConnectedMessage;
 import dk.dma.navnet.core.messages.auxiliary.WelcomeMessage;
 import dk.dma.navnet.core.messages.c2c.broadcast.BroadcastMsg;
@@ -30,22 +30,23 @@ import dk.dma.navnet.core.util.NetworkFutureImpl;
  * @author Kasper Nielsen
  */
 public abstract class AbstractClientHandler extends AbstractHandler {
+
     /** {@inheritDoc} */
     @SuppressWarnings("unchecked")
     @Override
-    public final void handleTextReply(String msg, AbstractMessage m, NetworkFutureImpl<?> f) {
+    public final void handleTextReply(AbstractTextMessage m, NetworkFutureImpl<?> f) {
         if (m instanceof RegisterServiceResult) {
             serviceRegisteredAck((RegisterServiceResult) m, (NetworkFutureImpl<RegisterServiceResult>) f);
         } else if (m instanceof FindServiceResult) {
             serviceFindAck((FindServiceResult) m, (NetworkFutureImpl<FindServiceResult>) f);
         } else {
-            unknownMessage(msg, m);
+            unknownMessage(m);
         }
     }
 
     /** {@inheritDoc} */
     @Override
-    public final void handleText(String msg, AbstractMessage m) {
+    public final void handleText(AbstractTextMessage m) {
         if (m instanceof WelcomeMessage) {
             welcome((WelcomeMessage) m);
         } else if (m instanceof ConnectedMessage) {
@@ -57,7 +58,7 @@ public abstract class AbstractClientHandler extends AbstractHandler {
         } else if (m instanceof BroadcastMsg) {
             receivedBroadcast((BroadcastMsg) m);
         } else {
-            unknownMessage(msg, m);
+            unknownMessage(m);
         }
     }
 
@@ -87,7 +88,7 @@ public abstract class AbstractClientHandler extends AbstractHandler {
 
     protected void welcome(WelcomeMessage m) {}
 
-    protected void unknownMessage(String msg, AbstractMessage m) {
-        System.err.println("Received an unknown message " + m.toJSON());
+    protected void unknownMessage(AbstractTextMessage m) {
+        System.err.println("Received an unknown message " + m.getReceivedRawMesage());
     };
 }

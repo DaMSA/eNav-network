@@ -15,7 +15,7 @@
  */
 package dk.dma.navnet.core.spi;
 
-import dk.dma.navnet.core.messages.AbstractMessage;
+import dk.dma.navnet.core.messages.AbstractTextMessage;
 import dk.dma.navnet.core.messages.auxiliary.HelloMessage;
 import dk.dma.navnet.core.messages.auxiliary.PositionReportMessage;
 import dk.dma.navnet.core.messages.c2c.AbstractRelayedMessage;
@@ -34,13 +34,13 @@ public abstract class AbstractServerHandler extends AbstractHandler {
 
     /** {@inheritDoc} */
     @Override
-    public final void handleTextReply(String msg, AbstractMessage m, NetworkFutureImpl<?> f) {
-        unknownMessage(msg, m);
+    public final void handleTextReply(AbstractTextMessage m, NetworkFutureImpl<?> f) {
+        unknownMessage(m);
     }
 
     /** {@inheritDoc} */
     @Override
-    public final void handleText(String msg, AbstractMessage m) {
+    public final void handleText(AbstractTextMessage m) {
         if (m instanceof HelloMessage) {
             hello((HelloMessage) m);
         } else if (m instanceof RegisterService) {
@@ -48,15 +48,15 @@ public abstract class AbstractServerHandler extends AbstractHandler {
         } else if (m instanceof FindService) {
             findService((FindService) m);
         } else if (m instanceof AbstractRelayedMessage) {
-            relay(msg, (AbstractRelayedMessage) m);
+            relay((AbstractRelayedMessage) m);
         } else if (m instanceof BroadcastMsg) {
-            broadcast(msg, (BroadcastMsg) m);
+            broadcast((BroadcastMsg) m);
         } else if (m instanceof PositionReportMessage) {
             positionReport((PositionReportMessage) m);
         } else if (m instanceof FindService) {
             findServices((FindService) m);
         } else {
-            unknownMessage(msg, m);
+            unknownMessage(m);
         }
     }
 
@@ -65,17 +65,17 @@ public abstract class AbstractServerHandler extends AbstractHandler {
     /**
      * @param m
      */
-    public void broadcast(String msg, BroadcastMsg m) {}
+    public void broadcast(BroadcastMsg m) {}
 
     public void hello(HelloMessage m) {}
 
-    public void relay(String raw, AbstractRelayedMessage m) {}
+    public void relay(AbstractRelayedMessage m) {}
 
     public void registerService(RegisterService m) {}
 
     public void findServices(FindService s) {}
 
-    public void unknownMessage(String msg, AbstractMessage m) {
-        System.err.println("Received an unknown message " + m.toJSON());
+    public void unknownMessage(AbstractTextMessage m) {
+        System.err.println("Received an unknown message " + m.getReceivedRawMesage());
     };
 }

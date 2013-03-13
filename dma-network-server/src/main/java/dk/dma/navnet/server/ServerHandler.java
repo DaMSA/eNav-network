@@ -59,8 +59,8 @@ public class ServerHandler extends AbstractServerHandler {
 
     /** {@inheritDoc} */
     @Override
-    public void broadcast(String msg, BroadcastMsg m) {
-        cm.broadcast(this, msg, m);
+    public void broadcast(BroadcastMsg m) {
+        cm.broadcast(this, m);
     }
 
     /** {@inheritDoc} */
@@ -111,14 +111,14 @@ public class ServerHandler extends AbstractServerHandler {
 
     /** {@inheritDoc} */
     @Override
-    public void relay(String raw, AbstractRelayedMessage m) {
+    public void relay(AbstractRelayedMessage m) {
         String d = m.getDestination();
         ServerHandler c = cm.getConnection(d);
         if (c == null) {
             System.err.println("Unknown destination " + d);
             System.err.println("Available " + cm.getAllConnectionIds());
         } else {
-            c.sendRawTextMessage(raw);
+            c.sendRawTextMessage(m.getReceivedRawMesage());
         }
     }
 

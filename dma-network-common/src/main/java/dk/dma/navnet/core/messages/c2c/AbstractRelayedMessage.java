@@ -17,7 +17,7 @@ package dk.dma.navnet.core.messages.c2c;
 
 import java.io.IOException;
 
-import dk.dma.navnet.core.messages.AbstractMessage;
+import dk.dma.navnet.core.messages.AbstractTextMessage;
 import dk.dma.navnet.core.messages.MessageType;
 import dk.dma.navnet.core.messages.util.TextMessageReader;
 import dk.dma.navnet.core.messages.util.TextMessageWriter;
@@ -26,7 +26,7 @@ import dk.dma.navnet.core.messages.util.TextMessageWriter;
  * 
  * @author Kasper Nielsen
  */
-public abstract class AbstractRelayedMessage extends AbstractMessage {
+public abstract class AbstractRelayedMessage extends AbstractTextMessage {
 
     String destination;
 

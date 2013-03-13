@@ -20,7 +20,7 @@ import static java.util.Objects.requireNonNull;
 import java.io.IOException;
 
 import dk.dma.enav.model.MaritimeId;
-import dk.dma.navnet.core.messages.AbstractMessage;
+import dk.dma.navnet.core.messages.AbstractTextMessage;
 import dk.dma.navnet.core.messages.MessageType;
 import dk.dma.navnet.core.messages.util.TextMessageReader;
 import dk.dma.navnet.core.messages.util.TextMessageWriter;
@@ -29,7 +29,7 @@ import dk.dma.navnet.core.messages.util.TextMessageWriter;
  * 
  * @author Kasper Nielsen
  */
-public class HelloMessage extends AbstractMessage {
+public class HelloMessage extends AbstractTextMessage {
 
     // include connection type
     private final MaritimeId clientId;

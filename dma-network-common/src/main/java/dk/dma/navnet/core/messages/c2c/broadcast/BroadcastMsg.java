@@ -27,7 +27,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import dk.dma.enav.communication.broadcast.BroadcastMessage;
 import dk.dma.enav.model.MaritimeId;
 import dk.dma.enav.model.geometry.PositionTime;
-import dk.dma.navnet.core.messages.AbstractMessage;
+import dk.dma.navnet.core.messages.AbstractTextMessage;
 import dk.dma.navnet.core.messages.MessageType;
 import dk.dma.navnet.core.messages.util.TextMessageReader;
 import dk.dma.navnet.core.messages.util.TextMessageWriter;
@@ -37,7 +37,7 @@ import dk.dma.navnet.core.util.JSonUtil;
  * 
  * @author Kasper Nielsen
  */
-public class BroadcastMsg extends AbstractMessage {
+public class BroadcastMsg extends AbstractTextMessage {
     /** The logger. */
     static final Logger LOG = LoggerFactory.getLogger(BroadcastMsg.class);
 

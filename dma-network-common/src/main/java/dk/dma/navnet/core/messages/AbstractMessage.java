@@ -17,12 +17,8 @@ package dk.dma.navnet.core.messages;
 
 import static java.util.Objects.requireNonNull;
 
-import java.io.IOException;
 import java.util.Map.Entry;
 import java.util.TreeMap;
-
-import dk.dma.navnet.core.messages.util.TextMessageReader;
-import dk.dma.navnet.core.messages.util.TextMessageWriter;
 
 /**
  * 
@@ -53,7 +49,7 @@ public abstract class AbstractMessage {
      * @throws NullPointerException
      *             if the specified message type is null
      */
-    public AbstractMessage(MessageType messageType) {
+    AbstractMessage(MessageType messageType) {
         this.messageType = requireNonNull(messageType);
     }
 
@@ -69,27 +65,5 @@ public abstract class AbstractMessage {
     static Class<? extends AbstractMessage> getType(int type) {
         Class<? extends AbstractMessage> cl = TYPES[type].cl;
         return cl;
-    }
-
-    public String toJSON() {
-        TextMessageWriter w = new TextMessageWriter();
-        w.writeInt(messageType.type);
-        write(w);
-        String s = w.sb.append("]").toString();
-        return s;
-    }
-
-    protected abstract void write(TextMessageWriter w);
-
-    public static AbstractMessage read(String msg) throws IOException {
-        TextMessageReader pr = new TextMessageReader(msg);
-        int type = pr.takeInt();
-        // TODO guard indexes
-        Class<? extends AbstractMessage> cl = getType(type);
-        try {
-            return cl.getConstructor(TextMessageReader.class).newInstance(pr);
-        } catch (ReflectiveOperationException e) {
-            throw new IOException(e);
-        }
     }
 }

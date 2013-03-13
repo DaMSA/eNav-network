@@ -86,12 +86,12 @@ class ConnectionManager {
         connections.remove(connection.clientId.toString());
     }
 
-    void broadcast(ServerHandler sender, final String msg, BroadcastMsg broadcast) {
+    void broadcast(ServerHandler sender, final BroadcastMsg broadcast) {
         for (final ServerHandler sc : connections.values()) {
             if (sc != sender) {
                 server.deamonPool.execute(new Runnable() {
                     public void run() {
-                        sc.sendRawTextMessage(msg);
+                        sc.sendRawTextMessage(broadcast.getReceivedRawMesage());
                     }
                 });
             }

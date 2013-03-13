@@ -29,9 +29,7 @@ public class HelloService extends MaritimeService {
     /** An initiation point */
     public static final ServiceInitiationPoint<GetName> GET_NAME = new ServiceInitiationPoint<>(GetName.class);
 
-    public static class GetName extends MaritimeServiceMessage<Reply> {
-        private String msg;
-    }
+    public static class GetName extends MaritimeServiceMessage<Reply> {}
 
     public static class Reply extends MaritimeServiceMessage<Void> {
 

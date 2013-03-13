@@ -25,7 +25,7 @@ import org.eclipse.jetty.websocket.api.Session;
 import org.eclipse.jetty.websocket.api.WebSocketListener;
 
 import dk.dma.enav.communication.CloseReason;
-import dk.dma.navnet.core.messages.AbstractMessage;
+import dk.dma.navnet.core.messages.AbstractTextMessage;
 import dk.dma.navnet.core.messages.c2c.AbstractRelayedMessage;
 import dk.dma.navnet.core.messages.s2c.AckMessage;
 import dk.dma.navnet.core.messages.s2c.ReplyMessage;
@@ -52,7 +52,7 @@ public abstract class AbstractHandler {
         return listener;
     }
 
-    void handleText0(String msg, AbstractMessage m) {
+    void handleText0(AbstractTextMessage m) {
         if (m instanceof AckMessage) {
             AckMessage am = (AckMessage) m;
             NetworkFutureImpl<?> f = acks.remove(am.getMessageAck());
@@ -62,7 +62,7 @@ public abstract class AbstractHandler {
                 // TODO close connection with error
             } else {
                 try {
-                    handleTextReply(msg, m, f);
+                    handleTextReply(m, f);
                 } catch (Exception e) {
                     e.printStackTrace();
                 }
@@ -70,19 +70,19 @@ public abstract class AbstractHandler {
             // System.out.println("RELEASING " + am.getMessageAck() + ", remaining " + acks.keySet());
         } else {
             try {
-                handleText(msg, m);
+                handleText(m);
             } catch (Exception e) {
                 e.printStackTrace();
             }
         }
     }
 
-    protected abstract void handleTextReply(String msg, AbstractMessage m, NetworkFutureImpl<?> f) throws Exception;
+    protected abstract void handleTextReply(AbstractTextMessage m, NetworkFutureImpl<?> f) throws Exception;
 
-    protected abstract void handleText(String msg, AbstractMessage m) throws Exception;
+    protected abstract void handleText(AbstractTextMessage m) throws Exception;
 
     public final <T> NetworkFutureImpl<T> sendMessage(AbstractRelayedMessage m) {
-        sendMessage((AbstractMessage) m);
+        sendMessage((AbstractTextMessage) m);
         return null;
     }
 
@@ -93,7 +93,7 @@ public abstract class AbstractHandler {
             NetworkFutureImpl<T> f = new NetworkFutureImpl<>();
             acks.put(id, f);
             m.setReplyTo(id);
-            sendMessage((AbstractMessage) m);
+            sendMessage((AbstractTextMessage) m);
             return f;
         }
     }
@@ -119,7 +119,7 @@ public abstract class AbstractHandler {
         }
     }
 
-    public final void sendMessage(AbstractMessage m) {
+    public final void sendMessage(AbstractTextMessage m) {
         sendRawTextMessage(m.toJSON());
     }
 
@@ -183,8 +183,9 @@ public abstract class AbstractHandler {
         public final void onWebSocketText(String message) {
             System.out.println("Received: " + message);
             try {
-                AbstractMessage m = AbstractMessage.read(message);
-                handleText0(message, m);
+                AbstractTextMessage m = AbstractTextMessage.read(message);
+                m.setReceivedRawMesage(message);
+                handleText0(m);
             } catch (Throwable e) {
                 e.printStackTrace();
                 tryClose(5004, e.getMessage());

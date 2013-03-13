@@ -21,7 +21,7 @@ import java.io.IOException;
 
 import dk.dma.enav.model.MaritimeId;
 import dk.dma.enav.model.shore.ServerId;
-import dk.dma.navnet.core.messages.AbstractMessage;
+import dk.dma.navnet.core.messages.AbstractTextMessage;
 import dk.dma.navnet.core.messages.MessageType;
 import dk.dma.navnet.core.messages.util.TextMessageReader;
 import dk.dma.navnet.core.messages.util.TextMessageWriter;
@@ -30,7 +30,7 @@ import dk.dma.navnet.core.messages.util.TextMessageWriter;
  * 
  * @author Kasper Nielsen
  */
-public class WelcomeMessage extends AbstractMessage {
+public class WelcomeMessage extends AbstractTextMessage {
 
     /** The version of the protocol, must be one. */
     private final int protocolVersion;

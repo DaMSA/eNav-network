@@ -23,7 +23,6 @@ import org.junit.Test;
 import dk.dma.enav.communication.AbstractNetworkTest;
 import dk.dma.enav.communication.MaritimeNetworkConnection;
 import dk.dma.enav.communication.broadcast.BroadcastMessage;
-import dk.dma.enav.communication.service.InvocationCallback;
 import dk.dma.enav.model.MaritimeId;
 import dk.dma.enav.service.ship.GetNameService.GetName;
 import dk.dma.enav.service.ship.GetNameService.Reply;
@@ -60,7 +59,6 @@ public class OldServiceTest extends AbstractNetworkTest {
     @Test
     public void testServiceOtherClient() throws Exception {
         MaritimeNetworkConnection c = newClient(ID1);
-        MaritimeNetworkConnection c6 = newClient(ID6);
         c.serviceRegister(null, new InvocationCallback<GetName, Reply>() {
             public void process(GetName l, Context<Reply> context) {
                 context.complete(new Reply("testok"));

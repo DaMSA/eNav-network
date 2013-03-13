@@ -20,7 +20,7 @@ import static java.util.Objects.requireNonNull;
 import java.io.IOException;
 
 import dk.dma.enav.model.geometry.PositionTime;
-import dk.dma.navnet.core.messages.AbstractMessage;
+import dk.dma.navnet.core.messages.AbstractTextMessage;
 import dk.dma.navnet.core.messages.MessageType;
 import dk.dma.navnet.core.messages.util.TextMessageReader;
 import dk.dma.navnet.core.messages.util.TextMessageWriter;
@@ -29,7 +29,7 @@ import dk.dma.navnet.core.messages.util.TextMessageWriter;
  * 
  * @author Kasper Nielsen
  */
-public class PositionReportMessage extends AbstractMessage {
+public class PositionReportMessage extends AbstractTextMessage {
 
     private final PositionTime positionTime;
 
