@@ -18,7 +18,6 @@ package dk.dma.navnet.client;
 import static java.util.Objects.requireNonNull;
 
 import java.io.IOException;
-import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
@@ -27,30 +26,30 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.ReentrantLock;
 
-import dk.dma.enav.communication.MaritimeNetworkConnection;
 import dk.dma.enav.communication.NetworkFuture;
+import dk.dma.enav.communication.PersistentNetworkConnection;
 import dk.dma.enav.communication.broadcast.BroadcastListener;
 import dk.dma.enav.communication.broadcast.BroadcastMessage;
 import dk.dma.enav.communication.broadcast.BroadcastSubscription;
 import dk.dma.enav.communication.service.InvocationCallback;
-import dk.dma.enav.communication.service.ServiceEndpoint;
-import dk.dma.enav.communication.service.ServiceInitiationPoint;
+import dk.dma.enav.communication.service.ServiceLocator;
 import dk.dma.enav.communication.service.ServiceRegistration;
-import dk.dma.enav.communication.service.spi.MaritimeServiceMessage;
+import dk.dma.enav.communication.service.spi.ServiceInitiationPoint;
+import dk.dma.enav.communication.service.spi.ServiceMessage;
 import dk.dma.enav.model.MaritimeId;
 import dk.dma.enav.model.geometry.Area;
 import dk.dma.enav.model.geometry.PositionTime;
 import dk.dma.navnet.core.util.NetworkFutureImpl;
 
 /**
- * An implementation of {@link MaritimeNetworkConnection} using websockets and JSON.
+ * An implementation of {@link PersistentNetworkConnection} using websockets and JSON.
  * 
  * @author Kasper Nielsen
  */
-public class ClientNetwork implements MaritimeNetworkConnection {
+public class ClientNetwork implements PersistentNetworkConnection {
 
     /** Responsible for listening and sending broadcasts. */
-    final ClientBroadcastManager broadcaster;
+    final BroadcastManager broadcaster;
 
     /** The id of this client */
     final MaritimeId clientId;
@@ -68,7 +67,7 @@ public class ClientNetwork implements MaritimeNetworkConnection {
     final PositionManager positionManager;
 
     /** Manages registration of services. */
-    final ClientServiceManager services;
+    final ServiceManager services;
 
     /** A {@link ScheduledExecutorService} for scheduling various tasks. */
     final ScheduledExecutorService ses = Executors.newScheduledThreadPool(2);
@@ -88,8 +87,8 @@ public class ClientNetwork implements MaritimeNetworkConnection {
     ClientNetwork(MaritimeNetworkConnectionBuilder builder) {
         this.clientId = requireNonNull(builder.getId());
         this.positionManager = new PositionManager(this, builder.getPositionSupplier());
-        this.broadcaster = new ClientBroadcastManager(this);
-        this.services = new ClientServiceManager(this);
+        this.broadcaster = new BroadcastManager(this);
+        this.services = new ServiceManager(this);
         this.connection = new ClientHandler("ws://" + builder.getHost(), this);
     }
 
@@ -116,35 +115,19 @@ public class ClientNetwork implements MaritimeNetworkConnection {
 
     /** {@inheritDoc} */
     @Override
-    public <T, E extends MaritimeServiceMessage<T>> NetworkFuture<ServiceEndpoint<E, T>> serviceFindOne(
-            ServiceInitiationPoint<E> sip) {
-        return services.serviceFindOne(sip);
-    }
-
-    /** {@inheritDoc} */
-    @Override
-    public <T, E extends MaritimeServiceMessage<T>> NetworkFuture<ServiceEndpoint<E, T>> serviceFindOne(
-            ServiceInitiationPoint<E> sip, MaritimeId id) {
-        throw new UnsupportedOperationException();
-    }
-
-    /** {@inheritDoc} */
-    @Override
-    public <T, E extends MaritimeServiceMessage<T>> NetworkFuture<List<ServiceEndpoint<E, T>>> serviceFind(
-            ServiceInitiationPoint<E> sip) {
+    public <T, E extends ServiceMessage<T>> ServiceLocator<T, E> serviceFind(ServiceInitiationPoint<E> sip) {
         return services.serviceFind(sip);
     }
 
     /** {@inheritDoc} */
     @Override
-    public <T, S extends MaritimeServiceMessage<T>> NetworkFuture<T> serviceInvoke(MaritimeId id,
-            S initiatingServiceMessage) {
+    public <T, S extends ServiceMessage<T>> NetworkFuture<T> serviceInvoke(MaritimeId id, S initiatingServiceMessage) {
         throw new UnsupportedOperationException();
     }
 
     /** {@inheritDoc} */
     @Override
-    public <T, E extends MaritimeServiceMessage<T>> ServiceRegistration serviceRegister(ServiceInitiationPoint<E> sip,
+    public <T, E extends ServiceMessage<T>> ServiceRegistration serviceRegister(ServiceInitiationPoint<E> sip,
             InvocationCallback<E, T> callback) {
         return services.serviceRegister(sip, callback);
     }
@@ -180,7 +163,6 @@ public class ClientNetwork implements MaritimeNetworkConnection {
             state = State.CLOSED;
             es.shutdown();
             ses.shutdown();
-
             try {
                 ses.awaitTermination(1, TimeUnit.SECONDS);
             } catch (InterruptedException e1) {
@@ -199,7 +181,7 @@ public class ClientNetwork implements MaritimeNetworkConnection {
         }
     }
 
-    public static MaritimeNetworkConnection create(MaritimeNetworkConnectionBuilder builder) throws IOException {
+    public static PersistentNetworkConnection create(MaritimeNetworkConnectionBuilder builder) throws IOException {
         ClientNetwork n = new ClientNetwork(builder);
         try {
             // Okay we might be offline when we start up the client
@@ -217,6 +199,12 @@ public class ClientNetwork implements MaritimeNetworkConnection {
 
     enum State {
         CLOSED, CONNECTED, CREATED, TERMINATED;
+    }
+
+    /** {@inheritDoc} */
+    @Override
+    public MaritimeId getLocalId() {
+        return clientId;
     }
 
 }

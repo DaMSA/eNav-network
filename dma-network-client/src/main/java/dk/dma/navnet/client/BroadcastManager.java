@@ -36,10 +36,10 @@ import dk.dma.navnet.core.messages.c2c.broadcast.BroadcastMsg;
  * 
  * @author Kasper Nielsen
  */
-class ClientBroadcastManager {
+class BroadcastManager {
 
     /** The logger. */
-    static final Logger LOG = LoggerFactory.getLogger(ClientBroadcastManager.class);
+    static final Logger LOG = LoggerFactory.getLogger(BroadcastManager.class);
 
     /** The network */
     final ClientNetwork c;
@@ -53,7 +53,7 @@ class ClientBroadcastManager {
      * @param network
      *            the network
      */
-    ClientBroadcastManager(ClientNetwork network) {
+    BroadcastManager(ClientNetwork network) {
         this.c = requireNonNull(network);
     }
 

@@ -23,6 +23,7 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
 import org.eclipse.jetty.server.Server;
+import org.eclipse.jetty.server.ServerConnector;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -69,6 +70,8 @@ public class ENavNetworkServer {
 
     public ENavNetworkServer(int port) {
         server = new Server(new InetSocketAddress(port));
+        ServerConnector connector = (ServerConnector) server.getConnectors()[0];
+        connector.setReuseAddress(true);
         at = new ConnectionManager(this, new InetSocketAddress(port));
     }
 

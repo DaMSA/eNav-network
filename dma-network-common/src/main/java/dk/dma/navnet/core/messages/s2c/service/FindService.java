@@ -32,20 +32,31 @@ public class FindService extends ReplyMessage<FindServiceResult> {
 
     final String serviceName;
 
+    final int meters;
+
+    /**
+     * @return the meters
+     */
+    public int getMeters() {
+        return meters;
+    }
+
     final int max;
 
     public FindService(TextMessageReader pr) throws IOException {
         super(MessageType.FIND_SERVICE, pr);
         this.serviceName = requireNonNull(pr.takeString());
+        this.meters = pr.takeInt();
         this.max = pr.takeInt();
     }
 
     /**
      * @param messageType
      */
-    public FindService(String serviceName, int max) {
+    public FindService(String serviceName, int meters, int max) {
         super(MessageType.FIND_SERVICE);
         this.serviceName = requireNonNull(serviceName);
+        this.meters = meters;
         this.max = max;
 
     }
@@ -62,6 +73,7 @@ public class FindService extends ReplyMessage<FindServiceResult> {
     @Override
     protected void write0(TextMessageWriter w) {
         w.writeString(serviceName);
+        w.writeInt(meters);
         w.writeInt(max);
     }
 

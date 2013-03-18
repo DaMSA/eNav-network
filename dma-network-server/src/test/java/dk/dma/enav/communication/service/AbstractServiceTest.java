@@ -13,29 +13,23 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package dk.dma.navnet.core.messages.s2c.service;
+package dk.dma.enav.communication.service;
 
-import java.io.IOException;
+import java.util.concurrent.TimeUnit;
 
-import dk.dma.navnet.core.messages.MessageType;
-import dk.dma.navnet.core.messages.s2c.AckMessage;
-import dk.dma.navnet.core.messages.util.TextMessageReader;
+import test.stubs.HelloService;
+import dk.dma.enav.communication.AbstractNetworkTest;
+import dk.dma.enav.communication.PersistentNetworkConnection;
 
 /**
  * 
  * @author Kasper Nielsen
  */
-public class RegisterServiceResult extends AckMessage {
+public class AbstractServiceTest extends AbstractNetworkTest {
 
-    // Area
-    public RegisterServiceResult(TextMessageReader pr) throws IOException {
-        super(MessageType.REGISTER_SERVICE_RESULT, pr);
+    public PersistentNetworkConnection registerService(PersistentNetworkConnection pnc, String reply) throws Exception {
+        pnc.serviceRegister(HelloService.GET_NAME, HelloService.create(reply)).awaitRegistered(5, TimeUnit.SECONDS);
+        return pnc;
     }
 
-    /**
-     * @param messageType
-     */
-    public RegisterServiceResult(long id) {
-        super(MessageType.REGISTER_SERVICE_RESULT, id);
-    }
 }

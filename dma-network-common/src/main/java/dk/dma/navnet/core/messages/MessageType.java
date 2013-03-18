@@ -29,12 +29,13 @@ import dk.dma.navnet.core.messages.s2c.service.RegisterService;
 import dk.dma.navnet.core.messages.s2c.service.RegisterServiceResult;
 
 /**
+ * The type of messages that can be sent around in the system.
  * 
  * @author Kasper Nielsen
  */
 public enum MessageType {
-
-    // 0 - 9 : lifecycle, connect/reconnect/disconnect..
+    /* ***************** Auxiliary messages ******** */
+    // 0 - 9 : lifecycle, connect/reconnect/disconnect.. keep/alive
     WELCOME(1, WelcomeMessage.class), // 1. message from server 2 client
     HELLO(2, HelloMessage.class), // 1. message from client 2 server
     CONNECTED(3, ConnectedMessage.class), // 2. message from server 2 client
@@ -48,48 +49,44 @@ public enum MessageType {
 
     // TimedOut???, eller er det en close besked
 
-    POSITION_REPORT(20, PositionReportMessage.class), //
+    POSITION_REPORT(8, PositionReportMessage.class), //
+    // KEEP_ALIVE(9, KeepAlive.class), //
 
-    /* Communication client<->server */
-    // AREA, type of recipiants
-    REGISTER_SERVICE(100, RegisterService.class), //
-    // ok + service registration id
-    // registration idet bruges baade til
-    // at unregistrere
-    REGISTER_SERVICE_ACK(104, RegisterServiceResult.class),
+    /* ******************** Communication client<->server ******************* */
+    REGISTER_SERVICE(100, RegisterService.class), // throws ServiceRegisterException
+    REGISTER_SERVICE_RESULT(101, RegisterServiceResult.class), //
 
     // servicen der skal unregistreres
-    UNREGISTER_SERVICE(101, RegisterService.class), //
-    // 00 unregistreret, 01 unknown id
-    UNREGISTER_SERVICE_ACK(105, RegisterService.class), //
+    UNREGISTER_SERVICE(110, RegisterService.class), //
+    UNREGISTER_SERVICE_ACK(111, RegisterService.class), // throws ServiceUnregisterException
 
-    FIND_SERVICE(102, FindService.class), //
+    FIND_SERVICE(120, FindService.class), //
+    FIND_SERVICE_ACK(121, FindServiceResult.class), // throws ServiceFindException
 
-    FIND_SERVICE_ACK(106, FindServiceResult.class), //
+    /* ******************** Communication client<->client ******************* */
 
-    // id, status code (0 ok, 1
-
-    // SUBSCRIBE_CHANNEL(110, RegisterService.class), //
-    // UNSUBSCRIBE_CHANNEL(111, RegisterService.class), //
-
-    /* Communication client<->client */
+    /* Service invocation */
+    /** Invokes a service. */
     SERVICE_INVOKE(200, InvokeService.class), //
-    BROADCAST(201, BroadcastMsg.class), //
-    SERVICE_INVOKE_ACK(202, InvokeServiceResult.class), //
 
-    // BROADCAST(11) {
-    // // Har man et topic/channal man broadcaster paa.
-    // // f.eks. warning (channel)
-    // // SearchAndRescue channel
-    // // imo.xxx channels are reserved channels.
+    /** The successful result of invoking a service. */
+    SERVICE_INVOKE_RESULT(201, InvokeServiceResult.class), //
 
-    ;
+    /** Invoking a service failed. */
+    // SERVICE_INVOKE_ERROR(202, InvokeServiceError.class), //
+
+    /* Broadcast */
+    /** Broadcasts a message. */
+    BROADCAST(210, BroadcastMsg.class);
 
     final int type;
 
-    final Class<? extends AbstractMessage> cl;
+    final Class<? extends AbstractTextMessage> cl;
 
-    MessageType(int type, Class<? extends AbstractMessage> cl) {
+    MessageType(int type, Class<? extends AbstractTextMessage> cl) {
+        if (type < 1 || type > 255) {
+            throw new IllegalArgumentException("type must be 1>= type <=255");
+        }
         this.type = type;
         this.cl = requireNonNull(cl);
     }

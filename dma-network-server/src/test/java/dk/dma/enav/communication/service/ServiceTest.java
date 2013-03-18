@@ -25,29 +25,22 @@ import test.stubs.HelloService;
 import test.stubs.HelloService.GetName;
 import test.stubs.HelloService.Reply;
 import dk.dma.enav.communication.AbstractNetworkTest;
-import dk.dma.enav.communication.MaritimeNetworkConnection;
 import dk.dma.enav.communication.NetworkFuture;
-import dk.dma.enav.model.MaritimeId;
+import dk.dma.enav.communication.PersistentNetworkConnection;
 
 /**
  * 
  * @author Kasper Nielsen
  */
 public class ServiceTest extends AbstractNetworkTest {
-    public static final MaritimeId ID1 = MaritimeId.create("mmsi://1");
-    public static final MaritimeId ID6 = MaritimeId.create("mmsi://6");
 
     @Test
     public void oneClient() throws Exception {
-        MaritimeNetworkConnection c1 = newClient(ID1);
-        c1.serviceRegister(HelloService.GET_NAME, new InvocationCallback<HelloService.GetName, HelloService.Reply>() {
-            public void process(GetName message, InvocationCallback.Context<Reply> context) {
-                context.complete(new Reply("foo123"));
-            }
-        }).awaitRegistered(4, TimeUnit.SECONDS);
+        PersistentNetworkConnection c1 = newClient(ID1);
+        c1.serviceRegister(HelloService.GET_NAME, HelloService.create("foo123")).awaitRegistered(4, TimeUnit.SECONDS);
 
-        MaritimeNetworkConnection c2 = newClient(ID6);
-        ServiceEndpoint<GetName, Reply> end = c2.serviceFindOne(HelloService.GET_NAME).get(6, TimeUnit.SECONDS);
+        PersistentNetworkConnection c2 = newClient(ID6);
+        ServiceEndpoint<GetName, Reply> end = c2.serviceFind(HelloService.GET_NAME).nearest().get(6, TimeUnit.SECONDS);
         assertEquals(ID1, end.getId());
         NetworkFuture<Reply> f = end.invoke(new HelloService.GetName());
         assertEquals("foo123", f.get(4, TimeUnit.SECONDS).getName());
@@ -55,19 +48,15 @@ public class ServiceTest extends AbstractNetworkTest {
 
     @Test
     public void manyClients() throws Exception {
-        MaritimeNetworkConnection c1 = newClient(ID1);
-        c1.serviceRegister(HelloService.GET_NAME, new InvocationCallback<HelloService.GetName, HelloService.Reply>() {
-            public void process(GetName message, InvocationCallback.Context<Reply> context) {
-                context.complete(new Reply("foo123"));
-            }
-        }).awaitRegistered(4, TimeUnit.SECONDS);
+        PersistentNetworkConnection c1 = newClient(ID1);
+        c1.serviceRegister(HelloService.GET_NAME, HelloService.create("foo123")).awaitRegistered(4, TimeUnit.SECONDS);
 
-        for (MaritimeNetworkConnection c : newClients(20)) {
-            ServiceEndpoint<GetName, Reply> end = c.serviceFindOne(HelloService.GET_NAME).get(6, TimeUnit.SECONDS);
+        for (PersistentNetworkConnection c : newClients(20)) {
+            ServiceEndpoint<GetName, Reply> end = c.serviceFind(HelloService.GET_NAME).nearest()
+                    .get(6, TimeUnit.SECONDS);
             assertEquals(ID1, end.getId());
             NetworkFuture<Reply> f = end.invoke(new HelloService.GetName());
             assertEquals("foo123", f.get(4, TimeUnit.SECONDS).getName());
-
         }
     }
 }

@@ -37,7 +37,7 @@ public class InvokeServiceResult extends AbstractRelayedMessage {
     final String uuid;
 
     public InvokeServiceResult(TextMessageReader pr) throws IOException {
-        super(MessageType.SERVICE_INVOKE_ACK, pr);
+        super(MessageType.SERVICE_INVOKE_RESULT, pr);
         this.uuid = requireNonNull(pr.takeString());
         this.message = requireNonNull(pr.takeString());
         this.replyType = requireNonNull(pr.takeString());
@@ -47,7 +47,7 @@ public class InvokeServiceResult extends AbstractRelayedMessage {
      * @param messageType
      */
     public InvokeServiceResult(String uuid, String message, String replyType) {
-        super(MessageType.SERVICE_INVOKE_ACK);
+        super(MessageType.SERVICE_INVOKE_RESULT);
         this.uuid = uuid;
         this.message = message;
         this.replyType = replyType;

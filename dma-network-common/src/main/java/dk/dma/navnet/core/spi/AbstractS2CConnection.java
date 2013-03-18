@@ -28,7 +28,7 @@ import dk.dma.navnet.core.util.NetworkFutureImpl;
  * 
  * @author Kasper Nielsen
  */
-public abstract class AbstractServerHandler extends AbstractHandler {
+public class AbstractS2CConnection extends AbstractConnection {
 
     public void findService(FindService m) {}
 

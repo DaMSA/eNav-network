@@ -29,24 +29,15 @@ import dk.dma.navnet.core.util.NetworkFutureImpl;
  * 
  * @author Kasper Nielsen
  */
-public abstract class AbstractClientHandler extends AbstractHandler {
+public class AbstractC2SConnection extends AbstractConnection {
+
+    /**
+     * @param m
+     */
+    protected void connected(ConnectedMessage m) {}
 
     /** {@inheritDoc} */
-    @SuppressWarnings("unchecked")
-    @Override
-    public final void handleTextReply(AbstractTextMessage m, NetworkFutureImpl<?> f) {
-        if (m instanceof RegisterServiceResult) {
-            serviceRegisteredAck((RegisterServiceResult) m, (NetworkFutureImpl<RegisterServiceResult>) f);
-        } else if (m instanceof FindServiceResult) {
-            serviceFindAck((FindServiceResult) m, (NetworkFutureImpl<FindServiceResult>) f);
-        } else {
-            unknownMessage(m);
-        }
-    }
-
-    /** {@inheritDoc} */
-    @Override
-    public final void handleText(AbstractTextMessage m) {
+    protected final void handleText(AbstractTextMessage m) {
         if (m instanceof WelcomeMessage) {
             welcome((WelcomeMessage) m);
         } else if (m instanceof ConnectedMessage) {
@@ -62,6 +53,23 @@ public abstract class AbstractClientHandler extends AbstractHandler {
         }
     }
 
+    /** {@inheritDoc} */
+    @SuppressWarnings("unchecked")
+    protected final void handleTextReply(AbstractTextMessage m, NetworkFutureImpl<?> f) {
+        if (m instanceof RegisterServiceResult) {
+            serviceRegisteredAck((RegisterServiceResult) m, (NetworkFutureImpl<RegisterServiceResult>) f);
+        } else if (m instanceof FindServiceResult) {
+            serviceFindAck((FindServiceResult) m, (NetworkFutureImpl<FindServiceResult>) f);
+        } else {
+            unknownMessage(m);
+        }
+    }
+
+    /**
+     * @param m
+     */
+    protected void invokeService(InvokeService m) {}
+
     /**
      * @param m
      */
@@ -76,19 +84,9 @@ public abstract class AbstractClientHandler extends AbstractHandler {
 
     protected void serviceRegisteredAck(RegisterServiceResult a, NetworkFutureImpl<RegisterServiceResult> f) {}
 
-    /**
-     * @param m
-     */
-    protected void invokeService(InvokeService m) {}
-
-    /**
-     * @param m
-     */
-    protected void connected(ConnectedMessage m) {}
-
-    protected void welcome(WelcomeMessage m) {}
-
     protected void unknownMessage(AbstractTextMessage m) {
         System.err.println("Received an unknown message " + m.getReceivedRawMesage());
-    };
+    }
+
+    protected void welcome(WelcomeMessage m) {};
 }

@@ -37,20 +37,32 @@ import dk.dma.navnet.core.util.NetworkFutureImpl;
  */
 public abstract class AbstractHandler {
 
-    protected final ReentrantLock lock = new ReentrantLock();
+    final ConcurrentHashMap<Long, NetworkFutureImpl<?>> acks = new ConcurrentHashMap<>();
+    final AtomicInteger ai = new AtomicInteger();
+
     private final Listener listener = new Listener();
 
-    volatile Session session;
-
-    final ConcurrentHashMap<Long, NetworkFutureImpl<?>> acks = new ConcurrentHashMap<>();
+    protected final ReentrantLock lock = new ReentrantLock();
 
     final ConcurrentHashMap<String, NetworkFutureImpl<?>> replies = new ConcurrentHashMap<>();
 
-    final AtomicInteger ai = new AtomicInteger();
+    volatile Session session;
+
+    protected void closed(int statusCode, String reason) {
+
+    }
+
+    public void connected() {}
+
+    protected void failed(String message) {
+
+    }
 
     public final WebSocketListener getListener() {
         return listener;
     }
+
+    protected abstract AbstractConnection client();
 
     void handleText0(AbstractTextMessage m) {
         if (m instanceof AckMessage) {
@@ -62,7 +74,7 @@ public abstract class AbstractHandler {
                 // TODO close connection with error
             } else {
                 try {
-                    handleTextReply(m, f);
+                    client().handleTextReply(m, f);
                 } catch (Exception e) {
                     e.printStackTrace();
                 }
@@ -70,20 +82,25 @@ public abstract class AbstractHandler {
             // System.out.println("RELEASING " + am.getMessageAck() + ", remaining " + acks.keySet());
         } else {
             try {
-                handleText(m);
+                client().handleText(m);
             } catch (Exception e) {
                 e.printStackTrace();
             }
         }
     }
 
-    protected abstract void handleTextReply(AbstractTextMessage m, NetworkFutureImpl<?> f) throws Exception;
-
-    protected abstract void handleText(AbstractTextMessage m) throws Exception;
+    public void onError(Throwable cause) {
+        cause.printStackTrace();
+        System.out.println("ERROR " + cause);
+    }
 
     public final <T> NetworkFutureImpl<T> sendMessage(AbstractRelayedMessage m) {
         sendMessage((AbstractTextMessage) m);
         return null;
+    }
+
+    public final void sendMessage(AbstractTextMessage m) {
+        sendRawTextMessage(m.toJSON());
     }
 
     public final <T> NetworkFutureImpl<T> sendMessage(ReplyMessage<T> m) {
@@ -96,10 +113,6 @@ public abstract class AbstractHandler {
             sendMessage((AbstractTextMessage) m);
             return f;
         }
-    }
-
-    public final void sendRawTextMessageAsync(String m) {
-
     }
 
     public final void sendRawTextMessage(String m) {
@@ -119,14 +132,6 @@ public abstract class AbstractHandler {
         }
     }
 
-    public final void sendMessage(AbstractTextMessage m) {
-        sendRawTextMessage(m.toJSON());
-    }
-
-    protected void failed(String message) {
-
-    }
-
     public final void tryClose(int statusCode, String reason) {
         Session s = session;
         if (s != null) {
@@ -138,23 +143,12 @@ public abstract class AbstractHandler {
         }
     }
 
-    public void onError(Throwable cause) {
-        cause.printStackTrace();
-        System.out.println("ERROR " + cause);
-    }
-
-    protected void closed(int statusCode, String reason) {
-
-    }
-
-    public void connected() {}
-
     final class Listener implements WebSocketListener {
 
         /** {@inheritDoc} */
         @Override
         public final void onWebSocketBinary(byte[] payload, int offset, int len) {
-            tryClose(CloseReason.BAD_DATA, "Expected text only");
+            tryClose(CloseReason.BAD_DATA.getId(), "Expected text only");
         }
 
         /** {@inheritDoc} */

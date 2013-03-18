@@ -16,22 +16,31 @@
 package test.stubs;
 
 import static java.util.Objects.requireNonNull;
-import dk.dma.enav.communication.service.ServiceInitiationPoint;
-import dk.dma.enav.communication.service.spi.MaritimeService;
-import dk.dma.enav.communication.service.spi.MaritimeServiceMessage;
+import dk.dma.enav.communication.service.InvocationCallback;
+import dk.dma.enav.communication.service.spi.Service;
+import dk.dma.enav.communication.service.spi.ServiceInitiationPoint;
+import dk.dma.enav.communication.service.spi.ServiceMessage;
 
 /**
  * 
  * @author Kasper Nielsen
  */
-public class HelloService extends MaritimeService {
+public class HelloService extends Service {
+
+    public static InvocationCallback<HelloService.GetName, HelloService.Reply> create(final String reply) {
+        return new InvocationCallback<HelloService.GetName, HelloService.Reply>() {
+            public void process(GetName message, InvocationCallback.Context<Reply> context) {
+                context.complete(new Reply(reply));
+            }
+        };
+    }
 
     /** An initiation point */
     public static final ServiceInitiationPoint<GetName> GET_NAME = new ServiceInitiationPoint<>(GetName.class);
 
-    public static class GetName extends MaritimeServiceMessage<Reply> {}
+    public static class GetName extends ServiceMessage<Reply> {}
 
-    public static class Reply extends MaritimeServiceMessage<Void> {
+    public static class Reply extends ServiceMessage<Void> {
 
         /** The name of the ship. */
         private String name;

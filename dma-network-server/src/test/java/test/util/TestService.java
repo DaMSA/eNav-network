@@ -16,17 +16,17 @@
 package test.util;
 
 import static java.util.Objects.requireNonNull;
-import dk.dma.enav.communication.service.spi.MaritimeService;
-import dk.dma.enav.communication.service.spi.MaritimeServiceMessage;
+import dk.dma.enav.communication.service.spi.Service;
+import dk.dma.enav.communication.service.spi.ServiceMessage;
 import dk.dma.enav.model.MaritimeId;
 
 /**
  * 
  * @author Kasper Nielsen
  */
-public class TestService extends MaritimeService {
+public class TestService extends Service {
 
-    public static class TestInit extends MaritimeServiceMessage<TestReply> {
+    public static class TestInit extends ServiceMessage<TestReply> {
 
         private final long id;
 
@@ -72,7 +72,7 @@ public class TestService extends MaritimeService {
         }
     }
 
-    public static class TestReply extends MaritimeServiceMessage<Void> {
+    public static class TestReply extends ServiceMessage<Void> {
 
         private final TestInit testInit;
         final long timestamp = System.nanoTime();

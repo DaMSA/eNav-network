@@ -36,20 +36,28 @@ public class HelloMessage extends AbstractTextMessage {
 
     private final String clientInfo;
 
-    private final String reconnectId;
+    private final double lat;
 
-    public HelloMessage(TextMessageReader pr) throws IOException {
-        this(MaritimeId.create(pr.takeString()), pr.takeString(), pr.takeString(), 123);
-    }
+    private final double lon;
+
+    private final String reconnectId;
 
     /**
      * @param messageType
      */
-    public HelloMessage(MaritimeId clientId, String clientInfo, String reconnectId, long lastReceivedMessageId) {
+    public HelloMessage(MaritimeId clientId, String clientInfo, String reconnectId, long lastReceivedMessageId,
+            double lat, double lon) {
         super(MessageType.HELLO);
         this.clientId = requireNonNull(clientId);
         this.clientInfo = requireNonNull(clientInfo);
         this.reconnectId = reconnectId;
+        this.lat = lat;
+        this.lon = lon;
+    }
+
+    public HelloMessage(TextMessageReader pr) throws IOException {
+        this(MaritimeId.create(pr.takeString()), pr.takeString(), pr.takeString(), 123, pr.takeDouble(), pr
+                .takeDouble());
     }
 
     /**
@@ -67,6 +75,20 @@ public class HelloMessage extends AbstractTextMessage {
     }
 
     /**
+     * @return the lat
+     */
+    public double getLat() {
+        return lat;
+    }
+
+    /**
+     * @return the lon
+     */
+    public double getLon() {
+        return lon;
+    }
+
+    /**
      * @return the reconnectId
      */
     public String getReconnectId() {
@@ -79,5 +101,7 @@ public class HelloMessage extends AbstractTextMessage {
         w.writeString(clientId.toString());
         w.writeString(clientInfo);
         w.writeString(reconnectId);
+        w.writeDouble(lat);
+        w.writeDouble(lon);
     }
 }

@@ -16,7 +16,7 @@
 package dk.dma.navnet.client;
 
 import static java.util.Objects.requireNonNull;
-import dk.dma.enav.communication.MaritimeNetworkConnection;
+import dk.dma.enav.communication.PersistentNetworkConnection;
 import dk.dma.enav.model.MaritimeId;
 import dk.dma.enav.model.geometry.PositionTime;
 import dk.dma.enav.util.function.Supplier;
@@ -43,7 +43,7 @@ public class MaritimeNetworkConnectionBuilder {
         this.id = requireNonNull(id);
     }
 
-    public MaritimeNetworkConnection connect() throws Exception {
+    public PersistentNetworkConnection connect() throws Exception {
         return ClientNetwork.create(this);
     }
 

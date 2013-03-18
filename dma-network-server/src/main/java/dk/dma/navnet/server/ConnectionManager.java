@@ -73,11 +73,11 @@ class ConnectionManager {
         server.server.setHandler(wsHandler);
     }
 
-    synchronized ServerHandler addConnection(MaritimeId mid, String id, ServerHandler c) {
+    synchronized Client addConnection(MaritimeId mid, String id, ServerHandler c) {
         Client newCH = new Client(mid, server, c);
         c.holder = newCH;
-        Client ch = connections.put(id, newCH);
-        return ch == null ? null : ch.currentConnection;
+        connections.put(id, newCH);
+        return newCH;
     }
 
     void disconnected(ServerHandler connection) {
@@ -86,7 +86,7 @@ class ConnectionManager {
 
     void broadcast(ServerHandler sender, final BroadcastMsg broadcast) {
         for (Client ch : connections.values()) {
-            final ServerHandler sc = ch.currentConnection;
+            final ServerHandler sc = ch.sh;
             if (sc != sender) {
                 server.deamonPool.execute(new Runnable() {
                     public void run() {
@@ -110,7 +110,7 @@ class ConnectionManager {
     }
 
     public ServerHandler getConnection(String id) {
-        return connections.get(id).currentConnection;
+        return connections.get(id).sh;
     }
 
     /** Stops accepting any more sockets. */

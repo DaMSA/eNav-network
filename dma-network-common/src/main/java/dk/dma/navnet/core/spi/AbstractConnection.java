@@ -13,29 +13,18 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package dk.dma.navnet.core.messages.s2c.service;
+package dk.dma.navnet.core.spi;
 
-import java.io.IOException;
-
-import dk.dma.navnet.core.messages.MessageType;
-import dk.dma.navnet.core.messages.s2c.AckMessage;
-import dk.dma.navnet.core.messages.util.TextMessageReader;
+import dk.dma.navnet.core.messages.AbstractTextMessage;
+import dk.dma.navnet.core.util.NetworkFutureImpl;
 
 /**
  * 
  * @author Kasper Nielsen
  */
-public class RegisterServiceResult extends AckMessage {
+public abstract class AbstractConnection {
+    protected abstract void handleText(AbstractTextMessage m) throws Exception;
 
-    // Area
-    public RegisterServiceResult(TextMessageReader pr) throws IOException {
-        super(MessageType.REGISTER_SERVICE_RESULT, pr);
-    }
+    protected abstract void handleTextReply(AbstractTextMessage m, NetworkFutureImpl<?> f) throws Exception;
 
-    /**
-     * @param messageType
-     */
-    public RegisterServiceResult(long id) {
-        super(MessageType.REGISTER_SERVICE_RESULT, id);
-    }
 }

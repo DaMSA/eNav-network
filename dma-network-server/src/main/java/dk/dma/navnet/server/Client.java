@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008 Kasper Nielsen.
+[ * Copyright (c) 2008 Kasper Nielsen.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,25 +16,25 @@
 package dk.dma.navnet.server;
 
 import static java.util.Objects.requireNonNull;
-
-import java.util.concurrent.locks.ReentrantLock;
-
 import dk.dma.enav.model.MaritimeId;
+import dk.dma.enav.model.geometry.PositionTime;
 
 /**
  * 
  * @author Kasper Nielsen
  */
-@SuppressWarnings("serial")
-class Client extends ReentrantLock {
+class Client {
 
     final MaritimeId id;
 
-    volatile ServerHandler currentConnection;
+    volatile ServerHandler sh;
 
     final ENavNetworkServer server;
 
     final ClientServices services;
+    final ConnectionManager cm;
+    /** The latest position of the client. */
+    volatile PositionTime latestPosition;
 
     /**
      * @param currentConnection
@@ -42,8 +42,9 @@ class Client extends ReentrantLock {
      */
     Client(MaritimeId id, ENavNetworkServer server, ServerHandler currentConnection) {
         this.id = id;
-        this.currentConnection = requireNonNull(currentConnection);
+        this.sh = requireNonNull(currentConnection);
         this.server = requireNonNull(server);
+        this.cm = requireNonNull(server.at);
         services = new ClientServices(this);
     }
 

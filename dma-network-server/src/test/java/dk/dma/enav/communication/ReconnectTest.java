@@ -29,7 +29,7 @@ import org.junit.Test;
 import test.util.TestService;
 import test.util.TestService.TestInit;
 import test.util.TestService.TestReply;
-import dk.dma.enav.communication.MaritimeNetworkConnection;
+import dk.dma.enav.communication.PersistentNetworkConnection;
 import dk.dma.enav.communication.NetworkFuture;
 import dk.dma.enav.communication.service.InvocationCallback;
 import dk.dma.enav.model.MaritimeId;
@@ -51,7 +51,7 @@ public class ReconnectTest extends AbstractNetworkTest {
     @Ignore
     public void randomKilling() throws Exception {
         final AtomicInteger ai = new AtomicInteger();
-        MaritimeNetworkConnection c1 = newClient(ID1);
+        PersistentNetworkConnection c1 = newClient(ID1);
         c1.serviceRegister(null, new InvocationCallback<TestService.TestInit, TestService.TestReply>() {
             public void process(TestService.TestInit l, Context<TestService.TestReply> context) {
                 context.complete(l.reply());
@@ -60,7 +60,7 @@ public class ReconnectTest extends AbstractNetworkTest {
             }
         }).awaitRegistered(1, TimeUnit.SECONDS);
 
-        MaritimeNetworkConnection c6 = newClient(ID6);
+        PersistentNetworkConnection c6 = newClient(ID6);
 
         pt.killRandom(1000, TimeUnit.MILLISECONDS);
         Map<TestInit, NetworkFuture<TestService.TestReply>> set = new LinkedHashMap<>();
@@ -90,7 +90,7 @@ public class ReconnectTest extends AbstractNetworkTest {
     @Test
     public void randomKilling2() throws Exception {
         final AtomicInteger ai = new AtomicInteger();
-        MaritimeNetworkConnection c1 = newClient(ID1);
+        PersistentNetworkConnection c1 = newClient(ID1);
         c1.serviceRegister(null, new InvocationCallback<TestService.TestInit, TestService.TestReply>() {
             public void process(TestService.TestInit l, Context<TestService.TestReply> context) {
                 context.complete(l.reply());
@@ -99,7 +99,7 @@ public class ReconnectTest extends AbstractNetworkTest {
             }
         }).awaitRegistered(1, TimeUnit.SECONDS);
 
-        MaritimeNetworkConnection c6 = newClient(ID6);
+        PersistentNetworkConnection c6 = newClient(ID6);
 
         pt.killRandom(500, TimeUnit.MILLISECONDS);
         Map<TestInit, NetworkFuture<TestService.TestReply>> set = new LinkedHashMap<>();
@@ -128,7 +128,7 @@ public class ReconnectTest extends AbstractNetworkTest {
     @Ignore
     public void singleClient() throws Exception {
         final AtomicInteger ai = new AtomicInteger();
-        MaritimeNetworkConnection c1 = newClient(ID1);
+        PersistentNetworkConnection c1 = newClient(ID1);
         c1.serviceRegister(null, new InvocationCallback<TestService.TestInit, TestService.TestReply>() {
             public void process(TestService.TestInit l, Context<TestService.TestReply> context) {
                 context.complete(l.reply());
@@ -136,7 +136,7 @@ public class ReconnectTest extends AbstractNetworkTest {
             }
         }).awaitRegistered(1, TimeUnit.SECONDS);
 
-        MaritimeNetworkConnection c6 = newClient(ID6);
+        PersistentNetworkConnection c6 = newClient(ID6);
 
         assertEquals(2, si.getNumberOfConnections());
         for (int i = 0; i < 100; i++) {

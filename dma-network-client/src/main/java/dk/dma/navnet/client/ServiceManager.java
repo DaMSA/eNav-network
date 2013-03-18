@@ -17,14 +17,10 @@ package dk.dma.navnet.client;
 
 import static java.util.Objects.requireNonNull;
 
-import java.util.List;
-import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
-
-import javax.management.ServiceNotFoundException;
 
 import jsr166e.CompletableFuture;
 
@@ -33,12 +29,11 @@ import org.slf4j.LoggerFactory;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-import dk.dma.enav.communication.NetworkFuture;
 import dk.dma.enav.communication.service.InvocationCallback;
-import dk.dma.enav.communication.service.ServiceEndpoint;
-import dk.dma.enav.communication.service.ServiceInitiationPoint;
+import dk.dma.enav.communication.service.ServiceLocator;
 import dk.dma.enav.communication.service.ServiceRegistration;
-import dk.dma.enav.communication.service.spi.MaritimeServiceMessage;
+import dk.dma.enav.communication.service.spi.ServiceInitiationPoint;
+import dk.dma.enav.communication.service.spi.ServiceMessage;
 import dk.dma.enav.model.MaritimeId;
 import dk.dma.navnet.core.messages.c2c.service.InvokeService;
 import dk.dma.navnet.core.messages.c2c.service.InvokeServiceResult;
@@ -53,10 +48,10 @@ import dk.dma.navnet.core.util.NetworkFutureImpl;
  * 
  * @author Kasper Nielsen
  */
-class ClientServiceManager {
+class ServiceManager {
 
     /** The logger. */
-    static final Logger LOG = LoggerFactory.getLogger(ClientServiceManager.class);
+    static final Logger LOG = LoggerFactory.getLogger(ServiceManager.class);
 
     /** The network */
     final ClientNetwork c;
@@ -72,54 +67,20 @@ class ClientServiceManager {
      * @param network
      *            the network
      */
-    ClientServiceManager(ClientNetwork clientNetwork) {
+    ServiceManager(ClientNetwork clientNetwork) {
         this.c = requireNonNull(clientNetwork);
     }
 
-    public <T, E extends MaritimeServiceMessage<T>> NetworkFuture<List<ServiceEndpoint<E, T>>> serviceFind(
-            ServiceInitiationPoint<E> sip) {
-        return null;
+    public <T, E extends ServiceMessage<T>> ServiceLocator<T, E> serviceFind(ServiceInitiationPoint<E> sip) {
+        return new ServiceLocatorImpl<>(sip, this, 0);
+    }
+
+    <T, E extends ServiceMessage<T>> NetworkFutureImpl<FindServiceResult> serviceFindOne(FindService fs) {
+        return c.connection.sendMessage(fs);
     }
 
     /** {@inheritDoc} */
-    NetworkFuture<Map<MaritimeId, String>> findServices(final String serviceType) {
-        // return NetworkFutureImpl.wrap(c.connection.sendMessage(new FindServices(serviceType)).thenApply(
-        // new CompletableFuture.Fun<String[], Map<MaritimeId, String>>() {
-        // @Override
-        // public Map<MaritimeId, String> apply(String[] s) {
-        // HashMap<MaritimeId, String> m = new HashMap<>();
-        // for (String str : s) {
-        // m.put(MaritimeId.create(str), serviceType);
-        // }
-        // return m;
-        // }
-        // }));
-        return null;
-    }
-
-    <T, E extends MaritimeServiceMessage<T>> NetworkFuture<ServiceEndpoint<E, T>> serviceFindOne(
-            final ServiceInitiationPoint<E> sip) {
-        final NetworkFutureImpl<FindServiceResult> f = c.connection.sendMessage(new FindService(sip.getName(), 1));
-
-        final NetworkFutureImpl<ServiceEndpoint<E, T>> result = new NetworkFutureImpl<>();
-
-        f.thenAcceptAsync(new CompletableFuture.Action<FindServiceResult>() {
-            @Override
-            public void accept(FindServiceResult ack) {
-                String[] st = ack.getMax();
-                if (st.length > 0) {
-                    result.complete(new SI<E, T>(MaritimeId.create(st[0]), sip));
-                } else {
-                    result.completeExceptionally(new ServiceNotFoundException(""));
-                }
-            }
-        });
-
-        return result;
-    }
-
-    /** {@inheritDoc} */
-    <T, S extends MaritimeServiceMessage<T>> NetworkFutureImpl<T> invokeService(MaritimeId id, S msg) {
+    <T, S extends ServiceMessage<T>> NetworkFutureImpl<T> invokeService(MaritimeId id, S msg) {
         InvokeService is = new InvokeService(1, UUID.randomUUID().toString(), msg.getClass().getName(),
                 msg.messageName(), JSonUtil.persistAndEscape(msg));
         is.setDestination(id.toString());
@@ -207,7 +168,7 @@ class ClientServiceManager {
     }
 
     /** {@inheritDoc} */
-    public <T, E extends MaritimeServiceMessage<T>> ServiceRegistration serviceRegister(ServiceInitiationPoint<E> sip,
+    public <T, E extends ServiceMessage<T>> ServiceRegistration serviceRegister(ServiceInitiationPoint<E> sip,
             InvocationCallback<E, T> callback) {
         final Registration reg = new Registration(sip, callback);
         if (listeners.putIfAbsent(sip.getName(), reg) != null) {
@@ -222,29 +183,6 @@ class ClientServiceManager {
             }
         });
         return reg;
-    }
-
-    class SI<E, T> implements ServiceEndpoint<E, T> {
-        final MaritimeId id;
-        final ServiceInitiationPoint<E> sip;
-
-        SI(MaritimeId id, ServiceInitiationPoint<E> sip) {
-            this.id = requireNonNull(id);
-            this.sip = requireNonNull(sip);
-        }
-
-        /** {@inheritDoc} */
-        @Override
-        public MaritimeId getId() {
-            return id;
-        }
-
-        /** {@inheritDoc} */
-        @SuppressWarnings({ "unchecked", "rawtypes" })
-        @Override
-        public NetworkFuture<T> invoke(E message) {
-            return invokeService(id, (MaritimeServiceMessage) message);
-        }
     }
 
     class Registration implements ServiceRegistration {

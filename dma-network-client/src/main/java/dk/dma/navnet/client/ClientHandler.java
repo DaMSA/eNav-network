@@ -26,22 +26,14 @@ import java.util.concurrent.TimeUnit;
 
 import org.eclipse.jetty.websocket.client.WebSocketClient;
 
-import dk.dma.navnet.core.messages.auxiliary.ConnectedMessage;
-import dk.dma.navnet.core.messages.auxiliary.HelloMessage;
-import dk.dma.navnet.core.messages.auxiliary.WelcomeMessage;
-import dk.dma.navnet.core.messages.c2c.broadcast.BroadcastMsg;
-import dk.dma.navnet.core.messages.c2c.service.InvokeService;
-import dk.dma.navnet.core.messages.c2c.service.InvokeServiceResult;
-import dk.dma.navnet.core.messages.s2c.service.FindServiceResult;
-import dk.dma.navnet.core.messages.s2c.service.RegisterServiceResult;
-import dk.dma.navnet.core.spi.AbstractClientHandler;
-import dk.dma.navnet.core.util.NetworkFutureImpl;
+import dk.dma.navnet.core.spi.AbstractC2SConnection;
+import dk.dma.navnet.core.spi.AbstractHandler;
 
 /**
  * 
  * @author Kasper Nielsen
  */
-class ClientHandler extends AbstractClientHandler {
+class ClientHandler extends AbstractHandler {
 
     /** The actual websocket client. Changes when reconnecting. */
     private volatile WebSocketClient client = new WebSocketClient();
@@ -56,28 +48,12 @@ class ClientHandler extends AbstractClientHandler {
 
     /** The URL to connect to. */
     private final String url;
+    private final C2SConnection cc;
 
     ClientHandler(String url, ClientNetwork cm) {
         this.cm = requireNonNull(cm);
         this.url = requireNonNull(url);
-    }
-
-    /** {@inheritDoc} */
-    @Override
-    protected void serviceRegisteredAck(RegisterServiceResult a, NetworkFutureImpl<RegisterServiceResult> f) {
-        f.complete(a);
-    }
-
-    /** {@inheritDoc} */
-    @Override
-    protected void serviceFindAck(FindServiceResult a, NetworkFutureImpl<FindServiceResult> f) {
-        f.complete(a);
-    }
-
-    /** {@inheritDoc} */
-    @Override
-    protected void invokeServiceAck(InvokeServiceResult m) {
-        cm.services.receiveInvokeServiceAck(m);
+        this.cc = new C2SConnection(cm, this);
     }
 
     public void close() throws IOException {
@@ -106,33 +82,14 @@ class ClientHandler extends AbstractClientHandler {
         }
     }
 
-    /** {@inheritDoc} */
-    @Override
-    protected void connected(ConnectedMessage m) {
-        connected.countDown();
-    }
-
-    /** {@inheritDoc} */
-    @Override
-    protected void invokeService(InvokeService m) {
-        cm.services.receiveInvokeService(m);
-    }
-
-    /** {@inheritDoc} */
-    @Override
-    protected void receivedBroadcast(BroadcastMsg m) {
-        cm.broadcaster.receive(m);
-
-    }
-
-    /** {@inheritDoc} */
-    @Override
-    protected void welcome(WelcomeMessage m) {
-        sendMessage(new HelloMessage(cm.clientId, "enavClient/1.0", "", 2));
-    }
-
     enum State {
         CONNECTED, CREATED, DISCONNECTED
+    }
+
+    /** {@inheritDoc} */
+    @Override
+    protected AbstractC2SConnection client() {
+        return cc;
     }
 
 }

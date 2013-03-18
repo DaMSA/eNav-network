@@ -13,29 +13,31 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package dk.dma.navnet.core.messages.s2c.service;
+package dk.dma.navnet.core.spi.transport;
 
 import java.io.IOException;
 
-import dk.dma.navnet.core.messages.MessageType;
-import dk.dma.navnet.core.messages.s2c.AckMessage;
-import dk.dma.navnet.core.messages.util.TextMessageReader;
+import dk.dma.enav.util.function.Consumer;
 
 /**
  * 
  * @author Kasper Nielsen
  */
-public class RegisterServiceResult extends AckMessage {
-
-    // Area
-    public RegisterServiceResult(TextMessageReader pr) throws IOException {
-        super(MessageType.REGISTER_SERVICE_RESULT, pr);
-    }
+public abstract class ServerTransportFactory {
 
     /**
-     * @param messageType
+     * Invoked whenever a transport has connected. Must invoke {@link Transport#setListener(TransportListener)}.
+     * 
+     * @param consumer
+     *            the consumer of transports
+     * @throws IOException
      */
-    public RegisterServiceResult(long id) {
-        super(MessageType.REGISTER_SERVICE_RESULT, id);
-    }
+    public abstract void startAccept(Consumer<Transport> consumer) throws IOException;
+
+    /**
+     * Stops accepting any more connections
+     * 
+     * @throws IOException
+     */
+    public abstract void close() throws IOException;
 }
