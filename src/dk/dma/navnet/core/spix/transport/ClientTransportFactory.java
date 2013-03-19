@@ -13,12 +13,25 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package dk.dma.navnet.core.spi.transport.memory;
+package dk.dma.navnet.core.spix.transport;
+
+import java.io.IOException;
+import java.util.concurrent.TimeUnit;
 
 /**
- *
+ * 
  * @author Kasper Nielsen
  */
-public class InMemoryClientTransportFactory {
+public abstract class ClientTransportFactory {
 
+    /**
+     * Connects
+     * 
+     * @param listener
+     * @param timeout
+     * @param unit
+     * @return
+     * @throws IOException
+     */
+    public abstract Transport connect(TransportListener listener, long timeout, TimeUnit unit) throws IOException;
 }

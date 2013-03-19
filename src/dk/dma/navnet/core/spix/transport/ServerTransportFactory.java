@@ -13,19 +13,31 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package dk.dma.navnet.core.spi.transport;
+package dk.dma.navnet.core.spix.transport;
+
+import java.io.IOException;
+
+import dk.dma.enav.util.function.Consumer;
 
 /**
  * 
  * @author Kasper Nielsen
  */
-public class TransportListener {
+public abstract class ServerTransportFactory {
 
-    public void connectionClosed() {
-        System.out.println("Closed ");
-    }
+    /**
+     * Invoked whenever a transport has connected. Must invoke {@link Transport#setListener(TransportListener)}.
+     * 
+     * @param consumer
+     *            the consumer of transports
+     * @throws IOException
+     */
+    public abstract void startAccept(Consumer<Transport> consumer) throws IOException;
 
-    public void receivedText(String text) {
-        System.out.println("Received " + text);
-    }
+    /**
+     * Stops accepting any more connections
+     * 
+     * @throws IOException
+     */
+    public abstract void close() throws IOException;
 }

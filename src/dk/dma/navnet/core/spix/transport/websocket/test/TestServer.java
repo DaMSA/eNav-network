@@ -13,13 +13,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package dk.dma.navnet.core.spi.transport.websocket.test;
+package dk.dma.navnet.core.spix.transport.websocket.test;
 
 import dk.dma.enav.util.function.Consumer;
-import dk.dma.navnet.core.spi.transport.ServerTransportFactory;
-import dk.dma.navnet.core.spi.transport.Transport;
-import dk.dma.navnet.core.spi.transport.TransportListener;
-import dk.dma.navnet.core.spi.transport.websocket.WebsocketTransports;
+import dk.dma.navnet.core.spix.transport.ServerTransportFactory;
+import dk.dma.navnet.core.spix.transport.Transport;
+import dk.dma.navnet.core.spix.transport.TransportListener;
+import dk.dma.navnet.core.spix.transport.websocket.WebsocketTransports;
 
 /**
  * 

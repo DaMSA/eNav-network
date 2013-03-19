@@ -13,12 +13,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package dk.dma.navnet.core.spi.transport.memory;
+package dk.dma.navnet.core.transport;
 
 /**
- *
+ * 
  * @author Kasper Nielsen
  */
-public class InMemoryChannel {
+public abstract class TransportSession {
 
+    protected abstract void close();
+
+    protected abstract void sendText(String text);
 }

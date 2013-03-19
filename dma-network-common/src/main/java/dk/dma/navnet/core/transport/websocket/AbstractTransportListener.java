@@ -13,22 +13,48 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package dk.dma.navnet.core.spi.transport.websocket;
+package dk.dma.navnet.core.transport.websocket;
+
+import static java.util.Objects.requireNonNull;
 
 import java.io.IOException;
+import java.util.concurrent.CountDownLatch;
 
 import org.eclipse.jetty.websocket.api.RemoteEndpoint;
 import org.eclipse.jetty.websocket.api.Session;
 import org.eclipse.jetty.websocket.api.WebSocketListener;
 
-import dk.dma.navnet.core.spi.transport.Transport;
+import dk.dma.navnet.core.transport.TransportListener;
+import dk.dma.navnet.core.transport.TransportSession;
 
 /**
  * 
  * @author Kasper Nielsen
  */
-abstract class AbstractTransportListener extends Transport implements WebSocketListener {
+abstract class AbstractTransportListener extends TransportSession implements WebSocketListener {
     Session session;
+    final TransportListener transport;
+    final CountDownLatch connected = new CountDownLatch(1);
+
+    AbstractTransportListener(TransportListener transport) {
+        this.transport = requireNonNull(transport);
+
+    }
+
+    /** {@inheritDoc} */
+    @Override
+    public void onWebSocketConnect(Session session) {
+        this.session = session;
+        connected.countDown();
+        transport.onConnected(this);
+    }
+
+    /** {@inheritDoc} */
+    @Override
+    public final void onWebSocketClose(int statusCode, String reason) {
+        session = null;
+        transport.onClosed(statusCode, reason);
+    }
 
     /** {@inheritDoc} */
     @Override
@@ -40,13 +66,22 @@ abstract class AbstractTransportListener extends Transport implements WebSocketL
     /** {@inheritDoc} */
     @Override
     public final void onWebSocketText(String message) {
-        receivedText(message);
+        transport.onReceivedText(message);
     }
 
     /** {@inheritDoc} */
     @Override
-    public void sendText0(String text) {
-        System.out.println("SEDING ");
+    protected void close() {
+        Session s = session;
+        try {
+            s.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    /** {@inheritDoc} */
+    public void sendText(String text) {
         Session s = session;
         RemoteEndpoint r = s == null ? null : s.getRemote();
         if (r != null) {
@@ -59,6 +94,5 @@ abstract class AbstractTransportListener extends Transport implements WebSocketL
         } else {
             System.out.println("Could not send");
         }
-
     }
 }

@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package dk.dma.navnet.core.spi.transport.websocket;
+package dk.dma.navnet.core.spix.transport.websocket;
 
 import static java.util.Objects.requireNonNull;
 
@@ -21,8 +21,8 @@ import java.net.InetSocketAddress;
 import java.net.URI;
 import java.net.URISyntaxException;
 
-import dk.dma.navnet.core.spi.transport.ClientTransportFactory;
-import dk.dma.navnet.core.spi.transport.ServerTransportFactory;
+import dk.dma.navnet.core.spix.transport.ClientTransportFactory;
+import dk.dma.navnet.core.spix.transport.ServerTransportFactory;
 
 /**
  * 

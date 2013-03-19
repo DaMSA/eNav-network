@@ -13,12 +13,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package dk.dma.navnet.core.spi.transport;
+package dk.dma.navnet.core.transport;
 
 /**
- *
+ * 
  * @author Kasper Nielsen
  */
-public class CloseReason {
+public class Transport {
 
 }

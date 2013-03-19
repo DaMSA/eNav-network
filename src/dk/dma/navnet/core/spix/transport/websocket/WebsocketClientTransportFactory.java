@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package dk.dma.navnet.core.spi.transport.websocket;
+package dk.dma.navnet.core.spix.transport.websocket;
 
 import static java.util.Objects.requireNonNull;
 
@@ -27,9 +27,9 @@ import java.util.concurrent.TimeUnit;
 import org.eclipse.jetty.websocket.api.Session;
 import org.eclipse.jetty.websocket.client.WebSocketClient;
 
-import dk.dma.navnet.core.spi.transport.ClientTransportFactory;
-import dk.dma.navnet.core.spi.transport.Transport;
-import dk.dma.navnet.core.spi.transport.TransportListener;
+import dk.dma.navnet.core.spix.transport.ClientTransportFactory;
+import dk.dma.navnet.core.spix.transport.Transport;
+import dk.dma.navnet.core.spix.transport.TransportListener;
 
 /**
  * 
@@ -96,7 +96,7 @@ class WebsocketClientTransportFactory extends ClientTransportFactory {
         @Override
         public final void onWebSocketClose(int statusCode, String reason) {
             session = null;
-            super.receivedText(reason);
+            super.closed(reason);
             System.out.println("CLOSED");
         }
 

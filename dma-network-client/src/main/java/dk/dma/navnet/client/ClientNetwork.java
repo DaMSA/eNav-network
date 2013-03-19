@@ -19,6 +19,7 @@ import static java.util.Objects.requireNonNull;
 
 import java.io.IOException;
 import java.util.Map;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -39,6 +40,7 @@ import dk.dma.enav.communication.service.spi.ServiceMessage;
 import dk.dma.enav.model.MaritimeId;
 import dk.dma.enav.model.geometry.Area;
 import dk.dma.enav.model.geometry.PositionTime;
+import dk.dma.enav.util.function.Consumer;
 import dk.dma.navnet.core.util.NetworkFutureImpl;
 
 /**
@@ -59,6 +61,8 @@ public class ClientNetwork implements PersistentNetworkConnection {
 
     /** An {@link ExecutorService} for running various tasks. */
     final ExecutorService es = Executors.newCachedThreadPool();
+
+    private final CopyOnWriteArrayList<Consumer<PersistentNetworkConnection.State>> listeners = new CopyOnWriteArrayList<>();
 
     /** A lock used internally. */
     private final ReentrantLock lock = new ReentrantLock();
@@ -96,6 +100,25 @@ public class ClientNetwork implements PersistentNetworkConnection {
 
     /** {@inheritDoc} */
     @Override
+    public void addStateListener(Consumer<PersistentNetworkConnection.State> stateListener) {
+        listeners.add(stateListener);
+    }
+
+    /** {@inheritDoc} */
+    @Override
+    public boolean awaitState(PersistentNetworkConnection.State state, long timeout, TimeUnit unit)
+            throws InterruptedException {
+        throw new UnsupportedOperationException();
+    }
+
+    /** {@inheritDoc} */
+    @Override
+    public boolean awaitTerminated(long timeout, TimeUnit unit) throws InterruptedException {
+        return terminated.await(timeout, unit);
+    }
+
+    /** {@inheritDoc} */
+    @Override
     public void broadcast(BroadcastMessage message) {
         broadcaster.send(message);
     }
@@ -105,51 +128,6 @@ public class ClientNetwork implements PersistentNetworkConnection {
     public <T extends BroadcastMessage> BroadcastSubscription broadcastListen(Class<T> messageType,
             BroadcastListener<T> consumer) {
         return broadcaster.listenFor(messageType, consumer);
-    }
-
-    /** {@inheritDoc} */
-    @Override
-    public NetworkFutureImpl<Map<MaritimeId, PositionTime>> findAllPeers(Area shape) {
-        throw new UnsupportedOperationException("Not yet implemented");
-    }
-
-    /** {@inheritDoc} */
-    @Override
-    public <T, E extends ServiceMessage<T>> ServiceLocator<T, E> serviceFind(ServiceInitiationPoint<E> sip) {
-        return services.serviceFind(sip);
-    }
-
-    /** {@inheritDoc} */
-    @Override
-    public <T, S extends ServiceMessage<T>> NetworkFuture<T> serviceInvoke(MaritimeId id, S initiatingServiceMessage) {
-        throw new UnsupportedOperationException();
-    }
-
-    /** {@inheritDoc} */
-    @Override
-    public <T, E extends ServiceMessage<T>> ServiceRegistration serviceRegister(ServiceInitiationPoint<E> sip,
-            InvocationCallback<E, T> callback) {
-        return services.serviceRegister(sip, callback);
-    }
-
-    /* LIFECYCLE METHODS */
-
-    /** {@inheritDoc} */
-    @Override
-    public boolean isClosed() {
-        return state == State.TERMINATED || state == State.CLOSED;
-    }
-
-    /** {@inheritDoc} */
-    @Override
-    public boolean isTerminated() {
-        return state == State.TERMINATED;
-    }
-
-    /** {@inheritDoc} */
-    @Override
-    public boolean awaitTerminated(long timeout, TimeUnit unit) throws InterruptedException {
-        return terminated.await(timeout, unit);
     }
 
     /** {@inheritDoc} */
@@ -181,6 +159,63 @@ public class ClientNetwork implements PersistentNetworkConnection {
         }
     }
 
+    /* LIFECYCLE METHODS */
+
+    /** {@inheritDoc} */
+    @Override
+    public NetworkFutureImpl<Map<MaritimeId, PositionTime>> findAllPeers(Area shape) {
+        throw new UnsupportedOperationException("Not yet implemented");
+    }
+
+    /** {@inheritDoc} */
+    @Override
+    public MaritimeId getLocalId() {
+        return clientId;
+    }
+
+    /** {@inheritDoc} */
+    @Override
+    public PersistentNetworkConnection.State getState() {
+        throw new UnsupportedOperationException();
+    }
+
+    /** {@inheritDoc} */
+    @Override
+    public boolean isClosed() {
+        return state == State.TERMINATED || state == State.CLOSED;
+    }
+
+    /** {@inheritDoc} */
+    @Override
+    public boolean isTerminated() {
+        return state == State.TERMINATED;
+    }
+
+    /** {@inheritDoc} */
+    @Override
+    public boolean removeStateListener(Consumer<PersistentNetworkConnection.State> stateListener) {
+        return listeners.remove(requireNonNull(stateListener));
+    }
+
+    /** {@inheritDoc} */
+    @Override
+    public <T, E extends ServiceMessage<T>> ServiceLocator<T, E> serviceFind(ServiceInitiationPoint<E> sip) {
+        return services.serviceFind(sip);
+    }
+
+    /** {@inheritDoc} */
+    @Override
+    public <T, S extends ServiceMessage<T>> NetworkFuture<T> serviceInvoke(MaritimeId id, S initiatingServiceMessage) {
+        throw new UnsupportedOperationException();
+    }
+
+    /** {@inheritDoc} */
+    @Override
+    public <T, E extends ServiceMessage<T>> ServiceRegistration serviceRegister(ServiceInitiationPoint<E> sip,
+            InvocationCallback<E, T> callback) {
+        return services.serviceRegister(sip, callback);
+    }
+
     public static PersistentNetworkConnection create(MaritimeNetworkConnectionBuilder builder) throws IOException {
         ClientNetwork n = new ClientNetwork(builder);
         try {
@@ -199,12 +234,6 @@ public class ClientNetwork implements PersistentNetworkConnection {
 
     enum State {
         CLOSED, CONNECTED, CREATED, TERMINATED;
-    }
-
-    /** {@inheritDoc} */
-    @Override
-    public MaritimeId getLocalId() {
-        return clientId;
     }
 
 }

@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package dk.dma.navnet.core.spi.transport.websocket;
+package dk.dma.navnet.core.transport.websocket;
 
 import static java.util.Objects.requireNonNull;
 
@@ -21,16 +21,15 @@ import java.io.IOException;
 import java.net.InetSocketAddress;
 
 import org.eclipse.jetty.server.Server;
-import org.eclipse.jetty.websocket.api.Session;
 import org.eclipse.jetty.websocket.api.UpgradeRequest;
 import org.eclipse.jetty.websocket.api.UpgradeResponse;
 import org.eclipse.jetty.websocket.server.WebSocketHandler;
 import org.eclipse.jetty.websocket.servlet.WebSocketCreator;
 import org.eclipse.jetty.websocket.servlet.WebSocketServletFactory;
 
-import dk.dma.enav.util.function.Consumer;
-import dk.dma.navnet.core.spi.transport.ServerTransportFactory;
-import dk.dma.navnet.core.spi.transport.Transport;
+import dk.dma.enav.util.function.Supplier;
+import dk.dma.navnet.core.transport.ServerTransportFactory;
+import dk.dma.navnet.core.transport.TransportListener;
 
 /**
  * 
@@ -45,15 +44,14 @@ public class WebsocketServerTransportFactory extends ServerTransportFactory {
 
     /** {@inheritDoc} */
     @Override
-    public void startAccept(final Consumer<Transport> consumer) throws IOException {
-        requireNonNull(consumer);
+    public void startAccept(final Supplier<TransportListener> supplier) throws IOException {
+        requireNonNull(supplier);
         // Creates the web socket handler that accept incoming requests
         WebSocketHandler wsHandler = new WebSocketHandler() {
             public void configure(WebSocketServletFactory factory) {
                 factory.setCreator(new WebSocketCreator() {
                     public Object createWebSocket(UpgradeRequest req, UpgradeResponse resp) {
-                        ServerTransport st = new ServerTransport();
-                        consumer.accept(st);
+                        ServerTransport st = new ServerTransport(supplier.get());
                         return st;
                     }
                 });
@@ -91,25 +89,16 @@ public class WebsocketServerTransportFactory extends ServerTransportFactory {
 
     static class ServerTransport extends AbstractTransportListener {
 
-        /** {@inheritDoc} */
-        @Override
-        public void onWebSocketClose(int arg0, String arg1) {
-            System.out.println("Closed " + arg0);
-        }
-
-        /** {@inheritDoc} */
-        @Override
-        public void onWebSocketConnect(Session session) {
-            this.session = session;
+        /**
+         * @param transport
+         */
+        ServerTransport(TransportListener transport) {
+            super(transport);
         }
 
         /** {@inheritDoc} */
         @Override
         public void onWebSocketError(Throwable arg0) {}
-
-        /** {@inheritDoc} */
-        @Override
-        protected void close0() throws IOException {}
 
     }
 }

@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package dk.dma.navnet.core.spi.transport;
+package dk.dma.navnet.core.spix.transport;
 
 import static java.util.Objects.requireNonNull;
 
@@ -26,8 +26,9 @@ import java.util.concurrent.locks.ReentrantLock;
  * @author Kasper Nielsen
  */
 public abstract class Transport {
-    TransportListener listener;
 
+    TransportListener listener;
+    volatile boolean isConnected;
     private final Lock lock = new ReentrantLock();
 
     public void close() throws IOException {
@@ -35,6 +36,12 @@ public abstract class Transport {
     }
 
     protected abstract void close0() throws IOException;
+
+    protected void connected() {
+        System.out.println("CONNECTED");
+        isConnected = true;
+        listener.connected();
+    }
 
     protected void closed(String text) {
         listener.connectionClosed();
@@ -46,6 +53,10 @@ public abstract class Transport {
     }
 
     public final void sendText(String text) {
+        System.out.println("SENDING");
+        if (!isConnected) {
+            throw new IllegalStateException("Not connected yet");
+        }
         requireNonNull(text, "text is null");
         sendText0(text);
     }
@@ -56,7 +67,7 @@ public abstract class Transport {
         requireNonNull(listener);
         lock.lock();
         try {
-            if (listener != null) {
+            if (this.listener != null) {
                 throw new IllegalStateException("receiver has already been set");
             }
             this.listener = listener;
