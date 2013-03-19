@@ -42,6 +42,11 @@ import dk.dma.navnet.core.spi.AbstractS2CConnection;
  * @author Kasper Nielsen
  */
 public class S2CConnection extends AbstractS2CConnection {
+
+    final ConnectionManager cm;
+
+    final ServerHandler sh;
+
     /**
      * @param cm
      * @param sh
@@ -50,9 +55,6 @@ public class S2CConnection extends AbstractS2CConnection {
         this.cm = cm;
         this.sh = sh;
     }
-
-    final ConnectionManager cm;
-    final ServerHandler sh;
 
     /** {@inheritDoc} */
     @Override
@@ -103,6 +105,17 @@ public class S2CConnection extends AbstractS2CConnection {
 
     /** {@inheritDoc} */
     @Override
+    public void hello(HelloMessage m) {
+        UUID uuid = UUID.randomUUID();
+        Client c = cm.addConnection(m.getClientId(), m.getClientId().toString(), sh);
+        PositionTime pt = new PositionTime(m.getLat(), m.getLon(), -1);
+        c.latestPosition = pt;
+        sh.sendMessage(new ConnectedMessage(uuid.toString()));
+        cm.server.tracker.update(sh.holder, pt);
+    }
+
+    /** {@inheritDoc} */
+    @Override
     public void positionReport(PositionReportMessage m) {
         cm.server.tracker.update(sh.holder, m.getPositionTime());
         sh.holder.latestPosition = m.getPositionTime();
@@ -127,16 +140,4 @@ public class S2CConnection extends AbstractS2CConnection {
             c.sendRawTextMessage(m.getReceivedRawMesage());
         }
     }
-
-    /** {@inheritDoc} */
-    @Override
-    public void hello(HelloMessage m) {
-        UUID uuid = UUID.randomUUID();
-        Client c = cm.addConnection(m.getClientId(), m.getClientId().toString(), sh);
-        PositionTime pt = new PositionTime(m.getLat(), m.getLon(), -1);
-        c.latestPosition = pt;
-        sh.sendMessage(new ConnectedMessage(uuid.toString()));
-        cm.server.tracker.update(sh.holder, pt);
-    }
-
 }

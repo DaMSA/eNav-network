@@ -61,7 +61,7 @@ class ServiceLocatorImpl<T, E extends ServiceMessage<T>> implements ServiceLocat
     @Override
     public NetworkFuture<ServiceEndpoint<E, T>> nearest() {
         NetworkFutureImpl<FindServiceResult> f = csm.serviceFindOne(new FindService(sip.getName(), distance, 1));
-        final NetworkFutureImpl<ServiceEndpoint<E, T>> result = new NetworkFutureImpl<>();
+        final NetworkFutureImpl<ServiceEndpoint<E, T>> result = new NetworkFutureImpl<>(csm.c.ses);
         f.thenAcceptAsync(new CompletableFuture.Action<FindServiceResult>() {
             @Override
             public void accept(FindServiceResult ack) {
@@ -84,7 +84,7 @@ class ServiceLocatorImpl<T, E extends ServiceMessage<T>> implements ServiceLocat
             throw new IllegalArgumentException("The specified limit must be positive (>=1), was " + limit);
         }
         NetworkFutureImpl<FindServiceResult> f = csm.serviceFindOne(new FindService(sip.getName(), distance, limit));
-        final NetworkFutureImpl<List<ServiceEndpoint<E, T>>> result = new NetworkFutureImpl<>();
+        final NetworkFutureImpl<List<ServiceEndpoint<E, T>>> result = new NetworkFutureImpl<>(csm.c.ses);
         f.thenAcceptAsync(new CompletableFuture.Action<FindServiceResult>() {
             @Override
             public void accept(FindServiceResult ack) {

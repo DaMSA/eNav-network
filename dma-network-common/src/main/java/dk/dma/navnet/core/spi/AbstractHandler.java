@@ -15,8 +15,11 @@
  */
 package dk.dma.navnet.core.spi;
 
+import static java.util.Objects.requireNonNull;
+
 import java.io.IOException;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.ReentrantLock;
 
@@ -47,6 +50,11 @@ public abstract class AbstractHandler {
     final ConcurrentHashMap<String, NetworkFutureImpl<?>> replies = new ConcurrentHashMap<>();
 
     volatile Session session;
+    ScheduledExecutorService ses;
+
+    protected AbstractHandler(ScheduledExecutorService ses) {
+        this.ses = requireNonNull(ses);
+    }
 
     protected void closed(int statusCode, String reason) {
 
@@ -107,7 +115,7 @@ public abstract class AbstractHandler {
         // we need to send the messages in the same order as they are numbered for now
         synchronized (ai) {
             long id = ai.incrementAndGet();
-            NetworkFutureImpl<T> f = new NetworkFutureImpl<>();
+            NetworkFutureImpl<T> f = new NetworkFutureImpl<>(ses);
             acks.put(id, f);
             m.setReplyTo(id);
             sendMessage((AbstractTextMessage) m);

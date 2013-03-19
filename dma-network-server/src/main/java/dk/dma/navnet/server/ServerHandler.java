@@ -37,6 +37,7 @@ class ServerHandler extends AbstractHandler {
     final S2CConnection con;
 
     ServerHandler(ConnectionManager cm) {
+        super(cm.ses);
         this.cm = requireNonNull(cm);
         con = new S2CConnection(cm, this);
     }

@@ -51,6 +51,7 @@ class ClientHandler extends AbstractHandler {
     private final C2SConnection cc;
 
     ClientHandler(String url, ClientNetwork cm) {
+        super(cm.ses);
         this.cm = requireNonNull(cm);
         this.url = requireNonNull(url);
         this.cc = new C2SConnection(cm, this);

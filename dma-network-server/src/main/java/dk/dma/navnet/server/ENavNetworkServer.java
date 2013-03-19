@@ -37,6 +37,8 @@ import dk.dma.enav.model.shore.ServerId;
  * @author Kasper Nielsen
  */
 public class ENavNetworkServer {
+
+    /** The default port this server is running on. */
     public static final int DEFAULT_PORT = 43234;
 
     final ServerId id = new ServerId(1);

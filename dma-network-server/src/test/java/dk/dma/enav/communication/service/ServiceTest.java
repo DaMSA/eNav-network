@@ -16,7 +16,10 @@
 package dk.dma.enav.communication.service;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
 
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
 import org.junit.Test;
@@ -27,6 +30,7 @@ import test.stubs.HelloService.Reply;
 import dk.dma.enav.communication.AbstractNetworkTest;
 import dk.dma.enav.communication.NetworkFuture;
 import dk.dma.enav.communication.PersistentNetworkConnection;
+import dk.dma.enav.util.function.BiConsumer;
 
 /**
  * 
@@ -58,5 +62,26 @@ public class ServiceTest extends AbstractNetworkTest {
             NetworkFuture<Reply> f = end.invoke(new HelloService.GetName());
             assertEquals("foo123", f.get(4, TimeUnit.SECONDS).getName());
         }
+    }
+
+    @Test
+    public void oneClientHandle() throws Exception {
+        PersistentNetworkConnection c1 = newClient(ID1);
+        c1.serviceRegister(HelloService.GET_NAME, HelloService.create("foo123")).awaitRegistered(4, TimeUnit.SECONDS);
+
+        PersistentNetworkConnection c2 = newClient(ID6);
+        ServiceEndpoint<GetName, Reply> end = c2.serviceFind(HelloService.GET_NAME).nearest().get(6, TimeUnit.SECONDS);
+        assertEquals(ID1, end.getId());
+        NetworkFuture<Reply> f = end.invoke(new HelloService.GetName());
+        final CountDownLatch cdl = new CountDownLatch(1);
+        f.handle(new BiConsumer<HelloService.Reply, Throwable>() {
+            @Override
+            public void accept(Reply l, Throwable r) {
+                assertNull(r);
+                assertEquals("foo123", l.getName());
+                cdl.countDown();
+            }
+        });
+        assertTrue(cdl.await(1, TimeUnit.SECONDS));
     }
 }
