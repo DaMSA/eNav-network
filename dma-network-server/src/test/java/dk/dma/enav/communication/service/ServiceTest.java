@@ -28,8 +28,8 @@ import test.stubs.HelloService;
 import test.stubs.HelloService.GetName;
 import test.stubs.HelloService.Reply;
 import dk.dma.enav.communication.AbstractNetworkTest;
-import dk.dma.enav.communication.NetworkFuture;
-import dk.dma.enav.communication.PersistentNetworkConnection;
+import dk.dma.enav.communication.ConnectionFuture;
+import dk.dma.enav.communication.PersistentConnection;
 import dk.dma.enav.util.function.BiConsumer;
 
 /**
@@ -40,39 +40,39 @@ public class ServiceTest extends AbstractNetworkTest {
 
     @Test
     public void oneClient() throws Exception {
-        PersistentNetworkConnection c1 = newClient(ID1);
+        PersistentConnection c1 = newClient(ID1);
         c1.serviceRegister(HelloService.GET_NAME, HelloService.create("foo123")).awaitRegistered(4, TimeUnit.SECONDS);
 
-        PersistentNetworkConnection c2 = newClient(ID6);
+        PersistentConnection c2 = newClient(ID6);
         ServiceEndpoint<GetName, Reply> end = c2.serviceFind(HelloService.GET_NAME).nearest().get(6, TimeUnit.SECONDS);
         assertEquals(ID1, end.getId());
-        NetworkFuture<Reply> f = end.invoke(new HelloService.GetName());
+        ConnectionFuture<Reply> f = end.invoke(new HelloService.GetName());
         assertEquals("foo123", f.get(4, TimeUnit.SECONDS).getName());
     }
 
     @Test
     public void manyClients() throws Exception {
-        PersistentNetworkConnection c1 = newClient(ID1);
+        PersistentConnection c1 = newClient(ID1);
         c1.serviceRegister(HelloService.GET_NAME, HelloService.create("foo123")).awaitRegistered(4, TimeUnit.SECONDS);
 
-        for (PersistentNetworkConnection c : newClients(20)) {
+        for (PersistentConnection c : newClients(20)) {
             ServiceEndpoint<GetName, Reply> end = c.serviceFind(HelloService.GET_NAME).nearest()
                     .get(6, TimeUnit.SECONDS);
             assertEquals(ID1, end.getId());
-            NetworkFuture<Reply> f = end.invoke(new HelloService.GetName());
+            ConnectionFuture<Reply> f = end.invoke(new HelloService.GetName());
             assertEquals("foo123", f.get(4, TimeUnit.SECONDS).getName());
         }
     }
 
     @Test
     public void oneClientHandle() throws Exception {
-        PersistentNetworkConnection c1 = newClient(ID1);
+        PersistentConnection c1 = newClient(ID1);
         c1.serviceRegister(HelloService.GET_NAME, HelloService.create("foo123")).awaitRegistered(4, TimeUnit.SECONDS);
 
-        PersistentNetworkConnection c2 = newClient(ID6);
+        PersistentConnection c2 = newClient(ID6);
         ServiceEndpoint<GetName, Reply> end = c2.serviceFind(HelloService.GET_NAME).nearest().get(6, TimeUnit.SECONDS);
         assertEquals(ID1, end.getId());
-        NetworkFuture<Reply> f = end.invoke(new HelloService.GetName());
+        ConnectionFuture<Reply> f = end.invoke(new HelloService.GetName());
         final CountDownLatch cdl = new CountDownLatch(1);
         f.handle(new BiConsumer<HelloService.Reply, Throwable>() {
             @Override

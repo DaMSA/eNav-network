@@ -18,7 +18,7 @@ package dk.dma.enav.communication.server;
 import org.junit.Test;
 
 import test.stubs.HelloWorld;
-import dk.dma.enav.communication.PersistentNetworkConnection;
+import dk.dma.enav.communication.PersistentConnection;
 import dk.dma.navnet.client.MaritimeNetworkConnectionBuilder;
 import dk.dma.navnet.server.ENavNetworkServer;
 
@@ -36,7 +36,7 @@ public class CustomPortTest {
         MaritimeNetworkConnectionBuilder b = MaritimeNetworkConnectionBuilder.create("mmsi://1234");
         b.setHost("localhost:12345");
         System.out.println("a");
-        try (PersistentNetworkConnection c = b.connect()) {
+        try (PersistentConnection c = b.connect()) {
             System.out.println("b");
             c.broadcast(new HelloWorld());
         }

@@ -28,7 +28,7 @@ import org.junit.Test;
 import test.stubs.HelloService;
 import test.stubs.HelloService.GetName;
 import test.stubs.HelloService.Reply;
-import dk.dma.enav.communication.PersistentNetworkConnection;
+import dk.dma.enav.communication.PersistentConnection;
 import dk.dma.enav.model.geometry.CoordinateSystem;
 import dk.dma.enav.model.geometry.Position;
 
@@ -45,16 +45,16 @@ public class ServiceFindTest extends AbstractServiceTest {
      */
     @Test
     public void findNearest() throws Exception {
-        PersistentNetworkConnection s = registerService(newClient(), "foo123");
-        PersistentNetworkConnection c = newClient();
+        PersistentConnection s = registerService(newClient(), "foo123");
+        PersistentConnection c = newClient();
         ServiceEndpoint<GetName, Reply> end = c.serviceFind(HelloService.GET_NAME).nearest().get(6, TimeUnit.SECONDS);
         assertEquals(s.getLocalId(), end.getId());
     }
 
     @Test
     public void findNearestOutOf2() throws Exception {
-        PersistentNetworkConnection s1 = registerService(newClient(1, 1), "A");
-        PersistentNetworkConnection s2 = registerService(newClient(5, 5), "B");
+        PersistentConnection s1 = registerService(newClient(1, 1), "A");
+        PersistentConnection s2 = registerService(newClient(5, 5), "B");
         ServiceEndpoint<GetName, Reply> e;
 
         e = newClient(2, 2).serviceFind(HelloService.GET_NAME).nearest().get(6, TimeUnit.SECONDS);
@@ -69,7 +69,7 @@ public class ServiceFindTest extends AbstractServiceTest {
 
     @Test
     public void findNearestOfMany() throws Exception {
-        Map<Integer, PersistentNetworkConnection> m = new HashMap<>();
+        Map<Integer, PersistentConnection> m = new HashMap<>();
         for (int i = 0; i < 10; i++) {
             m.put(i, registerService(newClient(i, i), "A" + i));
         }
@@ -94,7 +94,7 @@ public class ServiceFindTest extends AbstractServiceTest {
      */
     @Test
     public void cannotFindSelf() throws Exception {
-        PersistentNetworkConnection s = registerService(newClient(), "foo123");
+        PersistentConnection s = registerService(newClient(), "foo123");
         assertNull(s.serviceFind(HelloService.GET_NAME).nearest().get(6, TimeUnit.SECONDS));
     }
 
@@ -109,7 +109,7 @@ public class ServiceFindTest extends AbstractServiceTest {
 
     @Test
     public void findWithMaxDistance() throws Exception {
-        Map<Integer, PersistentNetworkConnection> m = new HashMap<>();
+        Map<Integer, PersistentConnection> m = new HashMap<>();
         for (int i = 0; i < 10; i++) {
             m.put(i, registerService(newClient(i, i), "A" + i));
         }

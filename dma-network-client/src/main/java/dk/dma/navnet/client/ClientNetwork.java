@@ -27,8 +27,8 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.ReentrantLock;
 
-import dk.dma.enav.communication.NetworkFuture;
-import dk.dma.enav.communication.PersistentNetworkConnection;
+import dk.dma.enav.communication.ConnectionFuture;
+import dk.dma.enav.communication.PersistentConnection;
 import dk.dma.enav.communication.broadcast.BroadcastListener;
 import dk.dma.enav.communication.broadcast.BroadcastMessage;
 import dk.dma.enav.communication.broadcast.BroadcastSubscription;
@@ -44,11 +44,11 @@ import dk.dma.enav.util.function.Consumer;
 import dk.dma.navnet.core.util.NetworkFutureImpl;
 
 /**
- * An implementation of {@link PersistentNetworkConnection} using websockets and JSON.
+ * An implementation of {@link PersistentConnection} using websockets and JSON.
  * 
  * @author Kasper Nielsen
  */
-public class ClientNetwork implements PersistentNetworkConnection {
+public class ClientNetwork implements PersistentConnection {
 
     /** Responsible for listening and sending broadcasts. */
     final BroadcastManager broadcaster;
@@ -62,7 +62,7 @@ public class ClientNetwork implements PersistentNetworkConnection {
     /** An {@link ExecutorService} for running various tasks. */
     final ExecutorService es = Executors.newCachedThreadPool();
 
-    private final CopyOnWriteArrayList<Consumer<PersistentNetworkConnection.State>> listeners = new CopyOnWriteArrayList<>();
+    private final CopyOnWriteArrayList<Consumer<PersistentConnection.State>> listeners = new CopyOnWriteArrayList<>();
 
     /** A lock used internally. */
     private final ReentrantLock lock = new ReentrantLock();
@@ -100,13 +100,13 @@ public class ClientNetwork implements PersistentNetworkConnection {
 
     /** {@inheritDoc} */
     @Override
-    public void addStateListener(Consumer<PersistentNetworkConnection.State> stateListener) {
+    public void addStateListener(Consumer<PersistentConnection.State> stateListener) {
         listeners.add(stateListener);
     }
 
     /** {@inheritDoc} */
     @Override
-    public boolean awaitState(PersistentNetworkConnection.State state, long timeout, TimeUnit unit)
+    public boolean awaitState(PersistentConnection.State state, long timeout, TimeUnit unit)
             throws InterruptedException {
         throw new UnsupportedOperationException();
     }
@@ -175,7 +175,7 @@ public class ClientNetwork implements PersistentNetworkConnection {
 
     /** {@inheritDoc} */
     @Override
-    public PersistentNetworkConnection.State getState() {
+    public PersistentConnection.State getState() {
         throw new UnsupportedOperationException();
     }
 
@@ -193,7 +193,7 @@ public class ClientNetwork implements PersistentNetworkConnection {
 
     /** {@inheritDoc} */
     @Override
-    public boolean removeStateListener(Consumer<PersistentNetworkConnection.State> stateListener) {
+    public boolean removeStateListener(Consumer<PersistentConnection.State> stateListener) {
         return listeners.remove(requireNonNull(stateListener));
     }
 
@@ -205,7 +205,7 @@ public class ClientNetwork implements PersistentNetworkConnection {
 
     /** {@inheritDoc} */
     @Override
-    public <T, S extends ServiceMessage<T>> NetworkFuture<T> serviceInvoke(MaritimeId id, S initiatingServiceMessage) {
+    public <T, S extends ServiceMessage<T>> ConnectionFuture<T> serviceInvoke(MaritimeId id, S initiatingServiceMessage) {
         throw new UnsupportedOperationException();
     }
 
@@ -216,7 +216,7 @@ public class ClientNetwork implements PersistentNetworkConnection {
         return services.serviceRegister(sip, callback);
     }
 
-    public static PersistentNetworkConnection create(MaritimeNetworkConnectionBuilder builder) throws IOException {
+    public static PersistentConnection create(MaritimeNetworkConnectionBuilder builder) throws IOException {
         ClientNetwork n = new ClientNetwork(builder);
         try {
             // Okay we might be offline when we start up the client

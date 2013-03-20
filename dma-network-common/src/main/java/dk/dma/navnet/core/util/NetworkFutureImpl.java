@@ -23,14 +23,14 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
 import jsr166e.CompletableFuture;
-import dk.dma.enav.communication.NetworkFuture;
+import dk.dma.enav.communication.ConnectionFuture;
 import dk.dma.enav.util.function.BiConsumer;
 
 /**
  * 
  * @author Kasper Nielsen
  */
-public class NetworkFutureImpl<T> extends CompletableFuture<T> implements NetworkFuture<T> {
+public class NetworkFutureImpl<T> extends CompletableFuture<T> implements ConnectionFuture<T> {
     final ScheduledExecutorService ses;
 
     public NetworkFutureImpl(ScheduledExecutorService ses) {

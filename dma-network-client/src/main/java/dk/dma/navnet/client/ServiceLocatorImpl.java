@@ -21,7 +21,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import jsr166e.CompletableFuture;
-import dk.dma.enav.communication.NetworkFuture;
+import dk.dma.enav.communication.ConnectionFuture;
 import dk.dma.enav.communication.service.ServiceEndpoint;
 import dk.dma.enav.communication.service.ServiceLocator;
 import dk.dma.enav.communication.service.spi.ServiceInitiationPoint;
@@ -59,7 +59,7 @@ class ServiceLocatorImpl<T, E extends ServiceMessage<T>> implements ServiceLocat
 
     /** {@inheritDoc} */
     @Override
-    public NetworkFuture<ServiceEndpoint<E, T>> nearest() {
+    public ConnectionFuture<ServiceEndpoint<E, T>> nearest() {
         NetworkFutureImpl<FindServiceResult> f = csm.serviceFindOne(new FindService(sip.getName(), distance, 1));
         final NetworkFutureImpl<ServiceEndpoint<E, T>> result = new NetworkFutureImpl<>(csm.c.ses);
         f.thenAcceptAsync(new CompletableFuture.Action<FindServiceResult>() {
@@ -79,7 +79,7 @@ class ServiceLocatorImpl<T, E extends ServiceMessage<T>> implements ServiceLocat
 
     /** {@inheritDoc} */
     @Override
-    public NetworkFuture<List<ServiceEndpoint<E, T>>> nearest(int limit) {
+    public ConnectionFuture<List<ServiceEndpoint<E, T>>> nearest(int limit) {
         if (limit < 1) {
             throw new IllegalArgumentException("The specified limit must be positive (>=1), was " + limit);
         }
@@ -119,7 +119,7 @@ class ServiceLocatorImpl<T, E extends ServiceMessage<T>> implements ServiceLocat
         /** {@inheritDoc} */
         @SuppressWarnings({ "unchecked", "rawtypes" })
         @Override
-        public NetworkFuture<T> invoke(E message) {
+        public ConnectionFuture<T> invoke(E message) {
             return csm.invokeService(id, (ServiceMessage) message);
         }
     }

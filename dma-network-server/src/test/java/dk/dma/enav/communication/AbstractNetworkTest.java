@@ -51,7 +51,7 @@ public class AbstractNetworkTest {
     public static final MaritimeId ID5 = MaritimeId.create("mmsi://5");
     public static final MaritimeId ID6 = MaritimeId.create("mmsi://6");
 
-    protected final ConcurrentHashMap<MaritimeId, PersistentNetworkConnection> clients = new ConcurrentHashMap<>();
+    protected final ConcurrentHashMap<MaritimeId, PersistentConnection> clients = new ConcurrentHashMap<>();
     ExecutorService es = Executors.newCachedThreadPool();
 
     protected final ConcurrentHashMap<MaritimeId, LocationSup> locs = new ConcurrentHashMap<>();
@@ -70,7 +70,7 @@ public class AbstractNetworkTest {
         this.useProxy = useProxy;
     }
 
-    protected PersistentNetworkConnection newClient() throws Exception {
+    protected PersistentConnection newClient() throws Exception {
         for (;;) {
             MaritimeId id = MaritimeId.create("mmsi://" + ThreadLocalRandom.current().nextInt(1000));
             if (!clients.containsKey(id)) {
@@ -79,7 +79,7 @@ public class AbstractNetworkTest {
         }
     }
 
-    protected PersistentNetworkConnection newClient(double lat, double lon) throws Exception {
+    protected PersistentConnection newClient(double lat, double lon) throws Exception {
         for (;;) {
             MaritimeId id = MaritimeId.create("mmsi://" + ThreadLocalRandom.current().nextInt(1000));
             if (!clients.containsKey(id)) {
@@ -88,33 +88,33 @@ public class AbstractNetworkTest {
         }
     }
 
-    protected PersistentNetworkConnection newClient(MaritimeId id) throws Exception {
+    protected PersistentConnection newClient(MaritimeId id) throws Exception {
         MaritimeNetworkConnectionBuilder b = newBuilder(id);
         locs.put(id, new LocationSup());
-        PersistentNetworkConnection c = b.connect();
+        PersistentConnection c = b.connect();
         clients.put(id, c);
         return c;
     }
 
-    protected PersistentNetworkConnection newClient(MaritimeId id, double lat, double lon) throws Exception {
+    protected PersistentConnection newClient(MaritimeId id, double lat, double lon) throws Exception {
         MaritimeNetworkConnectionBuilder b = newBuilder(id);
         LocationSup ls = new LocationSup();
         b.setPositionSupplier(ls);
         locs.put(id, ls);
         setPosition(id, lat, lon);
-        PersistentNetworkConnection c = b.connect();
+        PersistentConnection c = b.connect();
         clients.put(id, c);
         return c;
     }
 
-    protected Future<PersistentNetworkConnection> newClientAsync(final MaritimeId id) throws Exception {
+    protected Future<PersistentConnection> newClientAsync(final MaritimeId id) throws Exception {
         final MaritimeNetworkConnectionBuilder b = newBuilder(id);
         locs.put(id, new LocationSup());
-        return es.submit(new Callable<PersistentNetworkConnection>() {
+        return es.submit(new Callable<PersistentConnection>() {
 
             @Override
-            public PersistentNetworkConnection call() throws Exception {
-                PersistentNetworkConnection c = b.connect();
+            public PersistentConnection call() throws Exception {
+                PersistentConnection c = b.connect();
                 clients.put(id, c);
                 return c;
             }
@@ -127,13 +127,13 @@ public class AbstractNetworkTest {
         return b;
     }
 
-    protected Set<PersistentNetworkConnection> newClients(int count) throws Exception {
-        HashSet<Future<PersistentNetworkConnection>> futures = new HashSet<>();
+    protected Set<PersistentConnection> newClients(int count) throws Exception {
+        HashSet<Future<PersistentConnection>> futures = new HashSet<>();
         for (int j = 0; j < count; j++) {
             futures.add(newClientAsync(MaritimeId.create("mmsi://1234" + j)));
         }
-        HashSet<PersistentNetworkConnection> result = new HashSet<>();
-        for (Future<PersistentNetworkConnection> f : futures) {
+        HashSet<PersistentConnection> result = new HashSet<>();
+        for (Future<PersistentConnection> f : futures) {
             result.add(f.get(3, TimeUnit.SECONDS));
         }
         return result;
@@ -145,7 +145,7 @@ public class AbstractNetworkTest {
         return id;
     }
 
-    protected PersistentNetworkConnection setPosition(PersistentNetworkConnection pnc, double lat, double lon) {
+    protected PersistentConnection setPosition(PersistentConnection pnc, double lat, double lon) {
         locs.get(pnc.getLocalId()).lat = lat;
         locs.get(pnc.getLocalId()).lon = lon;
         return pnc;
@@ -168,14 +168,14 @@ public class AbstractNetworkTest {
 
     @After
     public void teardown() throws InterruptedException {
-        for (final PersistentNetworkConnection c : clients.values()) {
+        for (final PersistentConnection c : clients.values()) {
             es.execute(new Runnable() {
                 public void run() {
                     c.close();
                 }
             });
         }
-        for (final PersistentNetworkConnection c : clients.values()) {
+        for (final PersistentConnection c : clients.values()) {
             assertTrue(c.awaitTerminated(5, TimeUnit.SECONDS));
         }
 
