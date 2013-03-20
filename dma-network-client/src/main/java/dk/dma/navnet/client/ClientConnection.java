@@ -18,6 +18,7 @@ package dk.dma.navnet.client;
 import static java.util.Objects.requireNonNull;
 
 import java.io.IOException;
+import java.io.InterruptedIOException;
 import java.net.ConnectException;
 import java.util.concurrent.TimeUnit;
 
@@ -38,13 +39,13 @@ import dk.dma.navnet.core.util.NetworkFutureImpl;
  * 
  * @author Kasper Nielsen
  */
-class C2SConnection extends AbstractConnection {
+class ClientConnection extends AbstractConnection {
 
-    final ClientNetwork cm;
+    final DefaultPersistentConnection cm;
 
-    volatile ClientTransport ch;
+    private volatile ClientTransport ch;
 
-    C2SConnection(ClientNetwork cn) {
+    ClientConnection(DefaultPersistentConnection cn) {
         super(cn.ses);
         this.cm = requireNonNull(cn);
         this.ch = new ClientTransport();
@@ -114,10 +115,10 @@ class C2SConnection extends AbstractConnection {
     /** {@inheritDoc} */
     protected void welcome(WelcomeMessage m) {
         PositionTime pt = cm.positionManager.getPositionTime();
-        ch.sendMessage(new HelloMessage(cm.clientId, "enavClient/1.0", "", 2, pt.getLatitude(), pt.getLongitude()));
+        ch.sendMessage(new HelloMessage(cm.getLocalId(), "enavClient/1.0", "", 2, pt.getLatitude(), pt.getLongitude()));
     }
 
-    public void connect(long timeout, TimeUnit unit) throws Exception {
+    public void connect(long timeout, TimeUnit unit) throws IOException {
         try {
             cm.transportFactory.connect(ch, timeout, unit);
             ch.connected.await(timeout, unit);
@@ -128,7 +129,9 @@ class C2SConnection extends AbstractConnection {
             cm.es.shutdown();
             cm.ses.shutdown();
             cm.transportFactory.shutdown();
-            throw (Exception) e.getCause();// todo fix throw
+            throw e;
+        } catch (InterruptedException e) {
+            throw new InterruptedIOException();
         }
     }
 }

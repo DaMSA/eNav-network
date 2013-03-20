@@ -46,20 +46,24 @@ import dk.dma.navnet.core.transport.websocket.WebsocketTransports;
  * 
  * @author Kasper Nielsen
  */
-public class ClientNetwork implements PersistentConnection {
+class DefaultPersistentConnection implements PersistentConnection {
 
     /** Responsible for listening and sending broadcasts. */
     final BroadcastManager broadcaster;
 
     /** The id of this client */
-    final MaritimeId clientId;
+    private final MaritimeId clientId;
+
+    /** Used to await for termination. */
+    private final CountDownLatch closed = new CountDownLatch(1);
 
     /** The single connection to a server. */
-    final C2SConnection connection;
+    private final ClientConnection connection;
 
     /** An {@link ExecutorService} for running various tasks. */
     final ExecutorService es = Executors.newCachedThreadPool();
 
+    /** A list of connection listeners. */
     final CopyOnWriteArrayList<ConnectionListener> listeners = new CopyOnWriteArrayList<>();
 
     /** A lock used internally. */
@@ -89,25 +93,32 @@ public class ClientNetwork implements PersistentConnection {
      * @param builder
      *            the configuration
      */
-    ClientNetwork(MaritimeNetworkConnectionBuilder builder) {
+    DefaultPersistentConnection(MaritimeNetworkConnectionBuilder builder) {
         this.clientId = requireNonNull(builder.getId());
         this.positionManager = new PositionManager(this, builder.getPositionSupplier());
         this.broadcaster = new BroadcastManager(this);
         this.services = new ServiceManager(this);
         this.transportFactory = WebsocketTransports.createClient(builder.getHost());
-        this.connection = new C2SConnection(this);
+        this.connection = new ClientConnection(this);
     }
-
-    /* DELEGATING METHODS */
 
     /** {@inheritDoc} */
     @Override
     public boolean awaitState(PersistentConnection.State state, long timeout, TimeUnit unit)
             throws InterruptedException {
-        if (state == State.TERMINATED) {
+        if (state == State.INITIALIZED) {
+            return true; // always at least initialized
+        } else if (state == State.CLOSED) {
+            return closed.await(timeout, unit);
+        } else if (state == State.TERMINATED) {
             return terminated.await(timeout, unit);
+        } else {
+            // only want to await connected/connecting if not shutdown
+            while (closed.getCount() > 0) {
+                throw new UnsupportedOperationException();
+            }
+            return true;
         }
-        throw new UnsupportedOperationException();
     }
 
     /** {@inheritDoc} */
@@ -128,9 +139,10 @@ public class ClientNetwork implements PersistentConnection {
     public void close() {
         lock.lock();
         try {
-            if (state.isEnded()) {
+            if (closed.getCount() == 0) {
                 return;
             }
+            closed.countDown();
             state = State.CLOSED;
             es.shutdown();
             ses.shutdown();
@@ -139,19 +151,16 @@ public class ClientNetwork implements PersistentConnection {
             } catch (InterruptedException e1) {
                 e1.printStackTrace();
             }
-            try {
-                connection.ch.tryClose(4333, "Goodbye");
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-            // skal lige have fundet ud af med det shutdown
-            terminated.countDown();
+            connection.closeNormally();
         } finally {
+            terminated.countDown();
             lock.unlock();
         }
     }
 
-    /* LIFECYCLE METHODS */
+    ClientConnection connection() {
+        return connection;
+    }
 
     /** {@inheritDoc} */
     @Override
@@ -184,19 +193,9 @@ public class ClientNetwork implements PersistentConnection {
         return services.serviceRegister(sip, callback);
     }
 
-    public static PersistentConnection create(MaritimeNetworkConnectionBuilder builder) throws IOException {
-        ClientNetwork n = new ClientNetwork(builder);
-        try {
-            // Okay we might be offline when we start up the client
-            // perhaps we should just treat it as a reconnect.
-            // The downside is that people could wait a lot of time
-            // when entering the wrong url.
-            n.connection.connect(10, TimeUnit.SECONDS);
-        } catch (Exception e) {
-            throw new IOException(e);// could not connect within 10 seconds
-        }
+    public void start() throws IOException {
+        connection.connect(10, TimeUnit.SECONDS);
         // Schedules regular position updates to the server
-        n.ses.scheduleAtFixedRate(n.positionManager, 0, 1, TimeUnit.SECONDS);
-        return n;
+        ses.scheduleAtFixedRate(positionManager, 0, 1, TimeUnit.SECONDS);
     }
 }

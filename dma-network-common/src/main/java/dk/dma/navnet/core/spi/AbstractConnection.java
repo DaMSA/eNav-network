@@ -23,6 +23,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.ReentrantLock;
 
 import dk.dma.navnet.core.messages.AbstractTextMessage;
+import dk.dma.navnet.core.messages.s2c.ReplyMessage;
 import dk.dma.navnet.core.util.NetworkFutureImpl;
 
 /**
@@ -47,6 +48,18 @@ public abstract class AbstractConnection {
 
     protected AbstractConnection(ScheduledExecutorService ses) {
         this.ses = requireNonNull(ses);
+    }
+
+    public final <T> NetworkFutureImpl<T> sendMessage(ReplyMessage<T> m) {
+        return transport.sendMessage(m);
+    }
+
+    public void closeNormally() {
+        transport.tryClose(4333, "Goodbye");
+    }
+
+    public final void sendMessage(AbstractTextMessage m) {
+        transport.sendMessage(m);
     }
 
     protected abstract void handleMessage(AbstractTextMessage m) throws Exception;

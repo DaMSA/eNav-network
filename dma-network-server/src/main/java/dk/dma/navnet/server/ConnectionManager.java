@@ -48,8 +48,11 @@ class ConnectionManager {
     /** The actual server */
     final ENavNetworkServer server;
 
-    /** All connections */
-    final ConcurrentHashMapV8<String, Client> connections = new ConcurrentHashMapV8<>();
+    /** All clients that currently connecting. */
+    final ConcurrentHashMapV8<String, Client> connecting = new ConcurrentHashMapV8<>();
+
+    /** All clients */
+    final ConcurrentHashMapV8<String, Client> clients = new ConcurrentHashMapV8<>();
 
     ConnectionManager(ENavNetworkServer server) {
         this.server = requireNonNull(server);
@@ -58,16 +61,16 @@ class ConnectionManager {
     synchronized Client addConnection(MaritimeId mid, String id, ServerTransport c) {
         Client newCH = new Client(mid, server, c);
         c.holder = newCH;
-        connections.put(id, newCH);
+        clients.put(id, newCH);
         return newCH;
     }
 
     void disconnected(ServerTransport connection) {
-        connections.remove(connection.holder.id.toString());
+        clients.remove(connection.holder.id.toString());
     }
 
     void broadcast(ServerTransport sender, final BroadcastMsg broadcast) {
-        for (Client ch : connections.values()) {
+        for (Client ch : clients.values()) {
             final ServerTransport sc = ch.sh;
             if (sc != sender) {
                 server.deamonPool.execute(new Runnable() {
@@ -84,15 +87,15 @@ class ConnectionManager {
     }
 
     public Set<String> getAllConnectionIds() {
-        return new HashSet<>(connections.keySet());
+        return new HashSet<>(clients.keySet());
     }
 
     public int getNumberOfConnections() {
-        return connections.size();
+        return clients.size();
     }
 
     public ServerTransport getConnection(String id) {
-        return connections.get(id).sh;
+        return clients.get(id).sh;
     }
 
     /** Stops accepting any more sockets. */
@@ -110,10 +113,10 @@ class ConnectionManager {
         /** {@inheritDoc} */
         @Override
         public void run() {
-            connections.forEachKeyInParallel(new Action<String>() {
+            clients.forEachKeyInParallel(new Action<String>() {
                 @Override
                 public void apply(String s) {
-                    connections.computeIfPresent(s, new BiFun<String, Client, Client>() {
+                    clients.computeIfPresent(s, new BiFun<String, Client, Client>() {
                         public Client apply(String s, Client pc) {
                             // if (pc.isDead()) {
                             // handleDeadConnection(pc);

@@ -43,7 +43,7 @@ import dk.dma.navnet.core.util.NetworkFutureImpl;
  * 
  * @author Kasper Nielsen
  */
-public class S2CConnection extends AbstractConnection {
+public class ServerConnection extends AbstractConnection {
 
     final ConnectionManager cm;
 
@@ -53,7 +53,7 @@ public class S2CConnection extends AbstractConnection {
      * @param cm
      * @param sh
      */
-    public S2CConnection(ConnectionManager cm, ServerTransport sh) {
+    public ServerConnection(ConnectionManager cm, ServerTransport sh) {
         super(cm.ses);
         super.setTransport(sh);
         this.cm = cm;

@@ -43,7 +43,7 @@ class PositionManager implements Runnable {
     private final Supplier<PositionTime> positionSupplier;
 
     /** The connection to the server. */
-    private final ClientNetwork c;
+    private final DefaultPersistentConnection c;
 
     /** When we send the last message */
     private volatile long latestTime = -MINIMUM_SIGNAL_DURATION; // System.nanoTime>0 so we always send it first time
@@ -52,7 +52,7 @@ class PositionManager implements Runnable {
      * @param transport
      * @param positionSupplier
      */
-    PositionManager(ClientNetwork c, Supplier<PositionTime> positionSupplier) {
+    PositionManager(DefaultPersistentConnection c, Supplier<PositionTime> positionSupplier) {
         this.c = requireNonNull(c);
         this.positionSupplier = requireNonNull(positionSupplier);
     }
@@ -74,7 +74,7 @@ class PositionManager implements Runnable {
 
         if (t != null) {
             latestTime = now;
-            c.connection.ch.sendMessage(new PositionReportMessage(t));
+            c.connection().sendMessage(new PositionReportMessage(t));
         }
     }
 

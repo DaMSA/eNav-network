@@ -54,7 +54,7 @@ class ServiceManager {
     static final Logger LOG = LoggerFactory.getLogger(ServiceManager.class);
 
     /** The network */
-    final ClientNetwork c;
+    final DefaultPersistentConnection c;
 
     /** A map of subscribers. ChannelName -> List of listeners. */
     final ConcurrentHashMap<String, Registration> listeners = new ConcurrentHashMap<>();
@@ -67,7 +67,7 @@ class ServiceManager {
      * @param network
      *            the network
      */
-    ServiceManager(ClientNetwork clientNetwork) {
+    ServiceManager(DefaultPersistentConnection clientNetwork) {
         this.c = requireNonNull(clientNetwork);
     }
 
@@ -76,7 +76,7 @@ class ServiceManager {
     }
 
     <T, E extends ServiceMessage<T>> NetworkFutureImpl<FindServiceResult> serviceFindOne(FindService fs) {
-        return c.connection.ch.sendMessage(fs);
+        return c.connection().sendMessage(fs);
     }
 
     /** {@inheritDoc} */
@@ -84,7 +84,7 @@ class ServiceManager {
         InvokeService is = new InvokeService(1, UUID.randomUUID().toString(), msg.getClass().getName(),
                 msg.messageName(), JSonUtil.persistAndEscape(msg));
         is.setDestination(id.toString());
-        is.setSource(c.clientId.toString());
+        is.setSource(c.getLocalId().toString());
         final NetworkFutureImpl<T> f = new NetworkFutureImpl<>(c.ses);
         NetworkFutureImpl<InvokeServiceResult> fr = new NetworkFutureImpl<>(c.ses);
         invokers.put(is.getConversationId(), fr);
@@ -94,7 +94,7 @@ class ServiceManager {
                 f.complete((T) ack);
             }
         });
-        c.connection.ch.sendMessage(is);
+        c.connection().sendMessage(is);
         return f;
     }
 
@@ -118,7 +118,7 @@ class ServiceManager {
                 public void complete(Object result) {
                     requireNonNull(result);
                     // System.out.println("Completed");
-                    c.connection.ch.sendMessage(m.createReply(result));
+                    c.connection().sendMessage(m.createReply(result));
                 }
 
                 public MaritimeId getCaller() {
@@ -171,8 +171,8 @@ class ServiceManager {
             throw new IllegalArgumentException(
                     "A service of the specified type has already been registered. Can only register one at a time");
         }
-        final NetworkFutureImpl<RegisterServiceResult> f = c.connection.ch.sendMessage(new RegisterService(sip
-                .getName()));
+        final NetworkFutureImpl<RegisterServiceResult> f = c.connection().sendMessage(
+                new RegisterService(sip.getName()));
         f.thenAcceptAsync(new CompletableFuture.Action<RegisterServiceResult>() {
             public void accept(RegisterServiceResult ack) {
                 reg.replied.countDown();

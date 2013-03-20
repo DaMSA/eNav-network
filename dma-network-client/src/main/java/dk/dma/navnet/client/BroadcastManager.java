@@ -42,7 +42,7 @@ class BroadcastManager {
     static final Logger LOG = LoggerFactory.getLogger(BroadcastManager.class);
 
     /** The network */
-    final ClientNetwork c;
+    final DefaultPersistentConnection c;
 
     /** A map of listeners. ChannelName -> List of listeners. */
     final ConcurrentHashMapV8<String, CopyOnWriteArraySet<Listener>> listeners = new ConcurrentHashMapV8<>();
@@ -53,7 +53,7 @@ class BroadcastManager {
      * @param network
      *            the network
      */
-    BroadcastManager(ClientNetwork network) {
+    BroadcastManager(DefaultPersistentConnection network) {
         this.c = requireNonNull(network);
     }
 
@@ -109,8 +109,8 @@ class BroadcastManager {
      */
     void send(BroadcastMessage broadcast) {
         requireNonNull(broadcast, "broadcast is null");
-        BroadcastMsg b = BroadcastMsg.create(c.clientId, c.positionManager.getPositionTime(), broadcast);
-        c.connection.ch.sendMessage(b);
+        BroadcastMsg b = BroadcastMsg.create(c.getLocalId(), c.positionManager.getPositionTime(), broadcast);
+        c.connection().sendMessage(b);
     }
 
     /** Translates a class to a channel name. */

@@ -33,11 +33,11 @@ class ServerTransport extends AbstractMessageTransport {
 
     State state = State.CREATED;
 
-    final S2CConnection con;
+    final ServerConnection con;
 
     ServerTransport(ConnectionManager cm) {
         this.cm = requireNonNull(cm);
-        con = new S2CConnection(cm, this);
+        con = new ServerConnection(cm, this);
     }
 
     /** {@inheritDoc} */
@@ -64,5 +64,4 @@ class ServerTransport extends AbstractMessageTransport {
     enum State {
         CONNECTED, CREATED, DISCONNECTED
     }
-
 }
