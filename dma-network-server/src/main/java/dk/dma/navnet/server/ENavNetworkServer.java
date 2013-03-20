@@ -28,9 +28,7 @@ import com.google.common.util.concurrent.ThreadFactoryBuilder;
 
 import dk.dma.commons.tracker.PositionTracker;
 import dk.dma.enav.model.shore.ServerId;
-import dk.dma.enav.util.function.Supplier;
 import dk.dma.navnet.core.transport.ServerTransportFactory;
-import dk.dma.navnet.core.transport.Transport;
 import dk.dma.navnet.core.transport.websocket.WebsocketTransports;
 
 /**
@@ -54,7 +52,7 @@ public class ENavNetworkServer {
             .setNameFormat("PositionTrackerUpdate").setDaemon(true).build());
 
     /** The thread that is accepting incoming sockets. */
-    final ConnectionManager at;
+    final ConnectionManager connections;
 
     /** The current state of this server. */
     volatile State state = State.INITIALIZED;
@@ -63,7 +61,7 @@ public class ENavNetworkServer {
     final CountDownLatch termination = new CountDownLatch(1);
 
     /** The position tracker. */
-    final PositionTracker<Client> tracker = new PositionTracker<>();
+    final PositionTracker<ServerConnection> tracker = new PositionTracker<>();
 
     final ServerTransportFactory factory;
 
@@ -73,7 +71,7 @@ public class ENavNetworkServer {
 
     public ENavNetworkServer(int port) {
         factory = WebsocketTransports.createServer(port);
-        at = new ConnectionManager(this);
+        connections = new ConnectionManager(this);
     }
 
     public boolean awaitTerminated(long timeout, TimeUnit unit) throws InterruptedException {
@@ -85,7 +83,7 @@ public class ENavNetworkServer {
     }
 
     public int getNumberOfConnections() {
-        return at.getNumberOfConnections();
+        return connections.getNumberOfConnections();
     }
 
     public synchronized void shutdown() {
@@ -108,11 +106,7 @@ public class ENavNetworkServer {
             ses.scheduleAtFixedRate(tracker, 0, 1, TimeUnit.SECONDS);
             // Starts a new thread that will accept new connections
             try {
-                factory.startAccept(new Supplier<Transport>() {
-                    public Transport get() {
-                        return new ServerTransport(at);
-                    }
-                });
+                factory.startAccept(connections);
             } catch (Exception e) {
                 state = State.TERMINATED;
                 factory.close();
@@ -144,7 +138,7 @@ public class ENavNetworkServer {
                 e.printStackTrace();
             }
             LOG.info("Acceptance of new connections stopped, closing existing");
-            int size = at.getNumberOfConnections();
+            int size = connections.getNumberOfConnections();
             if (size > 0) {
                 LOG.info("Shutting down " + size + " connections");
             }

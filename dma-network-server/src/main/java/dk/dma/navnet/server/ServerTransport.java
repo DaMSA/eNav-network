@@ -16,6 +16,13 @@
 package dk.dma.navnet.server;
 
 import static java.util.Objects.requireNonNull;
+
+import java.util.UUID;
+
+import dk.dma.enav.model.geometry.PositionTime;
+import dk.dma.navnet.core.messages.AbstractTextMessage;
+import dk.dma.navnet.core.messages.auxiliary.ConnectedMessage;
+import dk.dma.navnet.core.messages.auxiliary.HelloMessage;
 import dk.dma.navnet.core.messages.auxiliary.WelcomeMessage;
 import dk.dma.navnet.core.spi.AbstractMessageTransport;
 
@@ -27,17 +34,35 @@ class ServerTransport extends AbstractMessageTransport {
 
     final ConnectionManager cm;
 
-    volatile Client holder;
+    boolean isConnecting = true;
 
-    long nextReplyId;
-
-    State state = State.CREATED;
-
-    final ServerConnection con;
+    ServerConnection connection;
 
     ServerTransport(ConnectionManager cm) {
         this.cm = requireNonNull(cm);
-        con = new ServerConnection(cm, this);
+    }
+
+    /** {@inheritDoc} */
+    @Override
+    protected void onReceivedText0(AbstractTextMessage m) {
+        if (isConnecting) {
+            isConnecting = false;
+            if (m instanceof HelloMessage) {
+                if (cm.connectingTransports.remove(this)) {// check that nobody else has removed the connection
+                    HelloMessage hm = (HelloMessage) m;
+                    UUID uuid = UUID.randomUUID();
+                    PositionTime pt = new PositionTime(hm.getLat(), hm.getLon(), -1);
+                    ServerConnection sc = connection = new ServerConnection(cm, this, hm.getClientId(), pt);
+                    cm.clients.put(hm.getClientId().toString(), sc);
+                    sendMessage(new ConnectedMessage(uuid.toString()));
+                    cm.server.tracker.update(sc, pt);
+                }
+            } else {
+                // oops
+            }
+        } else {
+            super.onReceivedText0(m);
+        }
     }
 
     /** {@inheritDoc} */
@@ -49,19 +74,15 @@ class ServerTransport extends AbstractMessageTransport {
     /** {@inheritDoc} */
     @Override
     protected void closed(int statusCode, String reason) {
-        cm.server.tracker.remove(this.holder);
-        cm.server.at.disconnected(this);
+        cm.server.tracker.remove(connection);
+        cm.server.connections.disconnected(this);
         super.closed(statusCode, reason);
     }
 
     /** {@inheritDoc} */
     @Override
     public void onError(Throwable cause) {
-        cm.server.tracker.remove(this.holder);
-        cm.server.at.disconnected(this);
-    }
-
-    enum State {
-        CONNECTED, CREATED, DISCONNECTED
+        cm.server.tracker.remove(connection);
+        cm.server.connections.disconnected(this);
     }
 }

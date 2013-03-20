@@ -15,22 +15,22 @@
  */
 package dk.dma.navnet.server;
 
+import static java.util.Objects.requireNonNull;
+
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map.Entry;
-import java.util.UUID;
 
 import jsr166e.ConcurrentHashMapV8;
+import dk.dma.enav.model.MaritimeId;
 import dk.dma.enav.model.geometry.Area;
 import dk.dma.enav.model.geometry.Circle;
 import dk.dma.enav.model.geometry.CoordinateSystem;
 import dk.dma.enav.model.geometry.PositionTime;
 import dk.dma.enav.util.function.BiConsumer;
 import dk.dma.navnet.core.messages.AbstractTextMessage;
-import dk.dma.navnet.core.messages.auxiliary.ConnectedMessage;
-import dk.dma.navnet.core.messages.auxiliary.HelloMessage;
 import dk.dma.navnet.core.messages.auxiliary.PositionReportMessage;
 import dk.dma.navnet.core.messages.c2c.AbstractRelayedMessage;
 import dk.dma.navnet.core.messages.c2c.broadcast.BroadcastMsg;
@@ -48,16 +48,24 @@ public class ServerConnection extends AbstractConnection {
     final ConnectionManager cm;
 
     final ServerTransport sh;
+    /** The latest position of the client. */
+    volatile PositionTime latestPosition;
+
+    final MaritimeId id;
+    final ClientServices services;
 
     /**
      * @param cm
      * @param sh
      */
-    public ServerConnection(ConnectionManager cm, ServerTransport sh) {
+    public ServerConnection(ConnectionManager cm, ServerTransport sh, MaritimeId id, PositionTime initialPosition) {
         super(cm.ses);
         super.setTransport(sh);
         this.cm = cm;
         this.sh = sh;
+        this.id = requireNonNull(id);
+        latestPosition = requireNonNull(initialPosition);
+        services = new ClientServices(this);
     }
 
     /** {@inheritDoc} */
@@ -69,9 +77,7 @@ public class ServerConnection extends AbstractConnection {
     /** {@inheritDoc} */
     @Override
     public final void handleMessage(AbstractTextMessage m) {
-        if (m instanceof HelloMessage) {
-            hello((HelloMessage) m);
-        } else if (m instanceof RegisterService) {
+        if (m instanceof RegisterService) {
             registerService((RegisterService) m);
         } else if (m instanceof FindService) {
             findService((FindService) m);
@@ -95,26 +101,23 @@ public class ServerConnection extends AbstractConnection {
 
     /** {@inheritDoc} */
     public void findService(final FindService m) {
-        final PositionTime pos = sh.holder.latestPosition;
+        final PositionTime pos = latestPosition;
         double meters = m.getMeters() <= 0 ? Integer.MAX_VALUE : m.getMeters();
         Area a = new Circle(pos, meters, CoordinateSystem.GEODETIC);
         // Find all services with the area
-        final ConcurrentHashMapV8<Client, PositionTime> map = new ConcurrentHashMapV8<>();
-        cm.server.tracker.forEachWithinArea(a, new BiConsumer<Client, PositionTime>() {
-            public void accept(Client l, PositionTime r) {
+        final ConcurrentHashMapV8<ServerConnection, PositionTime> map = new ConcurrentHashMapV8<>();
+        cm.server.tracker.forEachWithinArea(a, new BiConsumer<ServerConnection, PositionTime>() {
+            public void accept(ServerConnection l, PositionTime r) {
                 if (l.services.hasService(m.getServiceName())) {
                     map.put(l, r);
                 }
             }
         });
-        Client cli = sh.holder;
-        if (cli != null) {
-            map.remove(cli);
-        }
+        map.remove(this);
         // Sort by distance
-        List<Entry<Client, PositionTime>> l = new ArrayList<>(map.entrySet());
-        Collections.sort(l, new Comparator<Entry<Client, PositionTime>>() {
-            public int compare(Entry<Client, PositionTime> o1, Entry<Client, PositionTime> o2) {
+        List<Entry<ServerConnection, PositionTime>> l = new ArrayList<>(map.entrySet());
+        Collections.sort(l, new Comparator<Entry<ServerConnection, PositionTime>>() {
+            public int compare(Entry<ServerConnection, PositionTime> o1, Entry<ServerConnection, PositionTime> o2) {
                 return Double.compare(o1.getValue().distanceTo(pos, CoordinateSystem.GEODETIC), o2.getValue()
                         .distanceTo(pos, CoordinateSystem.GEODETIC));
             }
@@ -127,31 +130,21 @@ public class ServerConnection extends AbstractConnection {
 
         // Extract the maritime id
         List<String> list = new ArrayList<>();
-        for (Entry<Client, PositionTime> e : l) {
+        for (Entry<ServerConnection, PositionTime> e : l) {
             list.add(e.getKey().id.toString());
         }
         sh.sendMessage(m.createReply(list.toArray(new String[list.size()])));
     }
 
     /** {@inheritDoc} */
-    public void hello(HelloMessage m) {
-        UUID uuid = UUID.randomUUID();
-        Client c = cm.addConnection(m.getClientId(), m.getClientId().toString(), sh);
-        PositionTime pt = new PositionTime(m.getLat(), m.getLon(), -1);
-        c.latestPosition = pt;
-        sh.sendMessage(new ConnectedMessage(uuid.toString()));
-        cm.server.tracker.update(sh.holder, pt);
-    }
-
-    /** {@inheritDoc} */
     public void positionReport(PositionReportMessage m) {
-        cm.server.tracker.update(sh.holder, m.getPositionTime());
-        sh.holder.latestPosition = m.getPositionTime();
+        cm.server.tracker.update(this, m.getPositionTime());
+        latestPosition = m.getPositionTime();
     }
 
     /** {@inheritDoc} */
     public void registerService(RegisterService m) {
-        sh.holder.services.registerService(m);
+        services.registerService(m);
         sh.sendMessage(m.createReply());
     }
 

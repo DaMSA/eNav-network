@@ -17,27 +17,27 @@ package dk.dma.navnet.server;
 
 import static java.util.Objects.requireNonNull;
 
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 
 import jsr166e.ConcurrentHashMapV8;
-import jsr166e.ConcurrentHashMapV8.Action;
-import jsr166e.ConcurrentHashMapV8.BiFun;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import dk.dma.enav.model.MaritimeId;
+import dk.dma.enav.util.function.Supplier;
 import dk.dma.navnet.core.messages.c2c.broadcast.BroadcastMsg;
+import dk.dma.navnet.core.transport.Transport;
 
 /**
  * Keeps track of all connections from the server and out.
  * 
  * @author Kasper Nielsen
  */
-class ConnectionManager {
+class ConnectionManager extends Supplier<Transport> {
 
     /** The logger. */
     static final Logger LOG = LoggerFactory.getLogger(ConnectionManager.class);
@@ -49,28 +49,22 @@ class ConnectionManager {
     final ENavNetworkServer server;
 
     /** All clients that currently connecting. */
-    final ConcurrentHashMapV8<String, Client> connecting = new ConcurrentHashMapV8<>();
+    final Set<ServerTransport> connectingTransports = Collections
+            .newSetFromMap(new ConcurrentHashMapV8<ServerTransport, Boolean>());
 
     /** All clients */
-    final ConcurrentHashMapV8<String, Client> clients = new ConcurrentHashMapV8<>();
+    final ConcurrentHashMapV8<String, ServerConnection> clients = new ConcurrentHashMapV8<>();
 
     ConnectionManager(ENavNetworkServer server) {
         this.server = requireNonNull(server);
     }
 
-    synchronized Client addConnection(MaritimeId mid, String id, ServerTransport c) {
-        Client newCH = new Client(mid, server, c);
-        c.holder = newCH;
-        clients.put(id, newCH);
-        return newCH;
-    }
-
     void disconnected(ServerTransport connection) {
-        clients.remove(connection.holder.id.toString());
+        clients.remove(connection.connection.id.toString());
     }
 
     void broadcast(ServerTransport sender, final BroadcastMsg broadcast) {
-        for (Client ch : clients.values()) {
+        for (ServerConnection ch : clients.values()) {
             final ServerTransport sc = ch.sh;
             if (sc != sender) {
                 server.deamonPool.execute(new Runnable() {
@@ -109,24 +103,31 @@ class ConnectionManager {
         // but not if they are dead
     }
 
-    class ConnectionChecker implements Runnable {
-        /** {@inheritDoc} */
-        @Override
-        public void run() {
-            clients.forEachKeyInParallel(new Action<String>() {
-                @Override
-                public void apply(String s) {
-                    clients.computeIfPresent(s, new BiFun<String, Client, Client>() {
-                        public Client apply(String s, Client pc) {
-                            // if (pc.isDead()) {
-                            // handleDeadConnection(pc);
-                            // return null;
-                            // }
-                            return pc;
-                        }
-                    });
-                }
-            });
-        }
+    /** {@inheritDoc} */
+    @Override
+    public Transport get() {
+        ServerTransport s = new ServerTransport(this);
+        connectingTransports.add(s);
+        return s;
     }
 }
+// class ConnectionChecker implements Runnable {
+// /** {@inheritDoc} */
+// @Override
+// public void run() {
+// clients.forEachKeyInParallel(new Action<String>() {
+// @Override
+// public void apply(String s) {
+// clients.computeIfPresent(s, new BiFun<String, Client, Client>() {
+// public Client apply(String s, Client pc) {
+// // if (pc.isDead()) {
+// // handleDeadConnection(pc);
+// // return null;
+// // }
+// return pc;
+// }
+// });
+// }
+// });
+// }
+// }

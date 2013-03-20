@@ -19,12 +19,12 @@ class ClientServices {
     private static final Logger LOG = LoggerFactory.getLogger(ClientServices.class);
 
     /** The client */
-    final Client holder;
+    final ServerConnection holder;
 
     /** A map of all registered services. */
     final ConcurrentHashMapV8<String, String> services = new ConcurrentHashMapV8<>();
 
-    ClientServices(Client ch) {
+    ClientServices(ServerConnection ch) {
         this.holder = requireNonNull(ch);
     }
 

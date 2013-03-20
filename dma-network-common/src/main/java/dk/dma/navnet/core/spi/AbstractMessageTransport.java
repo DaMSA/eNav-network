@@ -55,31 +55,6 @@ public abstract class AbstractMessageTransport extends Transport {
 
     }
 
-    void handleText0(AbstractTextMessage m) {
-        if (m instanceof AckMessage) {
-            AckMessage am = (AckMessage) m;
-            NetworkFutureImpl<?> f = ac.acks.remove(am.getMessageAck());
-            if (f == null) {
-                System.err.println("Orphaned packet with id " + am.getMessageAck() + " registered " + ac.acks.keySet()
-                        + ", local " + "" + " p = ");
-                // TODO close connection with error
-            } else {
-                try {
-                    client().handleMessageReply(m, f);
-                } catch (Exception e) {
-                    e.printStackTrace();
-                }
-            }
-            // System.out.println("RELEASING " + am.getMessageAck() + ", remaining " + acks.keySet());
-        } else {
-            try {
-                client().handleMessage(m);
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-        }
-    }
-
     /** {@inheritDoc} */
     @Override
     public void onClosed(int code, String message) {
@@ -102,15 +77,40 @@ public abstract class AbstractMessageTransport extends Transport {
 
     /** {@inheritDoc} */
     @Override
-    public void onReceivedText(String message) {
+    public final void onReceivedText(String message) {
         System.out.println("Received: " + message);
         try {
             AbstractTextMessage m = AbstractTextMessage.read(message);
             m.setReceivedRawMesage(message);
-            handleText0(m);
+            onReceivedText0(m);
         } catch (Throwable e) {
             e.printStackTrace();
             tryClose(5004, e.getMessage());
+        }
+    }
+
+    protected void onReceivedText0(AbstractTextMessage m) {
+        if (m instanceof AckMessage) {
+            AckMessage am = (AckMessage) m;
+            NetworkFutureImpl<?> f = ac.acks.remove(am.getMessageAck());
+            if (f == null) {
+                System.err.println("Orphaned packet with id " + am.getMessageAck() + " registered " + ac.acks.keySet()
+                        + ", local " + "" + " p = ");
+                // TODO close connection with error
+            } else {
+                try {
+                    client().handleMessageReply(m, f);
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
+            // System.out.println("RELEASING " + am.getMessageAck() + ", remaining " + acks.keySet());
+        } else {
+            try {
+                client().handleMessage(m);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
         }
     }
 
@@ -136,7 +136,6 @@ public abstract class AbstractMessageTransport extends Transport {
     }
 
     public final void sendRawTextMessage(String m) {
-
         try {
             System.out.println("Sending " + m);
             sendText(m);
