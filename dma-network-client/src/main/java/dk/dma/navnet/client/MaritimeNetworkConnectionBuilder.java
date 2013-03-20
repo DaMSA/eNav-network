@@ -16,9 +16,11 @@
 package dk.dma.navnet.client;
 
 import static java.util.Objects.requireNonNull;
+import dk.dma.enav.communication.ConnectionListener;
 import dk.dma.enav.communication.PersistentConnection;
 import dk.dma.enav.model.MaritimeId;
 import dk.dma.enav.model.geometry.PositionTime;
+import dk.dma.enav.util.function.Consumer;
 import dk.dma.enav.util.function.Supplier;
 
 /**
@@ -32,8 +34,6 @@ public class MaritimeNetworkConnectionBuilder {
     private String nodes = "localhost:43234";
 
     private Supplier<PositionTime> positionSupplier = new Supplier<PositionTime>() {
-
-        @Override
         public PositionTime get() {
             return PositionTime.create(0, 0, 0);
         }
@@ -43,8 +43,25 @@ public class MaritimeNetworkConnectionBuilder {
         this.id = requireNonNull(id);
     }
 
-    public PersistentConnection connect() throws Exception {
+    /**
+     * Adds a state listener that will be invoked whenever the state of the connection changes.
+     * 
+     * @param stateListener
+     *            the state listener
+     * @throws NullPointerException
+     *             if the specified listener is null
+     * @see #removeStateListener(Consumer)
+     */
+    public void addListener(ConnectionListener listener) {
+
+    }
+
+    public PersistentConnection build() throws Exception {
         return ClientNetwork.create(this);
+    }
+
+    public String getHost() {
+        return nodes;
     }
 
     /**
@@ -52,10 +69,6 @@ public class MaritimeNetworkConnectionBuilder {
      */
     public MaritimeId getId() {
         return id;
-    }
-
-    public String getHost() {
-        return nodes;
     }
 
     /**

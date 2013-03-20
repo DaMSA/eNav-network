@@ -74,7 +74,7 @@ class PositionManager implements Runnable {
 
         if (t != null) {
             latestTime = now;
-            c.transport.sendMessage(new PositionReportMessage(t));
+            c.connection.ch.sendMessage(new PositionReportMessage(t));
         }
     }
 

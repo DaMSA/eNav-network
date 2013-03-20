@@ -17,7 +17,6 @@ package dk.dma.navnet.server;
 
 import static java.util.Objects.requireNonNull;
 import dk.dma.navnet.core.messages.auxiliary.WelcomeMessage;
-import dk.dma.navnet.core.spi.AbstractConnection;
 import dk.dma.navnet.core.spi.AbstractMessageTransport;
 
 /**
@@ -37,7 +36,6 @@ class ServerTransport extends AbstractMessageTransport {
     final S2CConnection con;
 
     ServerTransport(ConnectionManager cm) {
-        super(cm.ses);
         this.cm = requireNonNull(cm);
         con = new S2CConnection(cm, this);
     }
@@ -67,9 +65,4 @@ class ServerTransport extends AbstractMessageTransport {
         CONNECTED, CREATED, DISCONNECTED
     }
 
-    /** {@inheritDoc} */
-    @Override
-    protected AbstractConnection client() {
-        return con;
-    }
 }

@@ -36,7 +36,7 @@ public class CustomPortTest {
         MaritimeNetworkConnectionBuilder b = MaritimeNetworkConnectionBuilder.create("mmsi://1234");
         b.setHost("localhost:12345");
         System.out.println("a");
-        try (PersistentConnection c = b.connect()) {
+        try (PersistentConnection c = b.build()) {
             System.out.println("b");
             c.broadcast(new HelloWorld());
         }

@@ -32,6 +32,7 @@ import org.junit.After;
 import org.junit.Before;
 
 import test.util.ProxyTester;
+import dk.dma.enav.communication.PersistentConnection.State;
 import dk.dma.enav.model.MaritimeId;
 import dk.dma.enav.model.geometry.PositionTime;
 import dk.dma.enav.util.function.Supplier;
@@ -91,7 +92,7 @@ public class AbstractNetworkTest {
     protected PersistentConnection newClient(MaritimeId id) throws Exception {
         MaritimeNetworkConnectionBuilder b = newBuilder(id);
         locs.put(id, new LocationSup());
-        PersistentConnection c = b.connect();
+        PersistentConnection c = b.build();
         clients.put(id, c);
         return c;
     }
@@ -102,7 +103,7 @@ public class AbstractNetworkTest {
         b.setPositionSupplier(ls);
         locs.put(id, ls);
         setPosition(id, lat, lon);
-        PersistentConnection c = b.connect();
+        PersistentConnection c = b.build();
         clients.put(id, c);
         return c;
     }
@@ -114,7 +115,7 @@ public class AbstractNetworkTest {
 
             @Override
             public PersistentConnection call() throws Exception {
-                PersistentConnection c = b.connect();
+                PersistentConnection c = b.build();
                 clients.put(id, c);
                 return c;
             }
@@ -175,8 +176,8 @@ public class AbstractNetworkTest {
                 }
             });
         }
-        for (final PersistentConnection c : clients.values()) {
-            assertTrue(c.awaitTerminated(5, TimeUnit.SECONDS));
+        for (PersistentConnection c : clients.values()) {
+            assertTrue(c.awaitState(State.TERMINATED, 5, TimeUnit.SECONDS));
         }
 
         clients.clear();

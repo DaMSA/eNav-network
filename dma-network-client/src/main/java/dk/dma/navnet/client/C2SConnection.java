@@ -16,7 +16,13 @@
 package dk.dma.navnet.client;
 
 import static java.util.Objects.requireNonNull;
+
+import java.io.IOException;
+import java.net.ConnectException;
+import java.util.concurrent.TimeUnit;
+
 import dk.dma.enav.model.geometry.PositionTime;
+import dk.dma.navnet.core.messages.AbstractTextMessage;
 import dk.dma.navnet.core.messages.auxiliary.ConnectedMessage;
 import dk.dma.navnet.core.messages.auxiliary.HelloMessage;
 import dk.dma.navnet.core.messages.auxiliary.WelcomeMessage;
@@ -25,67 +31,104 @@ import dk.dma.navnet.core.messages.c2c.service.InvokeService;
 import dk.dma.navnet.core.messages.c2c.service.InvokeServiceResult;
 import dk.dma.navnet.core.messages.s2c.service.FindServiceResult;
 import dk.dma.navnet.core.messages.s2c.service.RegisterServiceResult;
-import dk.dma.navnet.core.spi.AbstractC2SConnection;
+import dk.dma.navnet.core.spi.AbstractConnection;
 import dk.dma.navnet.core.util.NetworkFutureImpl;
 
 /**
  * 
  * @author Kasper Nielsen
  */
-class C2SConnection extends AbstractC2SConnection {
+class C2SConnection extends AbstractConnection {
 
     final ClientNetwork cm;
 
-    final ClientTransport ch;
+    volatile ClientTransport ch;
 
-    C2SConnection(ClientNetwork cn, ClientTransport ch) {
+    C2SConnection(ClientNetwork cn) {
         super(cn.ses);
         this.cm = requireNonNull(cn);
-        this.ch = requireNonNull(ch);
+        this.ch = new ClientTransport();
+        super.setTransport(ch);
     }
 
     /** {@inheritDoc} */
-    @Override
+    protected final void handleMessage(AbstractTextMessage m) {
+        if (m instanceof WelcomeMessage) {
+            welcome((WelcomeMessage) m);
+        } else if (m instanceof ConnectedMessage) {
+            connected((ConnectedMessage) m);
+        } else if (m instanceof InvokeService) {
+            invokeService((InvokeService) m);
+        } else if (m instanceof InvokeServiceResult) {
+            invokeServiceAck((InvokeServiceResult) m);
+        } else if (m instanceof BroadcastMsg) {
+            receivedBroadcast((BroadcastMsg) m);
+        } else {
+            unknownMessage(m);
+        }
+    }
+
+    /** {@inheritDoc} */
+    @SuppressWarnings("unchecked")
+    protected final void handleMessageReply(AbstractTextMessage m, NetworkFutureImpl<?> f) {
+        if (m instanceof RegisterServiceResult) {
+            serviceRegisteredAck((RegisterServiceResult) m, (NetworkFutureImpl<RegisterServiceResult>) f);
+        } else if (m instanceof FindServiceResult) {
+            serviceFindAck((FindServiceResult) m, (NetworkFutureImpl<FindServiceResult>) f);
+        } else {
+            unknownMessage(m);
+        }
+    }
+
+    /** {@inheritDoc} */
     protected void connected(ConnectedMessage m) {
         ch.connected.countDown();
     }
 
     /** {@inheritDoc} */
-    @Override
     protected void invokeService(InvokeService m) {
         cm.services.receiveInvokeService(m);
     }
 
     /** {@inheritDoc} */
-    @Override
     protected void invokeServiceAck(InvokeServiceResult m) {
         cm.services.receiveInvokeServiceAck(m);
     }
 
     /** {@inheritDoc} */
-    @Override
     protected void receivedBroadcast(BroadcastMsg m) {
         cm.broadcaster.receive(m);
 
     }
 
     /** {@inheritDoc} */
-    @Override
     protected void serviceFindAck(FindServiceResult a, NetworkFutureImpl<FindServiceResult> f) {
         f.complete(a);
     }
 
     /** {@inheritDoc} */
-    @Override
     protected void serviceRegisteredAck(RegisterServiceResult a, NetworkFutureImpl<RegisterServiceResult> f) {
         f.complete(a);
     }
 
     /** {@inheritDoc} */
-    @Override
     protected void welcome(WelcomeMessage m) {
         PositionTime pt = cm.positionManager.getPositionTime();
         ch.sendMessage(new HelloMessage(cm.clientId, "enavClient/1.0", "", 2, pt.getLatitude(), pt.getLongitude()));
     }
 
+    public void connect(long timeout, TimeUnit unit) throws Exception {
+        try {
+            cm.transportFactory.connect(ch, timeout, unit);
+            ch.connected.await(timeout, unit);
+            if (ch.connected.getCount() > 0) {
+                throw new ConnectException("Timedout while connecting to ");
+            }
+        } catch (IOException e) {
+            cm.es.shutdown();
+            cm.ses.shutdown();
+            cm.transportFactory.shutdown();
+            throw (Exception) e.getCause();// todo fix throw
+        }
+    }
 }

@@ -15,11 +15,8 @@
  */
 package dk.dma.navnet.core.spi;
 
-import static java.util.Objects.requireNonNull;
-
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.ReentrantLock;
 
 import dk.dma.navnet.core.messages.AbstractTextMessage;
@@ -36,18 +33,16 @@ import dk.dma.navnet.core.util.NetworkFutureImpl;
  */
 public abstract class AbstractMessageTransport extends Transport {
 
-    final ConcurrentHashMap<Long, NetworkFutureImpl<?>> acks = new ConcurrentHashMap<>();
+    AbstractConnection ac;
 
-    final AtomicInteger ai = new AtomicInteger();
+    public final CountDownLatch connected = new CountDownLatch(1);
 
     protected final ReentrantLock lock = new ReentrantLock();
 
-    final ConcurrentHashMap<String, NetworkFutureImpl<?>> replies = new ConcurrentHashMap<>();
-
     ScheduledExecutorService ses;
 
-    protected AbstractMessageTransport(ScheduledExecutorService ses) {
-        this.ses = requireNonNull(ses);
+    protected final AbstractConnection client() {
+        return ac;
     }
 
     protected void closed(int statusCode, String reason) {
@@ -60,19 +55,17 @@ public abstract class AbstractMessageTransport extends Transport {
 
     }
 
-    protected abstract AbstractConnection client();
-
     void handleText0(AbstractTextMessage m) {
         if (m instanceof AckMessage) {
             AckMessage am = (AckMessage) m;
-            NetworkFutureImpl<?> f = acks.remove(am.getMessageAck());
+            NetworkFutureImpl<?> f = ac.acks.remove(am.getMessageAck());
             if (f == null) {
-                System.err.println("Orphaned packet with id " + am.getMessageAck() + " registered " + acks.keySet()
+                System.err.println("Orphaned packet with id " + am.getMessageAck() + " registered " + ac.acks.keySet()
                         + ", local " + "" + " p = ");
                 // TODO close connection with error
             } else {
                 try {
-                    client().handleTextReply(m, f);
+                    client().handleMessageReply(m, f);
                 } catch (Exception e) {
                     e.printStackTrace();
                 }
@@ -80,16 +73,45 @@ public abstract class AbstractMessageTransport extends Transport {
             // System.out.println("RELEASING " + am.getMessageAck() + ", remaining " + acks.keySet());
         } else {
             try {
-                client().handleText(m);
+                client().handleMessage(m);
             } catch (Exception e) {
                 e.printStackTrace();
             }
         }
     }
 
+    /** {@inheritDoc} */
+    @Override
+    public void onClosed(int code, String message) {
+        super.onClosed(code, message);
+        closed(code, message);
+        System.out.println("CLOSED:" + message);
+    }
+
+    /** {@inheritDoc} */
+    @Override
+    public void onConnected(TransportSession spi) {
+        super.onConnected(spi);
+        connected();
+    }
+
     public void onError(Throwable cause) {
         cause.printStackTrace();
         System.out.println("ERROR " + cause);
+    }
+
+    /** {@inheritDoc} */
+    @Override
+    public void onReceivedText(String message) {
+        System.out.println("Received: " + message);
+        try {
+            AbstractTextMessage m = AbstractTextMessage.read(message);
+            m.setReceivedRawMesage(message);
+            handleText0(m);
+        } catch (Throwable e) {
+            e.printStackTrace();
+            tryClose(5004, e.getMessage());
+        }
     }
 
     public final <T> NetworkFutureImpl<T> sendMessage(AbstractRelayedMessage m) {
@@ -103,10 +125,10 @@ public abstract class AbstractMessageTransport extends Transport {
 
     public final <T> NetworkFutureImpl<T> sendMessage(ReplyMessage<T> m) {
         // we need to send the messages in the same order as they are numbered for now
-        synchronized (ai) {
-            long id = ai.incrementAndGet();
+        synchronized (ac.ai) {
+            long id = ac.ai.incrementAndGet();
             NetworkFutureImpl<T> f = new NetworkFutureImpl<>(ses);
-            acks.put(id, f);
+            ac.acks.put(id, f);
             m.setReplyTo(id);
             sendMessage((AbstractTextMessage) m);
             return f;
@@ -125,37 +147,13 @@ public abstract class AbstractMessageTransport extends Transport {
         }
     }
 
+    void setConnection(AbstractConnection ac) {
+        this.ac = ac;
+        this.ses = ac.ses;
+    }
+
     public final void tryClose(int statusCode, String reason) {
         close(statusCode, reason);
-    }
-
-    /** {@inheritDoc} */
-    @Override
-    public void onConnected(TransportSession spi) {
-        super.onConnected(spi);
-        connected();
-    }
-
-    /** {@inheritDoc} */
-    @Override
-    public void onClosed(int code, String message) {
-        super.onClosed(code, message);
-        closed(code, message);
-        System.out.println("CLOSED:" + message);
-    }
-
-    /** {@inheritDoc} */
-    @Override
-    public void onReceivedText(String message) {
-        System.out.println("Received: " + message);
-        try {
-            AbstractTextMessage m = AbstractTextMessage.read(message);
-            m.setReceivedRawMesage(message);
-            handleText0(m);
-        } catch (Throwable e) {
-            e.printStackTrace();
-            tryClose(5004, e.getMessage());
-        }
     }
 
 }

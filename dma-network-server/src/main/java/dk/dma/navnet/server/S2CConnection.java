@@ -28,6 +28,7 @@ import dk.dma.enav.model.geometry.Circle;
 import dk.dma.enav.model.geometry.CoordinateSystem;
 import dk.dma.enav.model.geometry.PositionTime;
 import dk.dma.enav.util.function.BiConsumer;
+import dk.dma.navnet.core.messages.AbstractTextMessage;
 import dk.dma.navnet.core.messages.auxiliary.ConnectedMessage;
 import dk.dma.navnet.core.messages.auxiliary.HelloMessage;
 import dk.dma.navnet.core.messages.auxiliary.PositionReportMessage;
@@ -35,13 +36,14 @@ import dk.dma.navnet.core.messages.c2c.AbstractRelayedMessage;
 import dk.dma.navnet.core.messages.c2c.broadcast.BroadcastMsg;
 import dk.dma.navnet.core.messages.s2c.service.FindService;
 import dk.dma.navnet.core.messages.s2c.service.RegisterService;
-import dk.dma.navnet.core.spi.AbstractS2CConnection;
+import dk.dma.navnet.core.spi.AbstractConnection;
+import dk.dma.navnet.core.util.NetworkFutureImpl;
 
 /**
  * 
  * @author Kasper Nielsen
  */
-public class S2CConnection extends AbstractS2CConnection {
+public class S2CConnection extends AbstractConnection {
 
     final ConnectionManager cm;
 
@@ -53,18 +55,45 @@ public class S2CConnection extends AbstractS2CConnection {
      */
     public S2CConnection(ConnectionManager cm, ServerTransport sh) {
         super(cm.ses);
+        super.setTransport(sh);
         this.cm = cm;
         this.sh = sh;
     }
 
     /** {@inheritDoc} */
     @Override
+    public final void handleMessageReply(AbstractTextMessage m, NetworkFutureImpl<?> f) {
+        unknownMessage(m);
+    }
+
+    /** {@inheritDoc} */
+    @Override
+    public final void handleMessage(AbstractTextMessage m) {
+        if (m instanceof HelloMessage) {
+            hello((HelloMessage) m);
+        } else if (m instanceof RegisterService) {
+            registerService((RegisterService) m);
+        } else if (m instanceof FindService) {
+            findService((FindService) m);
+        } else if (m instanceof AbstractRelayedMessage) {
+            relay((AbstractRelayedMessage) m);
+        } else if (m instanceof BroadcastMsg) {
+            broadcast((BroadcastMsg) m);
+        } else if (m instanceof PositionReportMessage) {
+            positionReport((PositionReportMessage) m);
+        } else if (m instanceof FindService) {
+            findService((FindService) m);
+        } else {
+            unknownMessage(m);
+        }
+    }
+
+    /** {@inheritDoc} */
     public void broadcast(BroadcastMsg m) {
         cm.broadcast(sh, m);
     }
 
     /** {@inheritDoc} */
-    @Override
     public void findService(final FindService m) {
         final PositionTime pos = sh.holder.latestPosition;
         double meters = m.getMeters() <= 0 ? Integer.MAX_VALUE : m.getMeters();
@@ -105,7 +134,6 @@ public class S2CConnection extends AbstractS2CConnection {
     }
 
     /** {@inheritDoc} */
-    @Override
     public void hello(HelloMessage m) {
         UUID uuid = UUID.randomUUID();
         Client c = cm.addConnection(m.getClientId(), m.getClientId().toString(), sh);
@@ -116,21 +144,18 @@ public class S2CConnection extends AbstractS2CConnection {
     }
 
     /** {@inheritDoc} */
-    @Override
     public void positionReport(PositionReportMessage m) {
         cm.server.tracker.update(sh.holder, m.getPositionTime());
         sh.holder.latestPosition = m.getPositionTime();
     }
 
     /** {@inheritDoc} */
-    @Override
     public void registerService(RegisterService m) {
         sh.holder.services.registerService(m);
         sh.sendMessage(m.createReply());
     }
 
     /** {@inheritDoc} */
-    @Override
     public void relay(AbstractRelayedMessage m) {
         String d = m.getDestination();
         ServerTransport c = cm.getConnection(d);

@@ -76,7 +76,7 @@ class ServiceManager {
     }
 
     <T, E extends ServiceMessage<T>> NetworkFutureImpl<FindServiceResult> serviceFindOne(FindService fs) {
-        return c.transport.sendMessage(fs);
+        return c.connection.ch.sendMessage(fs);
     }
 
     /** {@inheritDoc} */
@@ -94,7 +94,7 @@ class ServiceManager {
                 f.complete((T) ack);
             }
         });
-        c.transport.sendMessage(is);
+        c.connection.ch.sendMessage(is);
         return f;
     }
 
@@ -118,25 +118,21 @@ class ServiceManager {
                 public void complete(Object result) {
                     requireNonNull(result);
                     // System.out.println("Completed");
-                    c.transport.sendMessage(m.createReply(result));
+                    c.connection.ch.sendMessage(m.createReply(result));
                 }
 
-                @Override
                 public MaritimeId getCaller() {
                     return null;
                 }
 
-                @Override
                 public void failWithIllegalAccess(String message) {
                     throw new UnsupportedOperationException();
                 }
 
-                @Override
                 public void failWithIllegalInput(String message) {
                     throw new UnsupportedOperationException();
                 }
 
-                @Override
                 public void failWithInternalError(String message) {
                     throw new UnsupportedOperationException();
                 }
@@ -175,9 +171,9 @@ class ServiceManager {
             throw new IllegalArgumentException(
                     "A service of the specified type has already been registered. Can only register one at a time");
         }
-        final NetworkFutureImpl<RegisterServiceResult> f = c.transport.sendMessage(new RegisterService(sip.getName()));
+        final NetworkFutureImpl<RegisterServiceResult> f = c.connection.ch.sendMessage(new RegisterService(sip
+                .getName()));
         f.thenAcceptAsync(new CompletableFuture.Action<RegisterServiceResult>() {
-            @Override
             public void accept(RegisterServiceResult ack) {
                 reg.replied.countDown();
             }

@@ -17,7 +17,9 @@ package dk.dma.navnet.core.spi;
 
 import static java.util.Objects.requireNonNull;
 
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.ReentrantLock;
 
 import dk.dma.navnet.core.messages.AbstractTextMessage;
@@ -28,27 +30,40 @@ import dk.dma.navnet.core.util.NetworkFutureImpl;
  * @author Kasper Nielsen
  */
 public abstract class AbstractConnection {
+
+    final ConcurrentHashMap<Long, NetworkFutureImpl<?>> acks = new ConcurrentHashMap<>();
+
+    final AtomicInteger ai = new AtomicInteger();
+
+    public volatile long lastConnectionAttempt;
+
     protected final ReentrantLock lock = new ReentrantLock();
 
-    volatile AbstractMessageTransport transport;
+    final ConcurrentHashMap<String, NetworkFutureImpl<?>> replies = new ConcurrentHashMap<>();
 
     final ScheduledExecutorService ses;
+
+    volatile AbstractMessageTransport transport;
 
     protected AbstractConnection(ScheduledExecutorService ses) {
         this.ses = requireNonNull(ses);
     }
 
+    protected abstract void handleMessage(AbstractTextMessage m) throws Exception;
+
+    protected abstract void handleMessageReply(AbstractTextMessage m, NetworkFutureImpl<?> f) throws Exception;
+
     protected void setTransport(AbstractMessageTransport transport) {
         lock.lock();
         try {
             this.transport = transport;
+            transport.setConnection(this);
         } finally {
             lock.unlock();
         }
     }
 
-    protected abstract void handleText(AbstractTextMessage m) throws Exception;
-
-    protected abstract void handleTextReply(AbstractTextMessage m, NetworkFutureImpl<?> f) throws Exception;
-
+    protected void unknownMessage(AbstractTextMessage m) {
+        System.err.println("Received an unknown message " + m.getReceivedRawMesage());
+    }
 }

@@ -48,6 +48,7 @@ class ConnectionManager {
     /** The actual server */
     final ENavNetworkServer server;
 
+    /** All connections */
     final ConcurrentHashMapV8<String, Client> connections = new ConcurrentHashMapV8<>();
 
     ConnectionManager(ENavNetworkServer server) {

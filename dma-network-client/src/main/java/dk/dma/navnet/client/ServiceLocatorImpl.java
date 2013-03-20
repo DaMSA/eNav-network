@@ -40,6 +40,7 @@ class ServiceLocatorImpl<T, E extends ServiceMessage<T>> implements ServiceLocat
     final int distance;
 
     final ServiceManager csm;
+
     final ServiceInitiationPoint<E> sip;
 
     ServiceLocatorImpl(ServiceInitiationPoint<E> sip, ServiceManager csm, int distance) {

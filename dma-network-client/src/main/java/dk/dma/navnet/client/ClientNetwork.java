@@ -18,7 +18,6 @@ package dk.dma.navnet.client;
 import static java.util.Objects.requireNonNull;
 
 import java.io.IOException;
-import java.util.Map;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
@@ -28,6 +27,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.ReentrantLock;
 
 import dk.dma.enav.communication.ConnectionFuture;
+import dk.dma.enav.communication.ConnectionListener;
 import dk.dma.enav.communication.PersistentConnection;
 import dk.dma.enav.communication.broadcast.BroadcastListener;
 import dk.dma.enav.communication.broadcast.BroadcastMessage;
@@ -38,12 +38,8 @@ import dk.dma.enav.communication.service.ServiceRegistration;
 import dk.dma.enav.communication.service.spi.ServiceInitiationPoint;
 import dk.dma.enav.communication.service.spi.ServiceMessage;
 import dk.dma.enav.model.MaritimeId;
-import dk.dma.enav.model.geometry.Area;
-import dk.dma.enav.model.geometry.PositionTime;
-import dk.dma.enav.util.function.Consumer;
 import dk.dma.navnet.core.transport.ClientTransportFactory;
 import dk.dma.navnet.core.transport.websocket.WebsocketTransports;
-import dk.dma.navnet.core.util.NetworkFutureImpl;
 
 /**
  * An implementation of {@link PersistentConnection} using websockets and JSON.
@@ -59,15 +55,12 @@ public class ClientNetwork implements PersistentConnection {
     final MaritimeId clientId;
 
     /** The single connection to a server. */
-    final ClientTransport transport;
-
-    /** The single connection to a server. */
     final C2SConnection connection;
 
     /** An {@link ExecutorService} for running various tasks. */
     final ExecutorService es = Executors.newCachedThreadPool();
 
-    private final CopyOnWriteArrayList<Consumer<PersistentConnection.State>> listeners = new CopyOnWriteArrayList<>();
+    final CopyOnWriteArrayList<ConnectionListener> listeners = new CopyOnWriteArrayList<>();
 
     /** A lock used internally. */
     private final ReentrantLock lock = new ReentrantLock();
@@ -82,11 +75,12 @@ public class ClientNetwork implements PersistentConnection {
     final ScheduledExecutorService ses = Executors.newScheduledThreadPool(2);
 
     /** The current state of the client. Only set while holding lock, can be read at any time. */
-    private volatile State state = State.CREATED;
+    private volatile State state = State.INITIALIZED;
 
     /** Used to await for termination. */
     private final CountDownLatch terminated = new CountDownLatch(1);
 
+    /** Factory for creating new transports. */
     final ClientTransportFactory transportFactory;
 
     /**
@@ -101,29 +95,19 @@ public class ClientNetwork implements PersistentConnection {
         this.broadcaster = new BroadcastManager(this);
         this.services = new ServiceManager(this);
         this.transportFactory = WebsocketTransports.createClient(builder.getHost());
-        this.transport = new ClientTransport(this);
-        this.connection = new C2SConnection(this, transport);
+        this.connection = new C2SConnection(this);
     }
 
     /* DELEGATING METHODS */
 
     /** {@inheritDoc} */
     @Override
-    public void addStateListener(Consumer<PersistentConnection.State> stateListener) {
-        listeners.add(stateListener);
-    }
-
-    /** {@inheritDoc} */
-    @Override
     public boolean awaitState(PersistentConnection.State state, long timeout, TimeUnit unit)
             throws InterruptedException {
+        if (state == State.TERMINATED) {
+            return terminated.await(timeout, unit);
+        }
         throw new UnsupportedOperationException();
-    }
-
-    /** {@inheritDoc} */
-    @Override
-    public boolean awaitTerminated(long timeout, TimeUnit unit) throws InterruptedException {
-        return terminated.await(timeout, unit);
     }
 
     /** {@inheritDoc} */
@@ -144,7 +128,7 @@ public class ClientNetwork implements PersistentConnection {
     public void close() {
         lock.lock();
         try {
-            if (isClosed()) {
+            if (state.isEnded()) {
                 return;
             }
             state = State.CLOSED;
@@ -153,11 +137,10 @@ public class ClientNetwork implements PersistentConnection {
             try {
                 ses.awaitTermination(1, TimeUnit.SECONDS);
             } catch (InterruptedException e1) {
-                // TODO Auto-generated catch block
                 e1.printStackTrace();
             }
             try {
-                transport.tryClose(4333, "Goodbye");
+                connection.ch.tryClose(4333, "Goodbye");
             } catch (Exception e) {
                 e.printStackTrace();
             }
@@ -172,12 +155,6 @@ public class ClientNetwork implements PersistentConnection {
 
     /** {@inheritDoc} */
     @Override
-    public NetworkFutureImpl<Map<MaritimeId, PositionTime>> findAllPeers(Area shape) {
-        throw new UnsupportedOperationException("Not yet implemented");
-    }
-
-    /** {@inheritDoc} */
-    @Override
     public MaritimeId getLocalId() {
         return clientId;
     }
@@ -185,25 +162,7 @@ public class ClientNetwork implements PersistentConnection {
     /** {@inheritDoc} */
     @Override
     public PersistentConnection.State getState() {
-        throw new UnsupportedOperationException();
-    }
-
-    /** {@inheritDoc} */
-    @Override
-    public boolean isClosed() {
-        return state == State.TERMINATED || state == State.CLOSED;
-    }
-
-    /** {@inheritDoc} */
-    @Override
-    public boolean isTerminated() {
-        return state == State.TERMINATED;
-    }
-
-    /** {@inheritDoc} */
-    @Override
-    public boolean removeStateListener(Consumer<PersistentConnection.State> stateListener) {
-        return listeners.remove(requireNonNull(stateListener));
+        return state;
     }
 
     /** {@inheritDoc} */
@@ -232,7 +191,7 @@ public class ClientNetwork implements PersistentConnection {
             // perhaps we should just treat it as a reconnect.
             // The downside is that people could wait a lot of time
             // when entering the wrong url.
-            n.transport.connect(10, TimeUnit.SECONDS);
+            n.connection.connect(10, TimeUnit.SECONDS);
         } catch (Exception e) {
             throw new IOException(e);// could not connect within 10 seconds
         }
@@ -240,9 +199,4 @@ public class ClientNetwork implements PersistentConnection {
         n.ses.scheduleAtFixedRate(n.positionManager, 0, 1, TimeUnit.SECONDS);
         return n;
     }
-
-    enum State {
-        CLOSED, CONNECTED, CREATED, TERMINATED;
-    }
-
 }
