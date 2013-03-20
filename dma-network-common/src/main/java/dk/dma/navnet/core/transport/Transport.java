@@ -33,8 +33,8 @@ public abstract class Transport {
         spi.close();
     }
 
-    final void close(int code, String text) {
-
+    public final void close(int code, String text) {
+        spi.close();
     }
 
     public final void sendText(String text) {

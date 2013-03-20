@@ -63,6 +63,7 @@ class WebsocketClientTransportFactory extends ClientTransportFactory {
     @Override
     public void connect(Transport listener, long timeout, TimeUnit unit) throws IOException {
         WebsocketClientTransport client = new WebsocketClientTransport(listener);
+        System.out.println("Connecting to " + uri);
         try {
             client().connect(client, uri).get();
         } catch (InterruptedException | ExecutionException e) {

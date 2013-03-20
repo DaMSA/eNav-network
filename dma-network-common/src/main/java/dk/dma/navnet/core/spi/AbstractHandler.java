@@ -17,21 +17,18 @@ package dk.dma.navnet.core.spi;
 
 import static java.util.Objects.requireNonNull;
 
-import java.io.IOException;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.ReentrantLock;
-
-import org.eclipse.jetty.websocket.api.RemoteEndpoint;
-import org.eclipse.jetty.websocket.api.Session;
-import org.eclipse.jetty.websocket.api.WebSocketListener;
 
 import dk.dma.enav.communication.CloseReason;
 import dk.dma.navnet.core.messages.AbstractTextMessage;
 import dk.dma.navnet.core.messages.c2c.AbstractRelayedMessage;
 import dk.dma.navnet.core.messages.s2c.AckMessage;
 import dk.dma.navnet.core.messages.s2c.ReplyMessage;
+import dk.dma.navnet.core.transport.Transport;
+import dk.dma.navnet.core.transport.TransportSession;
 import dk.dma.navnet.core.util.NetworkFutureImpl;
 
 /**
@@ -49,7 +46,6 @@ public abstract class AbstractHandler {
 
     final ConcurrentHashMap<String, NetworkFutureImpl<?>> replies = new ConcurrentHashMap<>();
 
-    volatile Session session;
     ScheduledExecutorService ses;
 
     protected AbstractHandler(ScheduledExecutorService ses) {
@@ -66,7 +62,7 @@ public abstract class AbstractHandler {
 
     }
 
-    public final WebSocketListener getListener() {
+    public final Transport getListener() {
         return listener;
     }
 
@@ -124,65 +120,41 @@ public abstract class AbstractHandler {
     }
 
     public final void sendRawTextMessage(String m) {
-        Session s = session;
-        RemoteEndpoint r = s == null ? null : s.getRemote();
-        if (r != null) {
-            try {
-                System.out.println("Sending " + m);
-                r.sendString(m);
-            } catch (IOException e) {
-                onError(e);
-                failed(e.getMessage());
-                e.printStackTrace();
-            }
-        } else {
-            System.err.println("Dropping message " + m);
+
+        try {
+            System.out.println("Sending " + m);
+            listener.sendText(m);
+        } catch (Exception e) {
+            onError(e);
+            failed(e.getMessage());
+            e.printStackTrace();
         }
     }
 
     public final void tryClose(int statusCode, String reason) {
-        Session s = session;
-        if (s != null) {
-            try {
-                s.close(statusCode, reason);
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-        }
+        listener.close(statusCode, reason);
     }
 
-    final class Listener implements WebSocketListener {
+    final class Listener extends Transport {
 
         /** {@inheritDoc} */
         @Override
-        public final void onWebSocketBinary(byte[] payload, int offset, int len) {
-            tryClose(CloseReason.BAD_DATA.getId(), "Expected text only");
-        }
-
-        /** {@inheritDoc} */
-        @Override
-        public final void onWebSocketClose(int statusCode, String reason) {
-            session = null;
-            closed(statusCode, reason);
-            System.out.println("CLOSED:" + reason);
-        }
-
-        /** {@inheritDoc} */
-        @Override
-        public final void onWebSocketConnect(Session s) {
-            session = s;
+        public void onConnected(TransportSession spi) {
+            super.onConnected(spi);
             connected();
         }
 
         /** {@inheritDoc} */
         @Override
-        public final void onWebSocketError(Throwable cause) {
-            onError(cause);
+        public void onClosed(int code, String message) {
+            super.onClosed(code, message);
+            closed(code, message);
+            System.out.println("CLOSED:" + message);
         }
 
         /** {@inheritDoc} */
         @Override
-        public final void onWebSocketText(String message) {
+        public void onReceivedText(String message) {
             System.out.println("Received: " + message);
             try {
                 AbstractTextMessage m = AbstractTextMessage.read(message);
@@ -192,6 +164,11 @@ public abstract class AbstractHandler {
                 e.printStackTrace();
                 tryClose(5004, e.getMessage());
             }
+        }
+
+        /** {@inheritDoc} */
+        public final void onWebSocketBinary(byte[] payload, int offset, int len) {
+            tryClose(CloseReason.BAD_DATA.getId(), "Expected text only");
         }
     }
 }

@@ -27,11 +27,6 @@ import jsr166e.ConcurrentHashMapV8;
 import jsr166e.ConcurrentHashMapV8.Action;
 import jsr166e.ConcurrentHashMapV8.BiFun;
 
-import org.eclipse.jetty.websocket.api.UpgradeRequest;
-import org.eclipse.jetty.websocket.api.UpgradeResponse;
-import org.eclipse.jetty.websocket.server.WebSocketHandler;
-import org.eclipse.jetty.websocket.servlet.WebSocketCreator;
-import org.eclipse.jetty.websocket.servlet.WebSocketServletFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -58,19 +53,6 @@ class ConnectionManager {
 
     ConnectionManager(ENavNetworkServer server, SocketAddress socketAddress) {
         this.server = requireNonNull(server);
-
-        // Creates the web socket handler that accept incoming requests
-        WebSocketHandler wsHandler = new WebSocketHandler() {
-            public void configure(WebSocketServletFactory factory) {
-                factory.setCreator(new WebSocketCreator() {
-                    public Object createWebSocket(UpgradeRequest req, UpgradeResponse resp) {
-                        return new ServerHandler(ConnectionManager.this).getListener();
-                    }
-                });
-            }
-        };
-
-        server.server.setHandler(wsHandler);
     }
 
     synchronized Client addConnection(MaritimeId mid, String id, ServerHandler c) {

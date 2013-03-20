@@ -41,6 +41,8 @@ import dk.dma.enav.model.MaritimeId;
 import dk.dma.enav.model.geometry.Area;
 import dk.dma.enav.model.geometry.PositionTime;
 import dk.dma.enav.util.function.Consumer;
+import dk.dma.navnet.core.transport.ClientTransportFactory;
+import dk.dma.navnet.core.transport.websocket.WebsocketTransports;
 import dk.dma.navnet.core.util.NetworkFutureImpl;
 
 /**
@@ -82,6 +84,8 @@ public class ClientNetwork implements PersistentConnection {
     /** Used to await for termination. */
     private final CountDownLatch terminated = new CountDownLatch(1);
 
+    final ClientTransportFactory transportFactory;
+
     /**
      * Creates a new instance of this class.
      * 
@@ -93,6 +97,7 @@ public class ClientNetwork implements PersistentConnection {
         this.positionManager = new PositionManager(this, builder.getPositionSupplier());
         this.broadcaster = new BroadcastManager(this);
         this.services = new ServiceManager(this);
+        this.transportFactory = WebsocketTransports.createClient(builder.getHost());
         this.connection = new ClientHandler("ws://" + builder.getHost(), this);
     }
 
@@ -149,7 +154,7 @@ public class ClientNetwork implements PersistentConnection {
             }
             try {
                 connection.close();
-            } catch (IOException e) {
+            } catch (Exception e) {
                 e.printStackTrace();
             }
             // skal lige have fundet ud af med det shutdown

@@ -21,6 +21,7 @@ import java.io.IOException;
 import java.net.InetSocketAddress;
 
 import org.eclipse.jetty.server.Server;
+import org.eclipse.jetty.server.ServerConnector;
 import org.eclipse.jetty.websocket.api.UpgradeRequest;
 import org.eclipse.jetty.websocket.api.UpgradeResponse;
 import org.eclipse.jetty.websocket.server.WebSocketHandler;
@@ -40,6 +41,8 @@ public class WebsocketServerTransportFactory extends ServerTransportFactory {
 
     public WebsocketServerTransportFactory(InetSocketAddress sa) {
         server = new Server(sa);
+        ServerConnector connector = (ServerConnector) server.getConnectors()[0];
+        connector.setReuseAddress(true);
     }
 
     /** {@inheritDoc} */
@@ -61,6 +64,7 @@ public class WebsocketServerTransportFactory extends ServerTransportFactory {
         server.setHandler(wsHandler);
         try {
             server.start();
+            System.out.println("Server started");
         } catch (Exception e) {
             try {
                 server.stop();

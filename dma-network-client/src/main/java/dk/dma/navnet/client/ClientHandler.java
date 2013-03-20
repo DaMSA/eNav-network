@@ -19,15 +19,12 @@ import static java.util.Objects.requireNonNull;
 
 import java.io.IOException;
 import java.net.ConnectException;
-import java.net.URI;
 import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
-
-import org.eclipse.jetty.websocket.client.WebSocketClient;
 
 import dk.dma.navnet.core.spi.AbstractC2SConnection;
 import dk.dma.navnet.core.spi.AbstractHandler;
+import dk.dma.navnet.core.transport.Transport;
 
 /**
  * 
@@ -36,8 +33,7 @@ import dk.dma.navnet.core.spi.AbstractHandler;
 class ClientHandler extends AbstractHandler {
 
     /** The actual websocket client. Changes when reconnecting. */
-    private volatile WebSocketClient client = new WebSocketClient();
-
+    volatile Transport transport;
     final ClientNetwork cm;
 
     final CountDownLatch connected = new CountDownLatch(1);
@@ -57,28 +53,21 @@ class ClientHandler extends AbstractHandler {
         this.cc = new C2SConnection(cm, this);
     }
 
-    public void close() throws IOException {
+    public void close() {
         tryClose(4333, "Goodbye");
-        try {
-            client.stop();
-        } catch (Exception e) {
-            throw new IOException(e);
-        }
     }
 
     public void connect(long timeout, TimeUnit unit) throws Exception {
-        URI echoUri = new URI(url);
-        client.start();
         try {
-            client.connect(getListener(), echoUri).get();
+            cm.transportFactory.connect(transport = getListener(), timeout, unit);
             connected.await(timeout, unit);
             if (connected.getCount() > 0) {
                 throw new ConnectException("Timedout while connecting to " + url);
             }
-        } catch (ExecutionException e) {
+        } catch (IOException e) {
             cm.es.shutdown();
             cm.ses.shutdown();
-            client.stop();
+            cm.transportFactory.shutdown();
             throw (Exception) e.getCause();// todo fix throw
         }
     }

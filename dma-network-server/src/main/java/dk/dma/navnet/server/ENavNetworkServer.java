@@ -22,8 +22,6 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
-import org.eclipse.jetty.server.Server;
-import org.eclipse.jetty.server.ServerConnector;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -31,6 +29,10 @@ import com.google.common.util.concurrent.ThreadFactoryBuilder;
 
 import dk.dma.commons.tracker.PositionTracker;
 import dk.dma.enav.model.shore.ServerId;
+import dk.dma.enav.util.function.Supplier;
+import dk.dma.navnet.core.transport.ServerTransportFactory;
+import dk.dma.navnet.core.transport.Transport;
+import dk.dma.navnet.core.transport.websocket.WebsocketTransports;
 
 /**
  * 
@@ -64,16 +66,14 @@ public class ENavNetworkServer {
     /** The position tracker. */
     final PositionTracker<Client> tracker = new PositionTracker<>();
 
-    final Server server;
+    final ServerTransportFactory factory;
 
     public ENavNetworkServer() {
         this(DEFAULT_PORT);
     }
 
     public ENavNetworkServer(int port) {
-        server = new Server(new InetSocketAddress(port));
-        ServerConnector connector = (ServerConnector) server.getConnectors()[0];
-        connector.setReuseAddress(true);
+        factory = WebsocketTransports.createServer(port);
         at = new ConnectionManager(this, new InetSocketAddress(port));
     }
 
@@ -109,10 +109,14 @@ public class ENavNetworkServer {
             ses.scheduleAtFixedRate(tracker, 0, 1, TimeUnit.SECONDS);
             // Starts a new thread that will accept new connections
             try {
-                server.start();
+                factory.startAccept(new Supplier<Transport>() {
+                    public Transport get() {
+                        return new ServerHandler(at).getListener();
+                    }
+                });
             } catch (Exception e) {
                 state = State.TERMINATED;
-                server.stop();
+                factory.close();
                 throw e;
             }
             // Set to running state
@@ -136,7 +140,7 @@ public class ENavNetworkServer {
             LOG.info("Shutdown thread started");
             System.out.println("Stopping for acceptance of new connections");
             try {
-                server.stop();
+                factory.close();
             } catch (Exception e) {
                 e.printStackTrace();
             }
