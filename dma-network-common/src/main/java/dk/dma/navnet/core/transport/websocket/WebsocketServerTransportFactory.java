@@ -29,7 +29,7 @@ import org.eclipse.jetty.websocket.servlet.WebSocketServletFactory;
 
 import dk.dma.enav.util.function.Supplier;
 import dk.dma.navnet.core.transport.ServerTransportFactory;
-import dk.dma.navnet.core.transport.TransportListener;
+import dk.dma.navnet.core.transport.Transport;
 
 /**
  * 
@@ -44,7 +44,7 @@ public class WebsocketServerTransportFactory extends ServerTransportFactory {
 
     /** {@inheritDoc} */
     @Override
-    public void startAccept(final Supplier<TransportListener> supplier) throws IOException {
+    public void startAccept(final Supplier<Transport> supplier) throws IOException {
         requireNonNull(supplier);
         // Creates the web socket handler that accept incoming requests
         WebSocketHandler wsHandler = new WebSocketHandler() {
@@ -92,7 +92,7 @@ public class WebsocketServerTransportFactory extends ServerTransportFactory {
         /**
          * @param transport
          */
-        ServerTransport(TransportListener transport) {
+        ServerTransport(Transport transport) {
             super(transport);
         }
 

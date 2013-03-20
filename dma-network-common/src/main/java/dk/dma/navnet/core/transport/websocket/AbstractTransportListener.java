@@ -24,7 +24,7 @@ import org.eclipse.jetty.websocket.api.RemoteEndpoint;
 import org.eclipse.jetty.websocket.api.Session;
 import org.eclipse.jetty.websocket.api.WebSocketListener;
 
-import dk.dma.navnet.core.transport.TransportListener;
+import dk.dma.navnet.core.transport.Transport;
 import dk.dma.navnet.core.transport.TransportSession;
 
 /**
@@ -33,10 +33,10 @@ import dk.dma.navnet.core.transport.TransportSession;
  */
 abstract class AbstractTransportListener extends TransportSession implements WebSocketListener {
     Session session;
-    final TransportListener transport;
+    final Transport transport;
     final CountDownLatch connected = new CountDownLatch(1);
 
-    AbstractTransportListener(TransportListener transport) {
+    AbstractTransportListener(Transport transport) {
         this.transport = requireNonNull(transport);
 
     }

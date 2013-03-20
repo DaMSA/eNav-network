@@ -33,5 +33,12 @@ public abstract class ClientTransportFactory {
      * @return
      * @throws IOException
      */
-    public abstract void connect(TransportListener listener, long timeout, TimeUnit unit) throws IOException;
+    public abstract void connect(Transport listener, long timeout, TimeUnit unit) throws IOException;
+
+    /**
+     * Shuts down the factory.
+     * 
+     * @throws IOException
+     */
+    public abstract void shutdown() throws IOException;
 }

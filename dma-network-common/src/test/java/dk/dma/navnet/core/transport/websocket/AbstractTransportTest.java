@@ -29,7 +29,7 @@ import org.junit.Test;
 import dk.dma.enav.util.function.Supplier;
 import dk.dma.navnet.core.transport.ClientTransportFactory;
 import dk.dma.navnet.core.transport.ServerTransportFactory;
-import dk.dma.navnet.core.transport.TransportListener;
+import dk.dma.navnet.core.transport.Transport;
 import dk.dma.navnet.core.transport.TransportSession;
 
 /**
@@ -53,28 +53,28 @@ public abstract class AbstractTransportTest {
 
     @Test(expected = IOException.class)
     public void notConnectable() throws IOException {
-        ctf.connect(new TransportListener() {}, 1, TimeUnit.SECONDS);
+        ctf.connect(new Transport() {}, 1, TimeUnit.SECONDS);
     }
 
     @Test
     public void transportRecieved() throws IOException, InterruptedException {
         final CountDownLatch cdl = new CountDownLatch(1);
-        stf.startAccept(new Supplier<TransportListener>() {
-            public TransportListener get() {
+        stf.startAccept(new Supplier<Transport>() {
+            public Transport get() {
                 cdl.countDown();
-                return new TransportListener() {};
+                return new Transport() {};
             }
         });
-        ctf.connect(new TransportListener() {}, 1, TimeUnit.SECONDS);
+        ctf.connect(new Transport() {}, 1, TimeUnit.SECONDS);
         assertTrue(cdl.await(1, TimeUnit.SECONDS));
     }
 
     @Test
     public void sendTextFromServer() throws Exception {
         final CountDownLatch cdl = new CountDownLatch(1);
-        stf.startAccept(new Supplier<TransportListener>() {
-            public TransportListener get() {
-                return new TransportListener() {
+        stf.startAccept(new Supplier<Transport>() {
+            public Transport get() {
+                return new Transport() {
                     public void onConnected(TransportSession spi) {
                         super.onConnected(spi);
                         sendText("Hello321");
@@ -85,7 +85,7 @@ public abstract class AbstractTransportTest {
 
         // Client
 
-        ctf.connect(new TransportListener() {
+        ctf.connect(new Transport() {
             public void onConnected(TransportSession spi) {
                 super.onConnected(spi);
                 assertEquals(1, cdl.getCount());
@@ -102,7 +102,7 @@ public abstract class AbstractTransportTest {
     @Test
     public void sendTextFromClient() throws Exception {
         final CountDownLatch cdl = new CountDownLatch(1);
-        final TransportListener ts = new TransportListener() {
+        final Transport ts = new Transport() {
             public void onConnected(TransportSession spi) {
                 super.onConnected(spi);
                 assertEquals(1, cdl.getCount());
@@ -113,12 +113,12 @@ public abstract class AbstractTransportTest {
                 cdl.countDown();
             }
         };
-        stf.startAccept(new Supplier<TransportListener>() {
-            public TransportListener get() {
+        stf.startAccept(new Supplier<Transport>() {
+            public Transport get() {
                 return ts;
             }
         });
-        ctf.connect(new TransportListener() {
+        ctf.connect(new Transport() {
             public void onConnected(TransportSession spi) {
                 super.onConnected(spi);
                 sendText("Hello321");
@@ -130,9 +130,9 @@ public abstract class AbstractTransportTest {
     @Test
     public void pingPong() throws Exception {
         final CountDownLatch cdl = new CountDownLatch(1);
-        stf.startAccept(new Supplier<TransportListener>() {
-            public TransportListener get() {
-                return new TransportListener() {
+        stf.startAccept(new Supplier<Transport>() {
+            public Transport get() {
+                return new Transport() {
                     public void onReceivedText(String text) {
                         Integer i = Integer.parseInt(text);
                         sendText("" + (i + 1));
@@ -141,7 +141,7 @@ public abstract class AbstractTransportTest {
             }
         });
 
-        ctf.connect(new TransportListener() {
+        ctf.connect(new Transport() {
             public void onConnected(TransportSession spi) {
                 super.onConnected(spi);
                 sendText("1");
@@ -163,5 +163,6 @@ public abstract class AbstractTransportTest {
     @After
     public void teardown() throws IOException {
         stf.close();
+        ctf.shutdown();
     }
 }

@@ -15,10 +15,41 @@
  */
 package dk.dma.navnet.core.transport;
 
+import static java.util.Objects.requireNonNull;
+
 /**
  * 
  * @author Kasper Nielsen
  */
-public class Transport {
+public abstract class Transport {
 
+    TransportSession spi;
+
+    public void onConnected(TransportSession spi) {
+        this.spi = requireNonNull(spi);
+    }
+
+    public final void close() {
+        spi.close();
+    }
+
+    final void close(int code, String text) {
+
+    }
+
+    public final void sendText(String text) {
+        requireNonNull(text, "text is null");
+        TransportSession spi = this.spi;
+        if (spi == null) {
+            throw new IllegalStateException("Not connected yet");
+        }
+        spi.sendText(text);
+    }
+
+    public void onClosed(int code, String message) {}
+
+    /**
+     * @param message
+     */
+    public void onReceivedText(String message) {}
 }

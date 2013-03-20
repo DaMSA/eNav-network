@@ -26,7 +26,7 @@ import java.util.concurrent.TimeUnit;
 import org.eclipse.jetty.websocket.client.WebSocketClient;
 
 import dk.dma.navnet.core.transport.ClientTransportFactory;
-import dk.dma.navnet.core.transport.TransportListener;
+import dk.dma.navnet.core.transport.Transport;
 
 /**
  * 
@@ -36,6 +36,9 @@ class WebsocketClientTransportFactory extends ClientTransportFactory {
 
     private final URI uri;
 
+    /** The actual websocket client. Changes when reconnecting. */
+    WebSocketClient client;
+
     /**
      * @param uri
      */
@@ -43,24 +46,26 @@ class WebsocketClientTransportFactory extends ClientTransportFactory {
         this.uri = requireNonNull(uri);
     }
 
+    synchronized WebSocketClient client() throws IOException {
+        if (client == null) {
+            client = new WebSocketClient();
+            try {
+                client.start();
+            } catch (Exception e) {
+                throw new IOException(e);
+            }
+
+        }
+        return client;
+    }
+
     /** {@inheritDoc} */
     @Override
-    public void connect(TransportListener listener, long timeout, TimeUnit unit) throws IOException {
+    public void connect(Transport listener, long timeout, TimeUnit unit) throws IOException {
         WebsocketClientTransport client = new WebsocketClientTransport(listener);
         try {
-            client.client.start();
-        } catch (Exception e) {
-            throw new IOException(e);
-        }
-
-        try {
-            client.client.connect(client, uri).get();
+            client().connect(client, uri).get();
         } catch (InterruptedException | ExecutionException e) {
-            try {
-                client.client.stop();
-            } catch (Exception e1) {
-                e1.printStackTrace();
-            }
             if (e instanceof InterruptedException) {
                 throw new InterruptedIOException();
             } else if (e.getCause() instanceof IOException) {
@@ -75,15 +80,25 @@ class WebsocketClientTransportFactory extends ClientTransportFactory {
         }
     }
 
+    /** {@inheritDoc} */
+    public void shutdown() throws IOException {
+        try {
+            client.stop();
+        } catch (Exception e) {
+            if (e.getCause() instanceof IOException) {
+                throw (IOException) e.getCause();
+            }
+            throw new IOException(e);
+        }
+    }
+
     static class WebsocketClientTransport extends AbstractTransportListener {
-        /** The actual websocket client. Changes when reconnecting. */
-        final WebSocketClient client = new WebSocketClient();
 
         /**
          * @param receiver
          * @param session
          */
-        public WebsocketClientTransport(TransportListener listener) {
+        public WebsocketClientTransport(Transport listener) {
             super(listener);
         }
 
@@ -91,18 +106,6 @@ class WebsocketClientTransportFactory extends ClientTransportFactory {
         @Override
         public final void onWebSocketError(Throwable cause) {
             // onError(cause);
-        }
-
-        /** {@inheritDoc} */
-        protected void close0() throws IOException {
-            try {
-                client.stop();
-            } catch (Exception e) {
-                if (e.getCause() instanceof IOException) {
-                    throw (IOException) e.getCause();
-                }
-                throw new IOException(e);
-            }
         }
 
     }

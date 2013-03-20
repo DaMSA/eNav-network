@@ -32,7 +32,7 @@ public abstract class ServerTransportFactory {
      *            the consumer of transports
      * @throws IOException
      */
-    public abstract void startAccept(Supplier<TransportListener> consumer) throws IOException;
+    public abstract void startAccept(Supplier<Transport> consumer) throws IOException;
 
     /**
      * Stops accepting any more connections

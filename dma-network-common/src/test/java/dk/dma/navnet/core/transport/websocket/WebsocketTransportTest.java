@@ -15,13 +15,12 @@
  */
 package dk.dma.navnet.core.transport.websocket;
 
-import dk.dma.navnet.core.transport.websocket.WebsocketTransports;
 
 /**
  * 
  * @author Kasper Nielsen
  */
-public class WebsocketTransportTest extends ClosingTest {
+public class WebsocketTransportTest extends AbstractTransportTest {
 
     /**
      * @param ctf

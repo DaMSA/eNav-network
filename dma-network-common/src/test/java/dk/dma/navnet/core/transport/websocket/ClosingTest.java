@@ -27,7 +27,7 @@ import org.junit.Test;
 import dk.dma.enav.util.function.Supplier;
 import dk.dma.navnet.core.transport.ClientTransportFactory;
 import dk.dma.navnet.core.transport.ServerTransportFactory;
-import dk.dma.navnet.core.transport.TransportListener;
+import dk.dma.navnet.core.transport.Transport;
 import dk.dma.navnet.core.transport.TransportSession;
 
 /**
@@ -48,9 +48,9 @@ public abstract class ClosingTest {
     @Test
     public void connectClose() throws Exception {
         final CountDownLatch cdl = new CountDownLatch(2);
-        stf.startAccept(new Supplier<TransportListener>() {
-            public TransportListener get() {
-                return new TransportListener() {
+        stf.startAccept(new Supplier<Transport>() {
+            public Transport get() {
+                return new Transport() {
                     public void onClosed(int code, String message) {
                         System.out.println(code);
                         assertEquals(1000, code);
@@ -66,7 +66,7 @@ public abstract class ClosingTest {
             }
         });
         // Client
-        ctf.connect(new TransportListener() {
+        ctf.connect(new Transport() {
             public void onClosed(int code, String message) {
                 System.out.println("GOT " + code);
                 cdl.countDown();
@@ -78,9 +78,9 @@ public abstract class ClosingTest {
     @Test
     public void normalClose() throws Exception {
         final CountDownLatch cdl = new CountDownLatch(2);
-        stf.startAccept(new Supplier<TransportListener>() {
-            public TransportListener get() {
-                return new TransportListener() {
+        stf.startAccept(new Supplier<Transport>() {
+            public Transport get() {
+                return new Transport() {
                     public void onClosed(int code, String message) {
                         assertEquals(1000, code);
                         cdl.countDown();
@@ -95,7 +95,7 @@ public abstract class ClosingTest {
             }
         });
         // Client
-        ctf.connect(new TransportListener() {
+        ctf.connect(new Transport() {
             public void onReceivedText(String text) {
                 assertEquals("CloseMe", text);
                 close();
