@@ -27,7 +27,7 @@ class Client {
 
     final MaritimeId id;
 
-    volatile ServerHandler sh;
+    volatile ServerTransport sh;
 
     final ENavNetworkServer server;
 
@@ -40,7 +40,7 @@ class Client {
      * @param currentConnection
      * @param server
      */
-    Client(MaritimeId id, ENavNetworkServer server, ServerHandler currentConnection) {
+    Client(MaritimeId id, ENavNetworkServer server, ServerTransport currentConnection) {
         this.id = id;
         this.sh = requireNonNull(currentConnection);
         this.server = requireNonNull(server);

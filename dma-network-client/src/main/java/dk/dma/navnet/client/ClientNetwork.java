@@ -59,7 +59,10 @@ public class ClientNetwork implements PersistentConnection {
     final MaritimeId clientId;
 
     /** The single connection to a server. */
-    final ClientHandler connection;
+    final ClientTransport transport;
+
+    /** The single connection to a server. */
+    final C2SConnection connection;
 
     /** An {@link ExecutorService} for running various tasks. */
     final ExecutorService es = Executors.newCachedThreadPool();
@@ -98,7 +101,8 @@ public class ClientNetwork implements PersistentConnection {
         this.broadcaster = new BroadcastManager(this);
         this.services = new ServiceManager(this);
         this.transportFactory = WebsocketTransports.createClient(builder.getHost());
-        this.connection = new ClientHandler("ws://" + builder.getHost(), this);
+        this.transport = new ClientTransport(this);
+        this.connection = new C2SConnection(this, transport);
     }
 
     /* DELEGATING METHODS */
@@ -153,7 +157,7 @@ public class ClientNetwork implements PersistentConnection {
                 e1.printStackTrace();
             }
             try {
-                connection.close();
+                transport.tryClose(4333, "Goodbye");
             } catch (Exception e) {
                 e.printStackTrace();
             }
@@ -228,7 +232,7 @@ public class ClientNetwork implements PersistentConnection {
             // perhaps we should just treat it as a reconnect.
             // The downside is that people could wait a lot of time
             // when entering the wrong url.
-            n.connection.connect(10, TimeUnit.SECONDS);
+            n.transport.connect(10, TimeUnit.SECONDS);
         } catch (Exception e) {
             throw new IOException(e);// could not connect within 10 seconds
         }

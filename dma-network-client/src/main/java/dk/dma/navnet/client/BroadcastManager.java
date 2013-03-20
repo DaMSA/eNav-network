@@ -110,7 +110,7 @@ class BroadcastManager {
     void send(BroadcastMessage broadcast) {
         requireNonNull(broadcast, "broadcast is null");
         BroadcastMsg b = BroadcastMsg.create(c.clientId, c.positionManager.getPositionTime(), broadcast);
-        c.connection.sendMessage(b);
+        c.transport.sendMessage(b);
     }
 
     /** Translates a class to a channel name. */

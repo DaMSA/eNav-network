@@ -33,10 +33,13 @@ import dk.dma.navnet.core.util.NetworkFutureImpl;
  * @author Kasper Nielsen
  */
 class C2SConnection extends AbstractC2SConnection {
-    final ClientNetwork cm;
-    final ClientHandler ch;
 
-    C2SConnection(ClientNetwork cn, ClientHandler ch) {
+    final ClientNetwork cm;
+
+    final ClientTransport ch;
+
+    C2SConnection(ClientNetwork cn, ClientTransport ch) {
+        super(cn.ses);
         this.cm = requireNonNull(cn);
         this.ch = requireNonNull(ch);
     }

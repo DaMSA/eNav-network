@@ -15,6 +15,8 @@
  */
 package dk.dma.navnet.core.spi;
 
+import java.util.concurrent.ScheduledExecutorService;
+
 import dk.dma.navnet.core.messages.AbstractTextMessage;
 import dk.dma.navnet.core.messages.auxiliary.ConnectedMessage;
 import dk.dma.navnet.core.messages.auxiliary.WelcomeMessage;
@@ -30,6 +32,13 @@ import dk.dma.navnet.core.util.NetworkFutureImpl;
  * @author Kasper Nielsen
  */
 public class AbstractC2SConnection extends AbstractConnection {
+
+    /**
+     * @param ses
+     */
+    public AbstractC2SConnection(ScheduledExecutorService ses) {
+        super(ses);
+    }
 
     /**
      * @param m

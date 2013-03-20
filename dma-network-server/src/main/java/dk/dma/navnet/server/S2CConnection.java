@@ -45,13 +45,14 @@ public class S2CConnection extends AbstractS2CConnection {
 
     final ConnectionManager cm;
 
-    final ServerHandler sh;
+    final ServerTransport sh;
 
     /**
      * @param cm
      * @param sh
      */
-    public S2CConnection(ConnectionManager cm, ServerHandler sh) {
+    public S2CConnection(ConnectionManager cm, ServerTransport sh) {
+        super(cm.ses);
         this.cm = cm;
         this.sh = sh;
     }
@@ -132,7 +133,7 @@ public class S2CConnection extends AbstractS2CConnection {
     @Override
     public void relay(AbstractRelayedMessage m) {
         String d = m.getDestination();
-        ServerHandler c = cm.getConnection(d);
+        ServerTransport c = cm.getConnection(d);
         if (c == null) {
             System.err.println("Unknown destination " + d);
             System.err.println("Available " + cm.getAllConnectionIds());

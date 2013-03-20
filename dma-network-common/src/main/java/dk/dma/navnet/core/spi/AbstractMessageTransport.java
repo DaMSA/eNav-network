@@ -22,7 +22,6 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.ReentrantLock;
 
-import dk.dma.enav.communication.CloseReason;
 import dk.dma.navnet.core.messages.AbstractTextMessage;
 import dk.dma.navnet.core.messages.c2c.AbstractRelayedMessage;
 import dk.dma.navnet.core.messages.s2c.AckMessage;
@@ -35,12 +34,11 @@ import dk.dma.navnet.core.util.NetworkFutureImpl;
  * 
  * @author Kasper Nielsen
  */
-public abstract class AbstractHandler {
+public abstract class AbstractMessageTransport extends Transport {
 
     final ConcurrentHashMap<Long, NetworkFutureImpl<?>> acks = new ConcurrentHashMap<>();
-    final AtomicInteger ai = new AtomicInteger();
 
-    private final Listener listener = new Listener();
+    final AtomicInteger ai = new AtomicInteger();
 
     protected final ReentrantLock lock = new ReentrantLock();
 
@@ -48,7 +46,7 @@ public abstract class AbstractHandler {
 
     ScheduledExecutorService ses;
 
-    protected AbstractHandler(ScheduledExecutorService ses) {
+    protected AbstractMessageTransport(ScheduledExecutorService ses) {
         this.ses = requireNonNull(ses);
     }
 
@@ -60,10 +58,6 @@ public abstract class AbstractHandler {
 
     protected void failed(String message) {
 
-    }
-
-    public final Transport getListener() {
-        return listener;
     }
 
     protected abstract AbstractConnection client();
@@ -123,7 +117,7 @@ public abstract class AbstractHandler {
 
         try {
             System.out.println("Sending " + m);
-            listener.sendText(m);
+            sendText(m);
         } catch (Exception e) {
             onError(e);
             failed(e.getMessage());
@@ -132,43 +126,36 @@ public abstract class AbstractHandler {
     }
 
     public final void tryClose(int statusCode, String reason) {
-        listener.close(statusCode, reason);
+        close(statusCode, reason);
     }
 
-    final class Listener extends Transport {
+    /** {@inheritDoc} */
+    @Override
+    public void onConnected(TransportSession spi) {
+        super.onConnected(spi);
+        connected();
+    }
 
-        /** {@inheritDoc} */
-        @Override
-        public void onConnected(TransportSession spi) {
-            super.onConnected(spi);
-            connected();
-        }
+    /** {@inheritDoc} */
+    @Override
+    public void onClosed(int code, String message) {
+        super.onClosed(code, message);
+        closed(code, message);
+        System.out.println("CLOSED:" + message);
+    }
 
-        /** {@inheritDoc} */
-        @Override
-        public void onClosed(int code, String message) {
-            super.onClosed(code, message);
-            closed(code, message);
-            System.out.println("CLOSED:" + message);
-        }
-
-        /** {@inheritDoc} */
-        @Override
-        public void onReceivedText(String message) {
-            System.out.println("Received: " + message);
-            try {
-                AbstractTextMessage m = AbstractTextMessage.read(message);
-                m.setReceivedRawMesage(message);
-                handleText0(m);
-            } catch (Throwable e) {
-                e.printStackTrace();
-                tryClose(5004, e.getMessage());
-            }
-        }
-
-        /** {@inheritDoc} */
-        public final void onWebSocketBinary(byte[] payload, int offset, int len) {
-            tryClose(CloseReason.BAD_DATA.getId(), "Expected text only");
+    /** {@inheritDoc} */
+    @Override
+    public void onReceivedText(String message) {
+        System.out.println("Received: " + message);
+        try {
+            AbstractTextMessage m = AbstractTextMessage.read(message);
+            m.setReceivedRawMesage(message);
+            handleText0(m);
+        } catch (Throwable e) {
+            e.printStackTrace();
+            tryClose(5004, e.getMessage());
         }
     }
+
 }

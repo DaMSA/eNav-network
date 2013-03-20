@@ -30,11 +30,15 @@ public abstract class Transport {
     }
 
     public final void close() {
-        spi.close();
+        if (spi != null) {
+            spi.close();
+        }
     }
 
     public final void close(int code, String text) {
-        spi.close();
+        if (spi != null) {
+            spi.close();
+        }
     }
 
     public final void sendText(String text) {

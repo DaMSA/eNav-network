@@ -17,7 +17,6 @@ package dk.dma.navnet.server;
 
 import static java.util.Objects.requireNonNull;
 
-import java.net.SocketAddress;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.Executors;
@@ -51,24 +50,24 @@ class ConnectionManager {
 
     final ConcurrentHashMapV8<String, Client> connections = new ConcurrentHashMapV8<>();
 
-    ConnectionManager(ENavNetworkServer server, SocketAddress socketAddress) {
+    ConnectionManager(ENavNetworkServer server) {
         this.server = requireNonNull(server);
     }
 
-    synchronized Client addConnection(MaritimeId mid, String id, ServerHandler c) {
+    synchronized Client addConnection(MaritimeId mid, String id, ServerTransport c) {
         Client newCH = new Client(mid, server, c);
         c.holder = newCH;
         connections.put(id, newCH);
         return newCH;
     }
 
-    void disconnected(ServerHandler connection) {
+    void disconnected(ServerTransport connection) {
         connections.remove(connection.holder.id.toString());
     }
 
-    void broadcast(ServerHandler sender, final BroadcastMsg broadcast) {
+    void broadcast(ServerTransport sender, final BroadcastMsg broadcast) {
         for (Client ch : connections.values()) {
-            final ServerHandler sc = ch.sh;
+            final ServerTransport sc = ch.sh;
             if (sc != sender) {
                 server.deamonPool.execute(new Runnable() {
                     public void run() {
@@ -91,7 +90,7 @@ class ConnectionManager {
         return connections.size();
     }
 
-    public ServerHandler getConnection(String id) {
+    public ServerTransport getConnection(String id) {
         return connections.get(id).sh;
     }
 
@@ -100,7 +99,7 @@ class ConnectionManager {
         ses.shutdown();
     }
 
-    void handleDeadConnection(ServerHandler pc) {
+    void handleDeadConnection(ServerTransport pc) {
         // for all pending
         // send news to sender?
         // but not if they are dead

@@ -15,6 +15,11 @@
  */
 package dk.dma.navnet.core.spi;
 
+import static java.util.Objects.requireNonNull;
+
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.locks.ReentrantLock;
+
 import dk.dma.navnet.core.messages.AbstractTextMessage;
 import dk.dma.navnet.core.util.NetworkFutureImpl;
 
@@ -23,6 +28,25 @@ import dk.dma.navnet.core.util.NetworkFutureImpl;
  * @author Kasper Nielsen
  */
 public abstract class AbstractConnection {
+    protected final ReentrantLock lock = new ReentrantLock();
+
+    volatile AbstractMessageTransport transport;
+
+    final ScheduledExecutorService ses;
+
+    protected AbstractConnection(ScheduledExecutorService ses) {
+        this.ses = requireNonNull(ses);
+    }
+
+    protected void setTransport(AbstractMessageTransport transport) {
+        lock.lock();
+        try {
+            this.transport = transport;
+        } finally {
+            lock.unlock();
+        }
+    }
+
     protected abstract void handleText(AbstractTextMessage m) throws Exception;
 
     protected abstract void handleTextReply(AbstractTextMessage m, NetworkFutureImpl<?> f) throws Exception;

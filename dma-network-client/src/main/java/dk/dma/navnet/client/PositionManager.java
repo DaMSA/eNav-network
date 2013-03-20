@@ -49,7 +49,7 @@ class PositionManager implements Runnable {
     private volatile long latestTime = -MINIMUM_SIGNAL_DURATION; // System.nanoTime>0 so we always send it first time
 
     /**
-     * @param connection
+     * @param transport
      * @param positionSupplier
      */
     PositionManager(ClientNetwork c, Supplier<PositionTime> positionSupplier) {
@@ -74,7 +74,7 @@ class PositionManager implements Runnable {
 
         if (t != null) {
             latestTime = now;
-            c.connection.sendMessage(new PositionReportMessage(t));
+            c.transport.sendMessage(new PositionReportMessage(t));
         }
     }
 

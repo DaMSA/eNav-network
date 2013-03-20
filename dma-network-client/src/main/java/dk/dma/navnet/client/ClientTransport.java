@@ -23,46 +23,30 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
 import dk.dma.navnet.core.spi.AbstractC2SConnection;
-import dk.dma.navnet.core.spi.AbstractHandler;
-import dk.dma.navnet.core.transport.Transport;
+import dk.dma.navnet.core.spi.AbstractMessageTransport;
 
 /**
  * 
  * @author Kasper Nielsen
  */
-class ClientHandler extends AbstractHandler {
+class ClientTransport extends AbstractMessageTransport {
 
     /** The actual websocket client. Changes when reconnecting. */
-    volatile Transport transport;
     final ClientNetwork cm;
 
     final CountDownLatch connected = new CountDownLatch(1);
 
-    long nextReplyId;
-
-    State state = State.CREATED;
-
-    /** The URL to connect to. */
-    private final String url;
-    private final C2SConnection cc;
-
-    ClientHandler(String url, ClientNetwork cm) {
+    ClientTransport(ClientNetwork cm) {
         super(cm.ses);
         this.cm = requireNonNull(cm);
-        this.url = requireNonNull(url);
-        this.cc = new C2SConnection(cm, this);
-    }
-
-    public void close() {
-        tryClose(4333, "Goodbye");
     }
 
     public void connect(long timeout, TimeUnit unit) throws Exception {
         try {
-            cm.transportFactory.connect(transport = getListener(), timeout, unit);
+            cm.transportFactory.connect(this, timeout, unit);
             connected.await(timeout, unit);
             if (connected.getCount() > 0) {
-                throw new ConnectException("Timedout while connecting to " + url);
+                throw new ConnectException("Timedout while connecting to ");
             }
         } catch (IOException e) {
             cm.es.shutdown();
@@ -72,14 +56,9 @@ class ClientHandler extends AbstractHandler {
         }
     }
 
-    enum State {
-        CONNECTED, CREATED, DISCONNECTED
-    }
-
     /** {@inheritDoc} */
     @Override
     protected AbstractC2SConnection client() {
-        return cc;
+        return cm.connection;
     }
-
 }

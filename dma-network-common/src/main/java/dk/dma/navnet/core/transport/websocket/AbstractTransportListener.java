@@ -24,6 +24,7 @@ import org.eclipse.jetty.websocket.api.RemoteEndpoint;
 import org.eclipse.jetty.websocket.api.Session;
 import org.eclipse.jetty.websocket.api.WebSocketListener;
 
+import dk.dma.enav.communication.CloseReason;
 import dk.dma.navnet.core.transport.Transport;
 import dk.dma.navnet.core.transport.TransportSession;
 
@@ -60,7 +61,12 @@ abstract class AbstractTransportListener extends TransportSession implements Web
     @Override
     public final void onWebSocketBinary(byte[] payload, int offset, int len) {
         System.out.println("GOT BINARY");
-        // tryClose(CloseReason.BAD_DATA.getId(), "Expected text only");
+        Session s = session;
+        try {
+            s.close(CloseReason.BAD_DATA.getId(), "Expected text only");
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 
     /** {@inheritDoc} */

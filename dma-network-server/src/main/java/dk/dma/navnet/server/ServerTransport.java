@@ -18,13 +18,13 @@ package dk.dma.navnet.server;
 import static java.util.Objects.requireNonNull;
 import dk.dma.navnet.core.messages.auxiliary.WelcomeMessage;
 import dk.dma.navnet.core.spi.AbstractConnection;
-import dk.dma.navnet.core.spi.AbstractHandler;
+import dk.dma.navnet.core.spi.AbstractMessageTransport;
 
 /**
  * 
  * @author Kasper Nielsen
  */
-class ServerHandler extends AbstractHandler {
+class ServerTransport extends AbstractMessageTransport {
 
     final ConnectionManager cm;
 
@@ -36,7 +36,7 @@ class ServerHandler extends AbstractHandler {
 
     final S2CConnection con;
 
-    ServerHandler(ConnectionManager cm) {
+    ServerTransport(ConnectionManager cm) {
         super(cm.ses);
         this.cm = requireNonNull(cm);
         con = new S2CConnection(cm, this);

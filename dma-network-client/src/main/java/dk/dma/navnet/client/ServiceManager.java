@@ -76,7 +76,7 @@ class ServiceManager {
     }
 
     <T, E extends ServiceMessage<T>> NetworkFutureImpl<FindServiceResult> serviceFindOne(FindService fs) {
-        return c.connection.sendMessage(fs);
+        return c.transport.sendMessage(fs);
     }
 
     /** {@inheritDoc} */
@@ -94,7 +94,7 @@ class ServiceManager {
                 f.complete((T) ack);
             }
         });
-        c.connection.sendMessage(is);
+        c.transport.sendMessage(is);
         return f;
     }
 
@@ -118,7 +118,7 @@ class ServiceManager {
                 public void complete(Object result) {
                     requireNonNull(result);
                     // System.out.println("Completed");
-                    c.connection.sendMessage(m.createReply(result));
+                    c.transport.sendMessage(m.createReply(result));
                 }
 
                 @Override
@@ -175,7 +175,7 @@ class ServiceManager {
             throw new IllegalArgumentException(
                     "A service of the specified type has already been registered. Can only register one at a time");
         }
-        final NetworkFutureImpl<RegisterServiceResult> f = c.connection.sendMessage(new RegisterService(sip.getName()));
+        final NetworkFutureImpl<RegisterServiceResult> f = c.transport.sendMessage(new RegisterService(sip.getName()));
         f.thenAcceptAsync(new CompletableFuture.Action<RegisterServiceResult>() {
             @Override
             public void accept(RegisterServiceResult ack) {

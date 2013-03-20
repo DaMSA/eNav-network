@@ -15,7 +15,6 @@
  */
 package dk.dma.navnet.server;
 
-import java.net.InetSocketAddress;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -74,7 +73,7 @@ public class ENavNetworkServer {
 
     public ENavNetworkServer(int port) {
         factory = WebsocketTransports.createServer(port);
-        at = new ConnectionManager(this, new InetSocketAddress(port));
+        at = new ConnectionManager(this);
     }
 
     public boolean awaitTerminated(long timeout, TimeUnit unit) throws InterruptedException {
@@ -111,7 +110,7 @@ public class ENavNetworkServer {
             try {
                 factory.startAccept(new Supplier<Transport>() {
                     public Transport get() {
-                        return new ServerHandler(at).getListener();
+                        return new ServerTransport(at);
                     }
                 });
             } catch (Exception e) {
