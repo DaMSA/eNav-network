@@ -16,12 +16,8 @@
 package dk.dma.navnet.server;
 
 import static java.util.Objects.requireNonNull;
-
-import java.util.UUID;
-
 import dk.dma.enav.model.geometry.PositionTime;
 import dk.dma.navnet.core.messages.AbstractTextMessage;
-import dk.dma.navnet.core.messages.auxiliary.ConnectedMessage;
 import dk.dma.navnet.core.messages.auxiliary.HelloMessage;
 import dk.dma.navnet.core.messages.auxiliary.WelcomeMessage;
 import dk.dma.navnet.core.spi.AbstractMessageTransport;
@@ -36,8 +32,6 @@ class ServerTransport extends AbstractMessageTransport {
 
     boolean isConnecting = true;
 
-    ServerConnection connection;
-
     ServerTransport(ConnectionManager cm) {
         this.cm = requireNonNull(cm);
     }
@@ -48,14 +42,21 @@ class ServerTransport extends AbstractMessageTransport {
         if (isConnecting) {
             isConnecting = false;
             if (m instanceof HelloMessage) {
-                if (cm.connectingTransports.remove(this)) {// check that nobody else has removed the connection
+                // check that nobody else has removed the connection, in which case it has already been closed
+                if (cm.connectingTransports.remove(this)) {
                     HelloMessage hm = (HelloMessage) m;
-                    UUID uuid = UUID.randomUUID();
+                    String reconnectId = hm.getReconnectId();
+                    String id = hm.getClientId().toString();
                     PositionTime pt = new PositionTime(hm.getLat(), hm.getLon(), -1);
-                    ServerConnection sc = connection = new ServerConnection(cm, this, hm.getClientId(), pt);
-                    cm.clients.put(hm.getClientId().toString(), sc);
-                    sendMessage(new ConnectedMessage(uuid.toString()));
-                    cm.server.tracker.update(sc, pt);
+                    for (;;) {
+                        ServerConnection sc = cm.clients.get(id);
+                        if (sc == null) {
+                            sc = new ServerConnection(cm, hm.getClientId());
+                        }
+                        if (sc.connect(this, reconnectId, pt)) {
+                            return;
+                        }
+                    }
                 }
             } else {
                 // oops
@@ -71,18 +72,30 @@ class ServerTransport extends AbstractMessageTransport {
         sendMessage(new WelcomeMessage(1, cm.server.id, "enavServer/1.0"));
     }
 
+    ServerConnection c() {
+        return (ServerConnection) super.ac;
+    }
+
     /** {@inheritDoc} */
     @Override
     protected void closed(int statusCode, String reason) {
-        cm.server.tracker.remove(connection);
-        cm.server.connections.disconnected(this);
-        super.closed(statusCode, reason);
+        lock.lock();
+        try {
+            ServerConnection con = c();
+            if (con != null) {
+                cm.server.tracker.remove(c());
+                cm.clients.remove(con.sid);
+            }
+            super.closed(statusCode, reason);
+        } finally {
+            lock.unlock();
+        }
     }
 
     /** {@inheritDoc} */
     @Override
     public void onError(Throwable cause) {
-        cm.server.tracker.remove(connection);
+        cm.server.tracker.remove(c());
         cm.server.connections.disconnected(this);
     }
 }

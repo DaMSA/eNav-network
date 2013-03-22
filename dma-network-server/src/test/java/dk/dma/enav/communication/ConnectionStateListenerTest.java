@@ -17,47 +17,34 @@ package dk.dma.enav.communication;
 
 import static org.junit.Assert.assertEquals;
 
-import java.util.concurrent.TimeUnit;
-
+import org.junit.Ignore;
 import org.junit.Test;
 
-import dk.dma.enav.communication.PersistentConnection.State;
 import dk.dma.enav.model.MaritimeId;
 
 /**
  * 
  * @author Kasper Nielsen
  */
-public class ConnectionTest extends AbstractNetworkTest {
+public class ConnectionStateListenerTest extends AbstractNetworkTest {
     public static final MaritimeId ID1 = MaritimeId.create("mmsi://1");
     public static final MaritimeId ID6 = MaritimeId.create("mmsi://6");
 
     @Test
-    public void singleClient() throws Exception {
-        newClient(ID1);
-        assertEquals(1, si.getNumberOfConnections());
-        // Thread.sleep(1000);
-        // assertEquals(1, si.getNumberOfConnections());
-    }
-
-    @Test
-    public void singleClientClose() throws Exception {
-        @SuppressWarnings("resource")
-        PersistentConnection pc = newClient(ID1);
-        assertEquals(1, si.getNumberOfConnections());
-        pc.awaitState(State.CONNECTED, 1, TimeUnit.SECONDS);
-        pc.close();
-        pc.awaitState(State.TERMINATED, 1, TimeUnit.SECONDS);
-
-        assertEquals(0, si.getNumberOfConnections());
-
-        // Thread.sleep(1000);
-        // assertEquals(1, si.getNumberOfConnections());
-    }
-
-    @Test
+    @Ignore
     public void manyClients() throws Exception {
         newClients(20);
         assertEquals(20, si.getNumberOfConnections());
     }
+
+    @Test
+    @Ignore
+    public void singleClient() throws Exception {
+        newClient(ID1);
+
+        assertEquals(1, si.getNumberOfConnections());
+        // Thread.sleep(1000);
+        // assertEquals(1, si.getNumberOfConnections());
+    }
+
 }

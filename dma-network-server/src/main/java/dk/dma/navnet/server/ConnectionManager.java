@@ -60,12 +60,12 @@ class ConnectionManager extends Supplier<Transport> {
     }
 
     void disconnected(ServerTransport connection) {
-        clients.remove(connection.connection.id.toString());
+        clients.remove(connection.c().id.toString());
     }
 
     void broadcast(ServerTransport sender, final BroadcastMsg broadcast) {
         for (ServerConnection ch : clients.values()) {
-            final ServerTransport sc = ch.sh;
+            final ServerTransport sc = ch.t();
             if (sc != sender) {
                 server.deamonPool.execute(new Runnable() {
                     public void run() {
@@ -89,7 +89,7 @@ class ConnectionManager extends Supplier<Transport> {
     }
 
     public ServerTransport getConnection(String id) {
-        return clients.get(id).sh;
+        return clients.get(id).t();
     }
 
     /** Stops accepting any more sockets. */

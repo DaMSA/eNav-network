@@ -80,7 +80,9 @@ abstract class AbstractTransportListener extends TransportSession implements Web
     protected void close() {
         Session s = session;
         try {
-            s.close();
+            if (s != null) {
+                s.close();
+            }
         } catch (IOException e) {
             e.printStackTrace();
         }

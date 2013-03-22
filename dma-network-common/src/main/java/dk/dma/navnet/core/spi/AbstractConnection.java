@@ -44,7 +44,7 @@ public abstract class AbstractConnection {
 
     final ScheduledExecutorService ses;
 
-    volatile AbstractMessageTransport transport;
+    protected volatile AbstractMessageTransport transport;
 
     protected AbstractConnection(ScheduledExecutorService ses) {
         this.ses = requireNonNull(ses);
@@ -69,6 +69,10 @@ public abstract class AbstractConnection {
     protected void setTransport(AbstractMessageTransport transport) {
         lock.lock();
         try {
+            AbstractMessageTransport old = this.transport;
+            if (old != null) {
+                old.setConnection(null);
+            }
             this.transport = transport;
             transport.setConnection(this);
         } finally {

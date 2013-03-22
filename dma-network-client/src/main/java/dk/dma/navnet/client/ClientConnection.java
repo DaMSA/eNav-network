@@ -125,6 +125,7 @@ class ClientConnection extends AbstractConnection {
             if (ch.connected.getCount() > 0) {
                 throw new ConnectException("Timedout while connecting to ");
             }
+
         } catch (IOException e) {
             cm.es.shutdown();
             cm.ses.shutdown();

@@ -33,7 +33,7 @@ import dk.dma.navnet.core.util.NetworkFutureImpl;
  */
 public abstract class AbstractMessageTransport extends Transport {
 
-    AbstractConnection ac;
+    protected AbstractConnection ac;
 
     public final CountDownLatch connected = new CountDownLatch(1);
 
@@ -57,7 +57,7 @@ public abstract class AbstractMessageTransport extends Transport {
 
     /** {@inheritDoc} */
     @Override
-    public void onClosed(int code, String message) {
+    public final void onClosed(int code, String message) {
         super.onClosed(code, message);
         closed(code, message);
         System.out.println("CLOSED:" + message);
@@ -148,7 +148,9 @@ public abstract class AbstractMessageTransport extends Transport {
 
     void setConnection(AbstractConnection ac) {
         this.ac = ac;
-        this.ses = ac.ses;
+        if (ac != null) {
+            this.ses = ac.ses;
+        }
     }
 
     public final void tryClose(int statusCode, String reason) {

@@ -16,6 +16,8 @@
 package dk.dma.enav.communication;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertSame;
+import static org.junit.Assert.assertTrue;
 
 import java.util.concurrent.TimeUnit;
 
@@ -25,39 +27,27 @@ import dk.dma.enav.communication.PersistentConnection.State;
 import dk.dma.enav.model.MaritimeId;
 
 /**
+ * Tests that if multiple clients connect with the same id connects. Only one is connected at the same time
  * 
  * @author Kasper Nielsen
  */
-public class ConnectionTest extends AbstractNetworkTest {
+public class SameIDConnectTest extends AbstractNetworkTest {
     public static final MaritimeId ID1 = MaritimeId.create("mmsi://1");
-    public static final MaritimeId ID6 = MaritimeId.create("mmsi://6");
 
+    /**
+     * Tests that an existing client will disconnect
+     * 
+     * @throws Exception
+     */
     @Test
-    public void singleClient() throws Exception {
-        newClient(ID1);
+    public void twoConnect() throws Exception {
+        PersistentConnection pc1 = newClient(ID1);
+        pc1.awaitState(State.CONNECTED, 1, TimeUnit.SECONDS);
+        PersistentConnection pc2 = newClient(ID1);
+        pc2.awaitState(State.CONNECTED, 1, TimeUnit.SECONDS);
         assertEquals(1, si.getNumberOfConnections());
-        // Thread.sleep(1000);
-        // assertEquals(1, si.getNumberOfConnections());
-    }
-
-    @Test
-    public void singleClientClose() throws Exception {
-        @SuppressWarnings("resource")
-        PersistentConnection pc = newClient(ID1);
+        assertTrue(pc1.awaitState(State.CLOSED, 1, TimeUnit.SECONDS));
+        assertSame(State.CONNECTED, pc2.getState());
         assertEquals(1, si.getNumberOfConnections());
-        pc.awaitState(State.CONNECTED, 1, TimeUnit.SECONDS);
-        pc.close();
-        pc.awaitState(State.TERMINATED, 1, TimeUnit.SECONDS);
-
-        assertEquals(0, si.getNumberOfConnections());
-
-        // Thread.sleep(1000);
-        // assertEquals(1, si.getNumberOfConnections());
-    }
-
-    @Test
-    public void manyClients() throws Exception {
-        newClients(20);
-        assertEquals(20, si.getNumberOfConnections());
     }
 }

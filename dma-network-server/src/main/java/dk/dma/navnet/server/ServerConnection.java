@@ -22,8 +22,10 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map.Entry;
+import java.util.UUID;
 
 import jsr166e.ConcurrentHashMapV8;
+import dk.dma.enav.communication.CloseReason;
 import dk.dma.enav.model.MaritimeId;
 import dk.dma.enav.model.geometry.Area;
 import dk.dma.enav.model.geometry.Circle;
@@ -31,6 +33,7 @@ import dk.dma.enav.model.geometry.CoordinateSystem;
 import dk.dma.enav.model.geometry.PositionTime;
 import dk.dma.enav.util.function.BiConsumer;
 import dk.dma.navnet.core.messages.AbstractTextMessage;
+import dk.dma.navnet.core.messages.auxiliary.ConnectedMessage;
 import dk.dma.navnet.core.messages.auxiliary.PositionReportMessage;
 import dk.dma.navnet.core.messages.c2c.AbstractRelayedMessage;
 import dk.dma.navnet.core.messages.c2c.broadcast.BroadcastMsg;
@@ -47,25 +50,66 @@ public class ServerConnection extends AbstractConnection {
 
     final ConnectionManager cm;
 
-    final ServerTransport sh;
     /** The latest position of the client. */
     volatile PositionTime latestPosition;
 
     final MaritimeId id;
+    final String sid;
     final ClientServices services;
+
+    volatile String uuid;
+
+    ServerTransport t() {
+        return (ServerTransport) super.transport;
+    }
 
     /**
      * @param cm
      * @param sh
      */
-    public ServerConnection(ConnectionManager cm, ServerTransport sh, MaritimeId id, PositionTime initialPosition) {
+    public ServerConnection(ConnectionManager cm, MaritimeId id) {
         super(cm.ses);
-        super.setTransport(sh);
         this.cm = cm;
-        this.sh = sh;
+        this.sid = id.toString();
         this.id = requireNonNull(id);
-        latestPosition = requireNonNull(initialPosition);
         services = new ClientServices(this);
+    }
+
+    boolean connect(ServerTransport other, String reconnect, PositionTime pt) {
+        lock.lock();
+        try {
+            if (uuid == null) { // new connection
+                latestPosition = pt;
+                uuid = UUID.randomUUID().toString();
+                if (cm.clients.putIfAbsent(sid, this) != null) {
+                    return false;
+                }
+                setTransport(other);
+                sendMessage(new ConnectedMessage(uuid));
+                cm.server.tracker.update(this, pt);
+            } else if (reconnect.equals("")) { // replacing
+                System.out.println("XXXX" + cm.clients.size());
+                latestPosition = pt;
+                ServerTransport old = t();
+                setTransport(other);
+                old.close(CloseReason.DUPLICATE_CONNECT);
+
+                uuid = UUID.randomUUID().toString();
+                sendMessage(new ConnectedMessage(uuid));
+                cm.server.tracker.update(this, pt);
+                System.out.println("XXXX" + cm.clients.size());
+            } else { // reconnect
+                // if (cm.clients.get(sid) == this) {
+                // sh.close(CloseReason.DUPLICATE_CONNECT);
+                // setTransport(other);
+                // sh = other;
+                // }
+            }
+            // make sure this is the current connection
+        } finally {
+            lock.unlock();
+        }
+        return true;
     }
 
     /** {@inheritDoc} */
@@ -96,7 +140,7 @@ public class ServerConnection extends AbstractConnection {
 
     /** {@inheritDoc} */
     public void broadcast(BroadcastMsg m) {
-        cm.broadcast(sh, m);
+        cm.broadcast(t(), m);
     }
 
     /** {@inheritDoc} */
@@ -133,7 +177,7 @@ public class ServerConnection extends AbstractConnection {
         for (Entry<ServerConnection, PositionTime> e : l) {
             list.add(e.getKey().id.toString());
         }
-        sh.sendMessage(m.createReply(list.toArray(new String[list.size()])));
+        t().sendMessage(m.createReply(list.toArray(new String[list.size()])));
     }
 
     /** {@inheritDoc} */
@@ -145,7 +189,7 @@ public class ServerConnection extends AbstractConnection {
     /** {@inheritDoc} */
     public void registerService(RegisterService m) {
         services.registerService(m);
-        sh.sendMessage(m.createReply());
+        t().sendMessage(m.createReply());
     }
 
     /** {@inheritDoc} */

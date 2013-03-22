@@ -21,4 +21,15 @@ import dk.dma.navnet.core.spi.AbstractMessageTransport;
  * 
  * @author Kasper Nielsen
  */
-class ClientTransport extends AbstractMessageTransport {}
+class ClientTransport extends AbstractMessageTransport {
+
+    /** {@inheritDoc} */
+    @Override
+    protected void closed(int statusCode, String reason) {
+        super.closed(statusCode, reason);
+        ClientConnection cc = (ClientConnection) ac;
+        if (cc != null) {
+            cc.cm.close();
+        }
+    }
+}

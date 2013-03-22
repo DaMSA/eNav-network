@@ -16,6 +16,7 @@
 package dk.dma.navnet.core.transport;
 
 import static java.util.Objects.requireNonNull;
+import dk.dma.enav.communication.CloseReason;
 
 /**
  * 
@@ -30,6 +31,12 @@ public abstract class Transport {
     }
 
     public final void close() {
+        if (spi != null) {
+            spi.close();
+        }
+    }
+
+    public final void close(CloseReason reason) {
         if (spi != null) {
             spi.close();
         }
