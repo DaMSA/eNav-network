@@ -37,6 +37,39 @@ class ServerTransport extends AbstractMessageTransport {
         this.cm = requireNonNull(cm);
     }
 
+    ServerConnection c() {
+        return (ServerConnection) super.ac;
+    }
+
+    /** {@inheritDoc} */
+    @Override
+    protected void closed(CloseReason reason) {
+        lock.lock();
+        try {
+            ServerConnection con = c();
+            if (con != null) {
+                cm.server.tracker.remove(c());
+                cm.clients.remove(con.sid);
+            }
+            super.closed(reason);
+        } finally {
+            lock.unlock();
+        }
+    }
+
+    /** {@inheritDoc} */
+    @Override
+    public void connected() {
+        sendMessage(new WelcomeMessage(1, cm.server.getLocalId(), "enavServer/1.0"));
+    }
+
+    /** {@inheritDoc} */
+    @Override
+    public void onError(Throwable cause) {
+        cm.server.tracker.remove(c());
+        cm.server.connections.disconnected(this);
+    }
+
     /** {@inheritDoc} */
     @Override
     protected void onReceivedText0(AbstractTextMessage m) {
@@ -65,38 +98,5 @@ class ServerTransport extends AbstractMessageTransport {
         } else {
             super.onReceivedText0(m);
         }
-    }
-
-    /** {@inheritDoc} */
-    @Override
-    public void connected() {
-        sendMessage(new WelcomeMessage(1, cm.server.getLocalId(), "enavServer/1.0"));
-    }
-
-    ServerConnection c() {
-        return (ServerConnection) super.ac;
-    }
-
-    /** {@inheritDoc} */
-    @Override
-    protected void closed(CloseReason reason) {
-        lock.lock();
-        try {
-            ServerConnection con = c();
-            if (con != null) {
-                cm.server.tracker.remove(c());
-                cm.clients.remove(con.sid);
-            }
-            super.closed(reason);
-        } finally {
-            lock.unlock();
-        }
-    }
-
-    /** {@inheritDoc} */
-    @Override
-    public void onError(Throwable cause) {
-        cm.server.tracker.remove(c());
-        cm.server.connections.disconnected(this);
     }
 }

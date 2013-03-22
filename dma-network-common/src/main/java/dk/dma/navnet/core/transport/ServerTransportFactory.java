@@ -39,5 +39,5 @@ public abstract class ServerTransportFactory {
      * 
      * @throws IOException
      */
-    public abstract void close() throws IOException;
+    public abstract void shutdown() throws IOException;
 }

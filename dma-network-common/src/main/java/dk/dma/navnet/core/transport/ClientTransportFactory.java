@@ -25,15 +25,18 @@ import java.util.concurrent.TimeUnit;
 public abstract class ClientTransportFactory {
 
     /**
-     * Connects
+     * Connects using the specified transport.
      * 
-     * @param listener
+     * @param transport
+     *            the transport to use
      * @param timeout
+     *            the connection time out
      * @param unit
-     * @return
+     *            the unit of timeout
      * @throws IOException
+     *             could not connect
      */
-    public abstract void connect(Transport listener, long timeout, TimeUnit unit) throws IOException;
+    public abstract void connect(Transport transport, long timeout, TimeUnit unit) throws IOException;
 
     /**
      * Shuts down the factory.
@@ -41,4 +44,5 @@ public abstract class ClientTransportFactory {
      * @throws IOException
      */
     public abstract void shutdown() throws IOException;
+
 }

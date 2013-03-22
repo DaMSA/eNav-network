@@ -110,6 +110,7 @@ class ConnectionManager extends Supplier<Transport> {
         try {
             Set<ServerTransport> s = connectingTransports;
             connectingTransports = null;
+            System.out.println(s);
         } finally {
             lock.unlock();
         }

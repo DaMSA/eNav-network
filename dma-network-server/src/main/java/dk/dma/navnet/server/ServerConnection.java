@@ -50,18 +50,14 @@ public class ServerConnection extends AbstractConnection {
 
     final ConnectionManager cm;
 
+    final MaritimeId id;
+
     /** The latest position of the client. */
     volatile PositionTime latestPosition;
-
-    final MaritimeId id;
-    final String sid;
     final ClientServices services;
+    final String sid;
 
     volatile String uuid;
-
-    ServerTransport t() {
-        return (ServerTransport) super.transport;
-    }
 
     /**
      * @param cm
@@ -72,6 +68,11 @@ public class ServerConnection extends AbstractConnection {
         this.sid = id.toString();
         this.id = requireNonNull(id);
         services = new ClientServices(this);
+    }
+
+    /** {@inheritDoc} */
+    public void broadcast(BroadcastMsg m) {
+        cm.broadcast(t(), m);
     }
 
     boolean connect(ServerTransport other, String reconnect, PositionTime pt) {
@@ -112,37 +113,6 @@ public class ServerConnection extends AbstractConnection {
     }
 
     /** {@inheritDoc} */
-    @Override
-    public final void handleMessageReply(AbstractTextMessage m, NetworkFutureImpl<?> f) {
-        unknownMessage(m);
-    }
-
-    /** {@inheritDoc} */
-    @Override
-    public final void handleMessage(AbstractTextMessage m) {
-        if (m instanceof RegisterService) {
-            registerService((RegisterService) m);
-        } else if (m instanceof FindService) {
-            findService((FindService) m);
-        } else if (m instanceof AbstractRelayedMessage) {
-            relay((AbstractRelayedMessage) m);
-        } else if (m instanceof BroadcastMsg) {
-            broadcast((BroadcastMsg) m);
-        } else if (m instanceof PositionReportMessage) {
-            positionReport((PositionReportMessage) m);
-        } else if (m instanceof FindService) {
-            findService((FindService) m);
-        } else {
-            unknownMessage(m);
-        }
-    }
-
-    /** {@inheritDoc} */
-    public void broadcast(BroadcastMsg m) {
-        cm.broadcast(t(), m);
-    }
-
-    /** {@inheritDoc} */
     public void findService(final FindService m) {
         final PositionTime pos = latestPosition;
         double meters = m.getMeters() <= 0 ? Integer.MAX_VALUE : m.getMeters();
@@ -180,6 +150,32 @@ public class ServerConnection extends AbstractConnection {
     }
 
     /** {@inheritDoc} */
+    @Override
+    public final void handleMessage(AbstractTextMessage m) {
+        if (m instanceof RegisterService) {
+            registerService((RegisterService) m);
+        } else if (m instanceof FindService) {
+            findService((FindService) m);
+        } else if (m instanceof AbstractRelayedMessage) {
+            relay((AbstractRelayedMessage) m);
+        } else if (m instanceof BroadcastMsg) {
+            broadcast((BroadcastMsg) m);
+        } else if (m instanceof PositionReportMessage) {
+            positionReport((PositionReportMessage) m);
+        } else if (m instanceof FindService) {
+            findService((FindService) m);
+        } else {
+            unknownMessage(m);
+        }
+    }
+
+    /** {@inheritDoc} */
+    @Override
+    public final void handleMessageReply(AbstractTextMessage m, NetworkFutureImpl<?> f) {
+        unknownMessage(m);
+    }
+
+    /** {@inheritDoc} */
     public void positionReport(PositionReportMessage m) {
         cm.server.tracker.update(this, m.getPositionTime());
         latestPosition = m.getPositionTime();
@@ -201,5 +197,9 @@ public class ServerConnection extends AbstractConnection {
         } else {
             c.sendRawTextMessage(m.getReceivedRawMesage());
         }
+    }
+
+    ServerTransport t() {
+        return (ServerTransport) super.transport;
     }
 }

@@ -20,6 +20,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.locks.ReentrantLock;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -47,6 +48,7 @@ public class ENavNetworkServer {
     /** The thread that is accepting incoming sockets. */
     final ConnectionManager connections;
 
+    /** An unbounded pool of deamon threads. */
     final ExecutorService deamonPool = Executors.newCachedThreadPool(new ThreadFactoryBuilder()
             .setNameFormat("deamonPool").setDaemon(true).build());
 
@@ -54,6 +56,9 @@ public class ENavNetworkServer {
 
     /** The id of the server, hardcoded for now */
     private final ServerId id = new ServerId(1);
+
+    /** A lock protecting startup and shutdown. */
+    private final ReentrantLock lock = new ReentrantLock();
 
     final ScheduledExecutorService ses = Executors.newSingleThreadScheduledExecutor(new ThreadFactoryBuilder()
             .setNameFormat("PositionTrackerUpdate").setDaemon(true).build());
@@ -93,37 +98,47 @@ public class ENavNetworkServer {
         return connections.getNumberOfConnections();
     }
 
-    public synchronized void shutdown() {
-        if (state == State.INITIALIZED) {
-            state = State.TERMINATED;
-            termination.countDown();
-            LOG.info("Server shutdown, was never started");
-        } else if (state == State.RUNNING) {
-            LOG.info("Shutting down server");
-            state = State.SHUTDOWN;
-            new ShutdownThread().start();
-        }
-    }
-
-    public synchronized void start() throws Exception {
-        if (state == State.INITIALIZED) {
-            LOG.info("Server with id = " + id + " starting");
-            // Schedules the tracker to recalcute positions every second.
-            ses.scheduleAtFixedRate(tracker, 0, 1, TimeUnit.SECONDS);
-            // Starts a new thread that will accept new connections
-            try {
-                factory.startAccept(connections);
-            } catch (Exception e) {
-                new ShutdownThread().start();
+    public void shutdown() {
+        lock.lock();
+        try {
+            if (state == State.INITIALIZED) {
                 state = State.TERMINATED;
-                throw e;
+                termination.countDown();
+                LOG.info("Server shutdown, was never started");
+            } else if (state == State.RUNNING) {
+                LOG.info("Shutting down server");
+                state = State.SHUTDOWN;
+                new ShutdownThread().start();
             }
-            // Set to running state
-            state = State.RUNNING;
+        } finally {
+            lock.unlock();
         }
     }
 
-    synchronized void tryTerminate() {
+    public void start() throws Exception {
+        lock.lock();
+        try {
+            if (state == State.INITIALIZED) {
+                LOG.info("Server with id = " + id + " starting");
+                // Schedules the tracker to recalcute positions every second.
+                ses.scheduleAtFixedRate(tracker, 0, 1, TimeUnit.SECONDS);
+                // Starts a new thread that will accept new connections
+                try {
+                    factory.startAccept(connections);
+                } catch (Exception e) {
+                    new ShutdownThread().start();
+                    state = State.TERMINATED;
+                    throw e;
+                }
+                // Set to running state
+                state = State.RUNNING;
+            }
+        } finally {
+            lock.unlock();
+        }
+    }
+
+    void tryTerminate() {
         termination.countDown();
         LOG.info("Server Terminated");
     }
@@ -140,7 +155,7 @@ public class ENavNetworkServer {
             LOG.info("Shutdown thread started");
             System.out.println("Stopping for acceptance of new connections");
             try {
-                factory.close();
+                factory.shutdown();
             } catch (Exception e) {
                 e.printStackTrace();
             }

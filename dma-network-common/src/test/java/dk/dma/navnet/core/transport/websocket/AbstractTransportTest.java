@@ -162,7 +162,7 @@ public abstract class AbstractTransportTest {
 
     @After
     public void teardown() throws IOException {
-        stf.close();
+        stf.shutdown();
         ctf.shutdown();
     }
 }

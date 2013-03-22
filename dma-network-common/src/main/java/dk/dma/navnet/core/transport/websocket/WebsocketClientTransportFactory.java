@@ -62,7 +62,7 @@ class WebsocketClientTransportFactory extends ClientTransportFactory {
     /** {@inheritDoc} */
     @Override
     public void connect(Transport listener, long timeout, TimeUnit unit) throws IOException {
-        WebsocketClientTransport client = new WebsocketClientTransport(listener);
+        WebsocketTransportSession client = new WebsocketTransportSession(listener);
         System.out.println("Connecting to " + uri);
         try {
             client().connect(client, uri).get();
@@ -91,23 +91,5 @@ class WebsocketClientTransportFactory extends ClientTransportFactory {
             }
             throw new IOException(e);
         }
-    }
-
-    static class WebsocketClientTransport extends AbstractTransportListener {
-
-        /**
-         * @param receiver
-         * @param session
-         */
-        public WebsocketClientTransport(Transport listener) {
-            super(listener);
-        }
-
-        /** {@inheritDoc} */
-        @Override
-        public final void onWebSocketError(Throwable cause) {
-            // onError(cause);
-        }
-
     }
 }

@@ -37,10 +37,13 @@ import dk.dma.navnet.core.transport.Transport;
  * @author Kasper Nielsen
  */
 public class WebsocketServerTransportFactory extends ServerTransportFactory {
+
+    /** The jetty server */
     private final Server server;
 
     public WebsocketServerTransportFactory(InetSocketAddress sa) {
         server = new Server(sa);
+        // Sets setReuseAddress
         ServerConnector connector = (ServerConnector) server.getConnectors()[0];
         connector.setReuseAddress(true);
     }
@@ -54,7 +57,7 @@ public class WebsocketServerTransportFactory extends ServerTransportFactory {
             public void configure(WebSocketServletFactory factory) {
                 factory.setCreator(new WebSocketCreator() {
                     public Object createWebSocket(UpgradeRequest req, UpgradeResponse resp) {
-                        ServerTransport st = new ServerTransport(supplier.get());
+                        WebsocketTransportSession st = new WebsocketTransportSession(supplier.get());
                         return st;
                     }
                 });
@@ -80,7 +83,7 @@ public class WebsocketServerTransportFactory extends ServerTransportFactory {
 
     /** {@inheritDoc} */
     @Override
-    public void close() throws IOException {
+    public void shutdown() throws IOException {
         try {
             server.stop();
         } catch (Exception e) {
@@ -89,20 +92,5 @@ public class WebsocketServerTransportFactory extends ServerTransportFactory {
             }
             throw new IOException(e);
         }
-    }
-
-    static class ServerTransport extends AbstractTransportListener {
-
-        /**
-         * @param transport
-         */
-        ServerTransport(Transport transport) {
-            super(transport);
-        }
-
-        /** {@inheritDoc} */
-        @Override
-        public void onWebSocketError(Throwable arg0) {}
-
     }
 }

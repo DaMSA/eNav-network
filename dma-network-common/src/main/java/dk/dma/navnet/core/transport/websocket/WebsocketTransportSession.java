@@ -32,19 +32,19 @@ import dk.dma.navnet.core.transport.TransportSession;
  * 
  * @author Kasper Nielsen
  */
-abstract class AbstractTransportListener extends TransportSession implements WebSocketListener {
+class WebsocketTransportSession extends TransportSession implements WebSocketListener {
     Session session;
     final Transport transport;
     final CountDownLatch connected = new CountDownLatch(1);
 
-    AbstractTransportListener(Transport transport) {
+    WebsocketTransportSession(Transport transport) {
         this.transport = requireNonNull(transport);
 
     }
 
     /** {@inheritDoc} */
     @Override
-    public void onWebSocketConnect(Session session) {
+    public final void onWebSocketConnect(Session session) {
         this.session = session;
         connected.countDown();
         transport.onConnected(this);
@@ -71,13 +71,17 @@ abstract class AbstractTransportListener extends TransportSession implements Web
 
     /** {@inheritDoc} */
     @Override
+    public final void onWebSocketError(Throwable arg0) {}
+
+    /** {@inheritDoc} */
+    @Override
     public final void onWebSocketText(String message) {
         transport.onReceivedText(message);
     }
 
     /** {@inheritDoc} */
     @Override
-    protected void close(CloseReason reason) {
+    protected final void close(CloseReason reason) {
         Session s = session;
         try {
             if (s != null) {
@@ -89,7 +93,7 @@ abstract class AbstractTransportListener extends TransportSession implements Web
     }
 
     /** {@inheritDoc} */
-    public void sendText(String text) {
+    public final void sendText(String text) {
         Session s = session;
         RemoteEndpoint r = s == null ? null : s.getRemote();
         if (r != null) {

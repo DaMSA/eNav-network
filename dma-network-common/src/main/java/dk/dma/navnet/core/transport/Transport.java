@@ -28,12 +28,16 @@ import dk.dma.enav.communication.CloseReason;
  */
 public abstract class Transport {
 
+    /** A single lock protected the current state. */
     private final Lock lock = new ReentrantLock();
 
-    TransportSession spi;
+    /** The transport session, or null if not yet connected. */
+    private volatile TransportSession session;
 
+    /** If closed, the reason why this transport was closed. */
     volatile CloseReason closeReason;
 
+    /** The current state of the transport */
     volatile State state;
 
     public final void close(CloseReason reason) {
@@ -44,8 +48,8 @@ public abstract class Transport {
                 return;
             }
             closeReason = reason;
-            if (spi != null) {
-                spi.close(reason);
+            if (session != null) {
+                session.close(reason);
             }
         } finally {
             lock.unlock();
@@ -54,22 +58,45 @@ public abstract class Transport {
 
     public void onClosed(CloseReason reason) {}
 
-    public void onConnected(TransportSession spi) {
-        this.spi = requireNonNull(spi);
+    public void onConnected(TransportSession session) {
+        requireNonNull(session);
+        lock.lock();
+        try {
+            this.session = session;
+        } finally {
+            lock.unlock();
+        }
     }
 
     /**
+     * Receives a string message. The default implementation does nothing.
+     * 
      * @param message
+     *            the string message
      */
-    public void onReceivedText(String message) {}
+    public void onReceivedText(String message) {};
 
+    /**
+     * Asynchronous sends a text to the remote end.
+     * 
+     * @param text
+     *            the text to send
+     * @throws IllegalStateException
+     *             if the transport is not yet connected
+     * @throws NullPointerException
+     *             if the specified text is null
+     */
     public final void sendText(String text) {
         requireNonNull(text, "text is null");
-        TransportSession spi = this.spi;
-        if (spi == null) {
+        TransportSession session = this.session;
+        if (session == null) {
             throw new IllegalStateException("Not connected yet");
         }
-        spi.sendText(text);
+        session.sendText(text);
+    }
+
+    public State getState() {
+        return state;
     }
 
     public enum State {
