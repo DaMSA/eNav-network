@@ -15,6 +15,8 @@
  */
 package dk.dma.enav.communication.server;
 
+import java.util.concurrent.TimeUnit;
+
 import org.junit.Test;
 
 import test.stubs.HelloWorld;
@@ -31,10 +33,10 @@ public class CustomPortTest {
 
     @Test
     public void testNonDefaultPort() throws Exception {
-        ENavNetworkServer server = new ENavNetworkServer(12345);
+        ENavNetworkServer server = new ENavNetworkServer(12445);
         server.start();
         MaritimeNetworkConnectionBuilder b = MaritimeNetworkConnectionBuilder.create("mmsi://1234");
-        b.setHost("localhost:12345");
+        b.setHost("localhost:12445");
         System.out.println("a");
         try (PersistentConnection c = b.build()) {
             System.out.println("b");
@@ -42,5 +44,6 @@ public class CustomPortTest {
         }
         System.out.println("c");
         server.shutdown();
+        server.awaitTerminated(1, TimeUnit.SECONDS);
     }
 }
