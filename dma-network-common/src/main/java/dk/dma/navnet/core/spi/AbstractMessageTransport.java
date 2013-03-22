@@ -19,6 +19,7 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.locks.ReentrantLock;
 
+import dk.dma.enav.communication.CloseReason;
 import dk.dma.navnet.core.messages.AbstractTextMessage;
 import dk.dma.navnet.core.messages.c2c.AbstractRelayedMessage;
 import dk.dma.navnet.core.messages.s2c.AckMessage;
@@ -45,7 +46,7 @@ public abstract class AbstractMessageTransport extends Transport {
         return ac;
     }
 
-    protected void closed(int statusCode, String reason) {
+    protected void closed(CloseReason reason) {
 
     }
 
@@ -57,10 +58,10 @@ public abstract class AbstractMessageTransport extends Transport {
 
     /** {@inheritDoc} */
     @Override
-    public final void onClosed(int code, String message) {
-        super.onClosed(code, message);
-        closed(code, message);
-        System.out.println("CLOSED:" + message);
+    public final void onClosed(CloseReason reason) {
+        super.onClosed(reason);
+        closed(reason);
+        System.out.println("CLOSED:" + reason.getMessage());
     }
 
     /** {@inheritDoc} */
@@ -85,7 +86,7 @@ public abstract class AbstractMessageTransport extends Transport {
             onReceivedText0(m);
         } catch (Throwable e) {
             e.printStackTrace();
-            tryClose(5004, e.getMessage());
+            tryClose(CloseReason.WRONG_MESSAGE.withMessage(e.getMessage()));
         }
     }
 
@@ -153,8 +154,7 @@ public abstract class AbstractMessageTransport extends Transport {
         }
     }
 
-    public final void tryClose(int statusCode, String reason) {
-        close(statusCode, reason);
+    public final void tryClose(CloseReason cr) {
+        close(cr);
     }
-
 }

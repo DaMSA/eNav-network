@@ -58,13 +58,15 @@ public class Main extends AbstractCommandLineTool {
         if (server != null) {
             server.shutdown();
             try {
-                if (!server.awaitTerminated(30, TimeUnit.SECONDS)) {
-                    throw new IllegalStateException("Could not shutdown server properly");
+                for (int i = 0; i < 30; i++) {
+                    if (!server.awaitTerminated(1, TimeUnit.SECONDS)) {
+                        System.out.println("Awaiting shutdown " + i + " / 30 seconds");
+                    }
                 }
+                throw new IllegalStateException("Could not shutdown server properly");
             } catch (InterruptedException e) {
                 throw new RuntimeException(e);
             }
         }
     }
-
 }

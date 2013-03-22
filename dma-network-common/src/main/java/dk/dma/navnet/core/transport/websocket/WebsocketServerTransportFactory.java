@@ -64,7 +64,7 @@ public class WebsocketServerTransportFactory extends ServerTransportFactory {
         server.setHandler(wsHandler);
         try {
             server.start();
-            System.out.println("Server started");
+            System.out.println("Ready to accept incoming sockets");
         } catch (Exception e) {
             try {
                 server.stop();

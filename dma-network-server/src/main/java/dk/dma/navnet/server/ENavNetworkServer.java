@@ -27,6 +27,7 @@ import org.slf4j.LoggerFactory;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 
 import dk.dma.commons.tracker.PositionTracker;
+import dk.dma.enav.model.MaritimeId;
 import dk.dma.enav.model.shore.ServerId;
 import dk.dma.navnet.core.transport.ServerTransportFactory;
 import dk.dma.navnet.core.transport.websocket.WebsocketTransports;
@@ -40,19 +41,22 @@ public class ENavNetworkServer {
     /** The default port this server is running on. */
     public static final int DEFAULT_PORT = 43234;
 
-    final ServerId id = new ServerId(1);
-
     /** The logger. */
     static final Logger LOG = LoggerFactory.getLogger(ENavNetworkServer.class);
+
+    /** The thread that is accepting incoming sockets. */
+    final ConnectionManager connections;
 
     final ExecutorService deamonPool = Executors.newCachedThreadPool(new ThreadFactoryBuilder()
             .setNameFormat("deamonPool").setDaemon(true).build());
 
+    final ServerTransportFactory factory;
+
+    /** The id of the server, hardcoded for now */
+    private final ServerId id = new ServerId(1);
+
     final ScheduledExecutorService ses = Executors.newSingleThreadScheduledExecutor(new ThreadFactoryBuilder()
             .setNameFormat("PositionTrackerUpdate").setDaemon(true).build());
-
-    /** The thread that is accepting incoming sockets. */
-    final ConnectionManager connections;
 
     /** The current state of this server. */
     volatile State state = State.INITIALIZED;
@@ -63,8 +67,7 @@ public class ENavNetworkServer {
     /** The position tracker. */
     final PositionTracker<ServerConnection> tracker = new PositionTracker<>();
 
-    final ServerTransportFactory factory;
-
+    /** Creates a new ENavNetworkServer */
     public ENavNetworkServer() {
         this(DEFAULT_PORT);
     }
@@ -80,6 +83,10 @@ public class ENavNetworkServer {
 
     protected void finalize() {
         shutdown();
+    }
+
+    public MaritimeId getLocalId() {
+        return id;
     }
 
     public int getNumberOfConnections() {
@@ -101,15 +108,14 @@ public class ENavNetworkServer {
     public synchronized void start() throws Exception {
         if (state == State.INITIALIZED) {
             LOG.info("Server with id = " + id + " starting");
-
             // Schedules the tracker to recalcute positions every second.
             ses.scheduleAtFixedRate(tracker, 0, 1, TimeUnit.SECONDS);
             // Starts a new thread that will accept new connections
             try {
                 factory.startAccept(connections);
             } catch (Exception e) {
+                new ShutdownThread().start();
                 state = State.TERMINATED;
-                factory.close();
                 throw e;
             }
             // Set to running state
@@ -123,6 +129,7 @@ public class ENavNetworkServer {
     }
 
     class ShutdownThread extends Thread {
+
         ShutdownThread() {
             setDaemon(true);
         }
@@ -137,6 +144,7 @@ public class ENavNetworkServer {
             } catch (Exception e) {
                 e.printStackTrace();
             }
+            ses.shutdown();
             LOG.info("Acceptance of new connections stopped, closing existing");
             int size = connections.getNumberOfConnections();
             if (size > 0) {

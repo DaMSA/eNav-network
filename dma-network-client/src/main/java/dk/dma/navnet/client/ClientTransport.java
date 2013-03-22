@@ -15,6 +15,7 @@
  */
 package dk.dma.navnet.client;
 
+import dk.dma.enav.communication.CloseReason;
 import dk.dma.navnet.core.spi.AbstractMessageTransport;
 
 /**
@@ -25,8 +26,8 @@ class ClientTransport extends AbstractMessageTransport {
 
     /** {@inheritDoc} */
     @Override
-    protected void closed(int statusCode, String reason) {
-        super.closed(statusCode, reason);
+    protected void closed(CloseReason reason) {
+        super.closed(reason);
         ClientConnection cc = (ClientConnection) ac;
         if (cc != null) {
             cc.cm.close();

@@ -24,6 +24,7 @@ import java.util.concurrent.TimeUnit;
 import org.junit.Ignore;
 import org.junit.Test;
 
+import dk.dma.enav.communication.CloseReason;
 import dk.dma.enav.util.function.Supplier;
 import dk.dma.navnet.core.transport.ClientTransportFactory;
 import dk.dma.navnet.core.transport.ServerTransportFactory;
@@ -51,24 +52,23 @@ public abstract class ClosingTest {
         stf.startAccept(new Supplier<Transport>() {
             public Transport get() {
                 return new Transport() {
-                    public void onClosed(int code, String message) {
-                        System.out.println(code);
-                        assertEquals(1000, code);
+                    public void onClosed(CloseReason reason) {
+                        assertEquals(1000, reason.getId());
                         cdl.countDown();
 
                     }
 
                     public void onConnected(TransportSession spi) {
                         super.onConnected(spi);
-                        close();
+                        close(CloseReason.NORMAL);
                     }
                 };
             }
         });
         // Client
         ctf.connect(new Transport() {
-            public void onClosed(int code, String message) {
-                System.out.println("GOT " + code);
+            public void onClosed(CloseReason reason) {
+                System.out.println("GOT " + reason.getId());
                 cdl.countDown();
             }
         }, 1, TimeUnit.SECONDS);
@@ -81,8 +81,8 @@ public abstract class ClosingTest {
         stf.startAccept(new Supplier<Transport>() {
             public Transport get() {
                 return new Transport() {
-                    public void onClosed(int code, String message) {
-                        assertEquals(1000, code);
+                    public void onClosed(CloseReason reason) {
+                        assertEquals(1000, reason.getId());
                         cdl.countDown();
 
                     }
@@ -98,11 +98,11 @@ public abstract class ClosingTest {
         ctf.connect(new Transport() {
             public void onReceivedText(String text) {
                 assertEquals("CloseMe", text);
-                close();
+                close(CloseReason.NORMAL);
             }
 
-            public void onClosed(int code, String message) {
-                assertEquals(1000, code);
+            public void onClosed(CloseReason reason) {
+                assertEquals(1000, reason.getId());
                 cdl.countDown();
             }
         }, 1, TimeUnit.SECONDS);

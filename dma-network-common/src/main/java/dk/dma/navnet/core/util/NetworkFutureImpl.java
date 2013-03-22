@@ -34,10 +34,13 @@ public class NetworkFutureImpl<T> extends CompletableFuture<T> implements Connec
     final ScheduledExecutorService ses;
 
     public NetworkFutureImpl(ScheduledExecutorService ses) {
-        this.ses = requireNonNull(ses);
+        this.ses = ses;
     }
 
     public NetworkFutureImpl<T> timeout(final long timeout, final TimeUnit unit) {
+        if (ses == null) {
+            throw new UnsupportedOperationException("timeout not supported.");
+        }
         final NetworkFutureImpl<T> cf = new NetworkFutureImpl<>(ses);
         final Future<?> f = ses.schedule(new Runnable() {
             public void run() {

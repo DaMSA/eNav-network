@@ -20,8 +20,7 @@ import static java.util.Objects.requireNonNull;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.locks.ReentrantLock;
 
 import jsr166e.ConcurrentHashMapV8;
 
@@ -42,25 +41,24 @@ class ConnectionManager extends Supplier<Transport> {
     /** The logger. */
     static final Logger LOG = LoggerFactory.getLogger(ConnectionManager.class);
 
-    /** The pool of threads used for each connection. */
-    final ScheduledExecutorService ses = Executors.newSingleThreadScheduledExecutor();
-
     /** The actual server */
     final ENavNetworkServer server;
 
     /** All clients that currently connecting. */
-    final Set<ServerTransport> connectingTransports = Collections
+    volatile Set<ServerTransport> connectingTransports = Collections
             .newSetFromMap(new ConcurrentHashMapV8<ServerTransport, Boolean>());
 
     /** All clients */
     final ConcurrentHashMapV8<String, ServerConnection> clients = new ConcurrentHashMapV8<>();
+
+    final ReentrantLock lock = new ReentrantLock();
 
     ConnectionManager(ENavNetworkServer server) {
         this.server = requireNonNull(server);
     }
 
     void disconnected(ServerTransport connection) {
-        clients.remove(connection.c().id.toString());
+        clients.remove(connection.c().sid);
     }
 
     void broadcast(ServerTransport sender, final BroadcastMsg broadcast) {
@@ -76,10 +74,6 @@ class ConnectionManager extends Supplier<Transport> {
         }
     }
 
-    synchronized void dropConnection() {
-        // connections.remove(pc.getRemoteID().toString());
-    }
-
     public Set<String> getAllConnectionIds() {
         return new HashSet<>(clients.keySet());
     }
@@ -92,11 +86,6 @@ class ConnectionManager extends Supplier<Transport> {
         return clients.get(id).t();
     }
 
-    /** Stops accepting any more sockets. */
-    void stopAccepting() {
-        ses.shutdown();
-    }
-
     void handleDeadConnection(ServerTransport pc) {
         // for all pending
         // send news to sender?
@@ -106,9 +95,24 @@ class ConnectionManager extends Supplier<Transport> {
     /** {@inheritDoc} */
     @Override
     public Transport get() {
-        ServerTransport s = new ServerTransport(this);
-        connectingTransports.add(s);
-        return s;
+        lock.lock();
+        try {
+            ServerTransport s = new ServerTransport(this);
+            connectingTransports.add(s);
+            return s;
+        } finally {
+            lock.unlock();
+        }
+    }
+
+    void shutdown() {
+        lock.lock();
+        try {
+            Set<ServerTransport> s = connectingTransports;
+            connectingTransports = null;
+        } finally {
+            lock.unlock();
+        }
     }
 }
 // class ConnectionChecker implements Runnable {

@@ -16,6 +16,7 @@
 package dk.dma.navnet.server;
 
 import static java.util.Objects.requireNonNull;
+import dk.dma.enav.communication.CloseReason;
 import dk.dma.enav.model.geometry.PositionTime;
 import dk.dma.navnet.core.messages.AbstractTextMessage;
 import dk.dma.navnet.core.messages.auxiliary.HelloMessage;
@@ -69,7 +70,7 @@ class ServerTransport extends AbstractMessageTransport {
     /** {@inheritDoc} */
     @Override
     public void connected() {
-        sendMessage(new WelcomeMessage(1, cm.server.id, "enavServer/1.0"));
+        sendMessage(new WelcomeMessage(1, cm.server.getLocalId(), "enavServer/1.0"));
     }
 
     ServerConnection c() {
@@ -78,7 +79,7 @@ class ServerTransport extends AbstractMessageTransport {
 
     /** {@inheritDoc} */
     @Override
-    protected void closed(int statusCode, String reason) {
+    protected void closed(CloseReason reason) {
         lock.lock();
         try {
             ServerConnection con = c();
@@ -86,7 +87,7 @@ class ServerTransport extends AbstractMessageTransport {
                 cm.server.tracker.remove(c());
                 cm.clients.remove(con.sid);
             }
-            super.closed(statusCode, reason);
+            super.closed(reason);
         } finally {
             lock.unlock();
         }

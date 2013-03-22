@@ -22,6 +22,7 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.ReentrantLock;
 
+import dk.dma.enav.communication.CloseReason;
 import dk.dma.navnet.core.messages.AbstractTextMessage;
 import dk.dma.navnet.core.messages.s2c.ReplyMessage;
 import dk.dma.navnet.core.util.NetworkFutureImpl;
@@ -46,25 +47,29 @@ public abstract class AbstractConnection {
 
     protected volatile AbstractMessageTransport transport;
 
+    protected AbstractConnection() {
+        this.ses = null;
+    }
+
     protected AbstractConnection(ScheduledExecutorService ses) {
         this.ses = requireNonNull(ses);
     }
 
-    public final <T> NetworkFutureImpl<T> sendMessage(ReplyMessage<T> m) {
-        return transport.sendMessage(m);
-    }
-
     public void closeNormally() {
-        transport.tryClose(4333, "Goodbye");
-    }
-
-    public final void sendMessage(AbstractTextMessage m) {
-        transport.sendMessage(m);
+        transport.tryClose(CloseReason.NORMAL);
     }
 
     protected abstract void handleMessage(AbstractTextMessage m) throws Exception;
 
     protected abstract void handleMessageReply(AbstractTextMessage m, NetworkFutureImpl<?> f) throws Exception;
+
+    public final void sendMessage(AbstractTextMessage m) {
+        transport.sendMessage(m);
+    }
+
+    public final <T> NetworkFutureImpl<T> sendMessage(ReplyMessage<T> m) {
+        return transport.sendMessage(m);
+    }
 
     protected void setTransport(AbstractMessageTransport transport) {
         lock.lock();

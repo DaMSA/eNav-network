@@ -16,6 +16,10 @@
 package dk.dma.navnet.core.transport;
 
 import static java.util.Objects.requireNonNull;
+
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
+
 import dk.dma.enav.communication.CloseReason;
 
 /**
@@ -24,29 +28,40 @@ import dk.dma.enav.communication.CloseReason;
  */
 public abstract class Transport {
 
+    private final Lock lock = new ReentrantLock();
+
     TransportSession spi;
+
+    volatile CloseReason closeReason;
+
+    volatile State state;
+
+    public final void close(CloseReason reason) {
+        requireNonNull(reason);
+        lock.lock();
+        try {
+            if (state == State.CLOSED) {
+                return;
+            }
+            closeReason = reason;
+            if (spi != null) {
+                spi.close(reason);
+            }
+        } finally {
+            lock.unlock();
+        }
+    }
+
+    public void onClosed(CloseReason reason) {}
 
     public void onConnected(TransportSession spi) {
         this.spi = requireNonNull(spi);
     }
 
-    public final void close() {
-        if (spi != null) {
-            spi.close();
-        }
-    }
-
-    public final void close(CloseReason reason) {
-        if (spi != null) {
-            spi.close();
-        }
-    }
-
-    public final void close(int code, String text) {
-        if (spi != null) {
-            spi.close();
-        }
-    }
+    /**
+     * @param message
+     */
+    public void onReceivedText(String message) {}
 
     public final void sendText(String text) {
         requireNonNull(text, "text is null");
@@ -57,10 +72,7 @@ public abstract class Transport {
         spi.sendText(text);
     }
 
-    public void onClosed(int code, String message) {}
-
-    /**
-     * @param message
-     */
-    public void onReceivedText(String message) {}
+    public enum State {
+        INITIALIZED, CONNECTED, CLOSED;
+    }
 }

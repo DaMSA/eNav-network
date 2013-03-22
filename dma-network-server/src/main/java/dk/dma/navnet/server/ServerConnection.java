@@ -68,7 +68,6 @@ public class ServerConnection extends AbstractConnection {
      * @param sh
      */
     public ServerConnection(ConnectionManager cm, MaritimeId id) {
-        super(cm.ses);
         this.cm = cm;
         this.sid = id.toString();
         this.id = requireNonNull(id);

@@ -54,7 +54,7 @@ abstract class AbstractTransportListener extends TransportSession implements Web
     @Override
     public final void onWebSocketClose(int statusCode, String reason) {
         session = null;
-        transport.onClosed(statusCode, reason);
+        transport.onClosed(CloseReason.create(statusCode, reason));
     }
 
     /** {@inheritDoc} */
@@ -77,11 +77,11 @@ abstract class AbstractTransportListener extends TransportSession implements Web
 
     /** {@inheritDoc} */
     @Override
-    protected void close() {
+    protected void close(CloseReason reason) {
         Session s = session;
         try {
             if (s != null) {
-                s.close();
+                s.close(reason.getId(), reason.getMessage());
             }
         } catch (IOException e) {
             e.printStackTrace();

@@ -15,13 +15,15 @@
  */
 package dk.dma.navnet.core.transport;
 
+import dk.dma.enav.communication.CloseReason;
+
 /**
  * 
  * @author Kasper Nielsen
  */
 public abstract class TransportSession {
 
-    protected abstract void close();
+    protected abstract void close(CloseReason reason);
 
     protected abstract void sendText(String text);
 }
