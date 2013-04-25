@@ -16,21 +16,20 @@
 package dk.dma.enav.communication;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 import java.util.concurrent.TimeUnit;
 
 import org.junit.Test;
 
 import dk.dma.enav.communication.PersistentConnection.State;
-import dk.dma.enav.model.MaritimeId;
 
 /**
  * 
  * @author Kasper Nielsen
  */
 public class ConnectionTest extends AbstractNetworkTest {
-    public static final MaritimeId ID1 = MaritimeId.create("mmsi://1");
-    public static final MaritimeId ID6 = MaritimeId.create("mmsi://6");
 
     @Test
     public void manyClients() throws Exception {
@@ -52,12 +51,16 @@ public class ConnectionTest extends AbstractNetworkTest {
         PersistentConnection pc = newClient(ID1);
         assertEquals(1, si.getNumberOfConnections());
         pc.awaitState(State.CONNECTED, 1, TimeUnit.SECONDS);
+        assertEquals(1, si.getNumberOfConnections());
         pc.close();
+        assertTrue(pc.getState() == State.CLOSED || pc.getState() == State.TERMINATED);
         pc.awaitState(State.TERMINATED, 1, TimeUnit.SECONDS);
-
-        // assertEquals(0, si.getNumberOfConnections());
-
-        // Thread.sleep(1000);
-        // assertEquals(1, si.getNumberOfConnections());
+        for (int i = 0; i < 100; i++) {
+            if (si.getNumberOfConnections() == 0) {
+                return;
+            }
+            Thread.sleep(15);
+        }
+        fail();
     }
 }

@@ -18,13 +18,13 @@ package dk.dma.navnet.core.spi;
 import static java.util.Objects.requireNonNull;
 
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.ReentrantLock;
 
 import dk.dma.enav.communication.CloseReason;
 import dk.dma.navnet.core.messages.AbstractTextMessage;
 import dk.dma.navnet.core.messages.s2c.ReplyMessage;
+import dk.dma.navnet.core.util.ConnectionFutureSupplier;
 import dk.dma.navnet.core.util.NetworkFutureImpl;
 
 /**
@@ -43,16 +43,16 @@ public abstract class AbstractConnection {
 
     final ConcurrentHashMap<String, NetworkFutureImpl<?>> replies = new ConcurrentHashMap<>();
 
-    final ScheduledExecutorService ses;
+    final ConnectionFutureSupplier cfs;
 
     protected volatile AbstractMessageTransport transport;
 
     protected AbstractConnection() {
-        this.ses = null;
+        this.cfs = null;
     }
 
-    protected AbstractConnection(ScheduledExecutorService ses) {
-        this.ses = requireNonNull(ses);
+    protected AbstractConnection(ConnectionFutureSupplier cfs) {
+        this.cfs = requireNonNull(cfs);
     }
 
     public void closeNormally() {

@@ -17,6 +17,7 @@ package test.util;
 
 import static java.util.Objects.requireNonNull;
 import dk.dma.enav.communication.service.spi.Service;
+import dk.dma.enav.communication.service.spi.ServiceInitiationPoint;
 import dk.dma.enav.communication.service.spi.ServiceMessage;
 import dk.dma.enav.model.MaritimeId;
 
@@ -25,6 +26,9 @@ import dk.dma.enav.model.MaritimeId;
  * @author Kasper Nielsen
  */
 public class TestService extends Service {
+
+    /** An initiation point */
+    public static final ServiceInitiationPoint<TestInit> TEST_INIT = new ServiceInitiationPoint<>(TestInit.class);
 
     public static class TestInit extends ServiceMessage<TestReply> {
 

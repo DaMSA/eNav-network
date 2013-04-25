@@ -85,8 +85,8 @@ class ServiceManager {
                 msg.messageName(), JSonUtil.persistAndEscape(msg));
         is.setDestination(id.toString());
         is.setSource(c.getLocalId().toString());
-        final NetworkFutureImpl<T> f = new NetworkFutureImpl<>(c.ses);
-        NetworkFutureImpl<InvokeServiceResult> fr = new NetworkFutureImpl<>(c.ses);
+        final NetworkFutureImpl<T> f = c.cfs.create();
+        NetworkFutureImpl<InvokeServiceResult> fr = c.cfs.create();
         invokers.put(is.getConversationId(), fr);
         fr.thenAcceptAsync(new CompletableFuture.Action<Object>() {
             @SuppressWarnings("unchecked")

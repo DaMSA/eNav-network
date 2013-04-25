@@ -16,35 +16,61 @@
 package dk.dma.enav.communication;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 
 import org.junit.Ignore;
 import org.junit.Test;
-
-import dk.dma.enav.model.MaritimeId;
 
 /**
  * 
  * @author Kasper Nielsen
  */
 public class ConnectionStateListenerTest extends AbstractNetworkTest {
-    public static final MaritimeId ID1 = MaritimeId.create("mmsi://1");
-    public static final MaritimeId ID6 = MaritimeId.create("mmsi://6");
 
     @Test
-    @Ignore
-    public void manyClients() throws Exception {
-        newClients(20);
-        assertEquals(20, si.getNumberOfConnections());
+    public void connected() throws Exception {
+        final CountDownLatch cdl = new CountDownLatch(1);
+        newClient(newBuilder(ID1).addListener(new AbstractConnectionTestListener() {
+            public void connected() {
+                assertEquals(1, cdl.getCount());
+                cdl.countDown();
+            }
+        }));
+        assertTrue(cdl.await(1, TimeUnit.SECONDS));
     }
 
     @Test
-    @Ignore
-    public void singleClient() throws Exception {
-        newClient(ID1);
-
-        assertEquals(1, si.getNumberOfConnections());
-        // Thread.sleep(1000);
-        // assertEquals(1, si.getNumberOfConnections());
+    public void connectedTwoListeners() throws Exception {
+        final CountDownLatch cdl = new CountDownLatch(2);
+        newClient(newBuilder(ID1).addListener(new AbstractConnectionTestListener() {
+            public void connected() {
+                cdl.countDown();
+            }
+        }).addListener(new AbstractConnectionTestListener() {
+            public void connected() {
+                cdl.countDown();
+            }
+        }));
+        assertTrue(cdl.await(1, TimeUnit.SECONDS));
     }
 
+    @Ignore
+    @Test
+    public void closed() throws Exception {
+        final CountDownLatch cdl = new CountDownLatch(1);
+        newClient(newBuilder(ID1).addListener(new AbstractConnectionTestListener() {
+            public void closed(CloseReason reason) {
+                assertEquals(1000, reason.getId());
+                cdl.countDown();
+            }
+        }));
+        assertTrue(cdl.await(1, TimeUnit.SECONDS));
+    }
+
+    static class AbstractConnectionTestListener extends ConnectionListener {
+
+    }
 }

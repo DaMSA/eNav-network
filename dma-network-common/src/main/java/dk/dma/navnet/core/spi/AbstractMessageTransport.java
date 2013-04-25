@@ -16,7 +16,6 @@
 package dk.dma.navnet.core.spi;
 
 import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.locks.ReentrantLock;
 
 import dk.dma.enav.communication.CloseReason;
@@ -26,6 +25,7 @@ import dk.dma.navnet.core.messages.s2c.AckMessage;
 import dk.dma.navnet.core.messages.s2c.ReplyMessage;
 import dk.dma.navnet.core.transport.Transport;
 import dk.dma.navnet.core.transport.TransportSession;
+import dk.dma.navnet.core.util.ConnectionFutureSupplier;
 import dk.dma.navnet.core.util.NetworkFutureImpl;
 
 /**
@@ -40,7 +40,7 @@ public abstract class AbstractMessageTransport extends Transport {
 
     protected final ReentrantLock lock = new ReentrantLock();
 
-    ScheduledExecutorService ses;
+    ConnectionFutureSupplier cfs;
 
     protected final AbstractConnection client() {
         return ac;
@@ -128,7 +128,7 @@ public abstract class AbstractMessageTransport extends Transport {
         // we need to send the messages in the same order as they are numbered for now
         synchronized (ac.ai) {
             long id = ac.ai.incrementAndGet();
-            NetworkFutureImpl<T> f = new NetworkFutureImpl<>(ses);
+            NetworkFutureImpl<T> f = cfs.create();
             ac.acks.put(id, f);
             m.setReplyTo(id);
             sendMessage((AbstractTextMessage) m);
@@ -150,7 +150,7 @@ public abstract class AbstractMessageTransport extends Transport {
     void setConnection(AbstractConnection ac) {
         this.ac = ac;
         if (ac != null) {
-            this.ses = ac.ses;
+            this.cfs = ac.cfs;
         }
     }
 

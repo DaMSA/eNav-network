@@ -89,6 +89,13 @@ public class AbstractNetworkTest {
         }
     }
 
+    protected PersistentConnection newClient(MaritimeNetworkConnectionBuilder b) throws Exception {
+        locs.put(b.getId(), new LocationSup());
+        PersistentConnection c = b.build();
+        clients.put(b.getId(), c);
+        return c;
+    }
+
     protected PersistentConnection newClient(MaritimeId id) throws Exception {
         MaritimeNetworkConnectionBuilder b = newBuilder(id);
         locs.put(id, new LocationSup());
@@ -159,7 +166,7 @@ public class AbstractNetworkTest {
         clientPort = ThreadLocalRandom.current().nextInt(40000, 50000);
         if (useProxy) {
             si = new ENavNetworkServer(12222);
-            pt = new ProxyTester(new InetSocketAddress(43234), new InetSocketAddress(12222));
+            pt = new ProxyTester(new InetSocketAddress(clientPort), new InetSocketAddress(12222));
             pt.start();
         } else {
             si = new ENavNetworkServer(clientPort);

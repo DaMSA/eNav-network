@@ -27,17 +27,12 @@ import org.junit.Test;
 import test.stubs.BroadcastTestMessage;
 import dk.dma.enav.communication.AbstractNetworkTest;
 import dk.dma.enav.communication.PersistentConnection;
-import dk.dma.enav.communication.broadcast.BroadcastListener;
-import dk.dma.enav.communication.broadcast.BroadcastMessageHeader;
-import dk.dma.enav.model.MaritimeId;
 
 /**
  * 
  * @author Kasper Nielsen
  */
 public class BroadcastTest extends AbstractNetworkTest {
-    public static final MaritimeId ID1 = MaritimeId.create("mmsi://1");
-    public static final MaritimeId ID6 = MaritimeId.create("mmsi://6");
 
     @Test
     public void oneBroadcast() throws Exception {

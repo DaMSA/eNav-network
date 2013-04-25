@@ -44,6 +44,10 @@ public class ConnectedMessage extends AbstractTextMessage {
         this.connectionId = requireNonNull(connectionId);
     }
 
+    public String getConnectionId() {
+        return connectionId;
+    }
+
     /** {@inheritDoc} */
     @Override
     public void write(TextMessageWriter w) {

@@ -45,8 +45,10 @@ class ClientConnection extends AbstractConnection {
 
     private volatile ClientTransport ch;
 
+    volatile String connectionId;
+
     ClientConnection(DefaultPersistentConnection cn) {
-        super(cn.ses);
+        super(cn.cfs);
         this.cm = requireNonNull(cn);
         this.ch = new ClientTransport();
         super.setTransport(ch);
@@ -83,6 +85,7 @@ class ClientConnection extends AbstractConnection {
 
     /** {@inheritDoc} */
     protected void connected(ConnectedMessage m) {
+        connectionId = m.getConnectionId();
         ch.connected.countDown();
     }
 
@@ -99,7 +102,6 @@ class ClientConnection extends AbstractConnection {
     /** {@inheritDoc} */
     protected void receivedBroadcast(BroadcastMsg m) {
         cm.broadcaster.receive(m);
-
     }
 
     /** {@inheritDoc} */

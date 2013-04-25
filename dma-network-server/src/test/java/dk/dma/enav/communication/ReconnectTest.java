@@ -29,10 +29,7 @@ import org.junit.Test;
 import test.util.TestService;
 import test.util.TestService.TestInit;
 import test.util.TestService.TestReply;
-import dk.dma.enav.communication.PersistentConnection;
-import dk.dma.enav.communication.ConnectionFuture;
 import dk.dma.enav.communication.service.InvocationCallback;
-import dk.dma.enav.model.MaritimeId;
 
 /**
  * 
@@ -40,8 +37,6 @@ import dk.dma.enav.model.MaritimeId;
  */
 @Ignore
 public class ReconnectTest extends AbstractNetworkTest {
-    public static final MaritimeId ID1 = MaritimeId.create("mmsi://1");
-    public static final MaritimeId ID6 = MaritimeId.create("mmsi://6");
 
     public ReconnectTest() {
         super(true);

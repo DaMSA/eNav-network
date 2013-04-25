@@ -18,16 +18,22 @@ package dk.dma.navnet.client;
 import static java.util.Objects.requireNonNull;
 
 import java.io.IOException;
+import java.util.Collections;
+import java.util.Set;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.ReentrantLock;
 
 import org.eclipse.jetty.util.component.Container;
 
+import dk.dma.commons.util.concurrent.CustomConcurrentHashMap;
+import dk.dma.enav.communication.ConnectionClosedException;
 import dk.dma.enav.communication.ConnectionFuture;
 import dk.dma.enav.communication.ConnectionListener;
 import dk.dma.enav.communication.PersistentConnection;
@@ -40,9 +46,12 @@ import dk.dma.enav.communication.service.ServiceRegistration;
 import dk.dma.enav.communication.service.spi.ServiceInitiationPoint;
 import dk.dma.enav.communication.service.spi.ServiceMessage;
 import dk.dma.enav.model.MaritimeId;
+import dk.dma.enav.util.function.Consumer;
 import dk.dma.navnet.core.messages.util.LongUtil;
 import dk.dma.navnet.core.transport.ClientTransportFactory;
 import dk.dma.navnet.core.transport.websocket.WebsocketTransports;
+import dk.dma.navnet.core.util.ConnectionFutureSupplier;
+import dk.dma.navnet.core.util.NetworkFutureImpl;
 
 /**
  * An implementation of {@link PersistentConnection} using websockets and JSON.
@@ -51,8 +60,13 @@ import dk.dma.navnet.core.transport.websocket.WebsocketTransports;
  */
 class DefaultPersistentConnection implements PersistentConnection {
 
+    /** A latch used for waiting on state changes from the {@link #awaitState(Container.State, long, TimeUnit)} method. */
+    volatile CountDownLatch awaitStateLatch = new CountDownLatch(1);
+
     /** Responsible for listening and sending broadcasts. */
     final BroadcastManager broadcaster;
+
+    final NetworkFutureSupplier cfs = new NetworkFutureSupplier();
 
     /** The id of this client */
     private final MaritimeId clientId;
@@ -76,16 +90,13 @@ class DefaultPersistentConnection implements PersistentConnection {
     final ServiceManager services;
 
     /** A {@link ScheduledExecutorService} for scheduling various tasks. */
-    final ScheduledExecutorService ses = Executors.newScheduledThreadPool(2);
+    final ScheduledThreadPoolExecutor ses = new ScheduledThreadPoolExecutor(2);
 
     /** The current state of the client. Only set while holding lock, can be read at any time. */
     private volatile State state = State.INITIALIZED;
 
     /** Factory for creating new transports. */
     final ClientTransportFactory transportFactory;
-
-    /** A latch used for waiting on state changes from the {@link #awaitState(Container.State, long, TimeUnit)} method. */
-    volatile CountDownLatch awaitStateLatch = new CountDownLatch(1);
 
     /**
      * Creates a new instance of this class.
@@ -100,20 +111,7 @@ class DefaultPersistentConnection implements PersistentConnection {
         this.services = new ServiceManager(this);
         this.transportFactory = WebsocketTransports.createClient(builder.getHost());
         this.connection = new ClientConnection(this);
-    }
-
-    void setState(State state) {
-        lock.lock();
-        try {
-            this.state = requireNonNull(state);
-            CountDownLatch prev = awaitStateLatch;
-            awaitStateLatch = state == State.TERMINATED ? null : new CountDownLatch(1);
-            prev.countDown();
-        } finally {
-            lock.unlock();
-        }
-
-        // TODO update of listeners should be synchronous in some way
+        listeners.addAll(builder.listeners);
     }
 
     /** {@inheritDoc} */
@@ -163,6 +161,17 @@ class DefaultPersistentConnection implements PersistentConnection {
             try {
                 es.shutdown();
                 ses.shutdown();
+
+                for (NetworkFutureImpl<?> f : cfs.futures) {
+                    if (!f.isDone()) {
+                        f.completeExceptionally(new ConnectionClosedException());
+                    }
+                }
+                for (Runnable r : ses.getQueue()) {
+                    ScheduledFuture<?> sf = (ScheduledFuture<?>) r;
+                    sf.cancel(false);
+                }
+                ses.purge(); // remove all the tasks we just cancelled
                 try {
                     ses.awaitTermination(1, TimeUnit.SECONDS);
                 } catch (InterruptedException e1) {
@@ -179,6 +188,18 @@ class DefaultPersistentConnection implements PersistentConnection {
 
     ClientConnection connection() {
         return connection;
+    }
+
+    void forEachListener(Consumer<ConnectionListener> c) {
+        for (ConnectionListener l : listeners) {
+            c.accept(l);
+        }
+    }
+
+    /** {@inheritDoc} */
+    @Override
+    public String getConnectionId() {
+        return connection.connectionId;
     }
 
     /** {@inheritDoc} */
@@ -209,15 +230,63 @@ class DefaultPersistentConnection implements PersistentConnection {
     @Override
     public <T, E extends ServiceMessage<T>> ServiceRegistration serviceRegister(ServiceInitiationPoint<E> sip,
             InvocationCallback<E, T> callback) {
+        requireNonNull(sip, "ServiceInitiationPoint is null");
+        requireNonNull(callback, "callback is null");
         return services.serviceRegister(sip, callback);
     }
 
-    public void start() throws IOException {
+    void setState(State state) {
+        lock.lock();
+        try {
+            this.state = requireNonNull(state);
+            CountDownLatch prev = awaitStateLatch;
+            awaitStateLatch = state == State.TERMINATED ? null : new CountDownLatch(1);
+            prev.countDown();
+        } finally {
+            lock.unlock();
+        }
+
+        // TODO update of listeners should be synchronous in some way
+    }
+
+    void start() throws IOException {
         setState(State.CONNECTING);
         connection.connect(10, TimeUnit.SECONDS);
+        lock.lock();
+        try {
+            if (state == State.CONNECTING) {
+                setState(State.CONNECTED);
+                forEachListener(new Consumer<ConnectionListener>() {
+                    public void accept(ConnectionListener t) {
+                        t.connected();
+                    }
+                });
+
+                ses.scheduleAtFixedRate(positionManager, 0, 1, TimeUnit.SECONDS);
+            } else {
+                throw new IOException("Could not connect");
+            }
+        } finally {
+            lock.unlock();
+        }
+
         // Schedules regular position updates to the server
-        setState(State.CONNECTED);
-        ses.scheduleAtFixedRate(positionManager, 0, 1, TimeUnit.SECONDS);
+    }
+
+    class NetworkFutureSupplier extends ConnectionFutureSupplier {
+        final Set<NetworkFutureImpl<?>> futures = Collections
+                .newSetFromMap(new CustomConcurrentHashMap<NetworkFutureImpl<?>, Boolean>(CustomConcurrentHashMap.WEAK,
+                        CustomConcurrentHashMap.EQUALS, CustomConcurrentHashMap.STRONG, CustomConcurrentHashMap.EQUALS,
+                        0));
+
+        /** {@inheritDoc} */
+        @Override
+        public <T> NetworkFutureImpl<T> create() {
+            NetworkFutureImpl<T> t = create(ses);
+            futures.add(t);
+            return t;
+        }
+
     }
 }
 

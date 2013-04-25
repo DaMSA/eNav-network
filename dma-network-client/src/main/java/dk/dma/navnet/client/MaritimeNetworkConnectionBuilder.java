@@ -58,8 +58,9 @@ public class MaritimeNetworkConnectionBuilder {
      *             if the specified listener is null
      * @see #removeStateListener(Consumer)
      */
-    public void addListener(ConnectionListener listener) {
+    public MaritimeNetworkConnectionBuilder addListener(ConnectionListener listener) {
         listeners.add(requireNonNull(listener, "listener is null"));
+        return this;
     }
 
     public PersistentConnection build() throws Exception {
