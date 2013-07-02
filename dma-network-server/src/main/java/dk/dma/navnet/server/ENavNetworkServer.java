@@ -120,8 +120,8 @@ public class ENavNetworkServer {
         try {
             if (state == State.INITIALIZED) {
                 LOG.info("Server with id = " + id + " starting");
-                // Schedules the tracker to recalcute positions every second.
-                ses.scheduleAtFixedRate(tracker, 0, 1, TimeUnit.SECONDS);
+                // Schedules the tracker to recalculate positions every second.
+                tracker.schedule(ses, 1);
                 // Starts a new thread that will accept new connections
                 try {
                     factory.startAccept(connections);

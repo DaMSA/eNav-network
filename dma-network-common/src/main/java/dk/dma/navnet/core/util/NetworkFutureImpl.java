@@ -18,6 +18,7 @@ package dk.dma.navnet.core.util;
 import static java.util.Objects.requireNonNull;
 
 import java.util.concurrent.Future;
+import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
@@ -41,24 +42,28 @@ public class NetworkFutureImpl<T> extends CompletableFuture<T> implements Connec
     }
 
     public NetworkFutureImpl<T> timeout(final long timeout, final TimeUnit unit) {
-        if (ses == null) {
-            throw new UnsupportedOperationException("timeout not supported.");
-        }
-        final NetworkFutureImpl<T> cf = new NetworkFutureImpl<>(ses);
-        final Future<?> f = ses.schedule(new Runnable() {
-            public void run() {
-                if (!isDone()) {
-                    cf.completeExceptionally(new TimeoutException("Timed out after " + timeout + " "
-                            + unit.toString().toLowerCase()));
+        // timeout parameters checked by ses.schedule
+        final NetworkFutureImpl<T> cf = new NetworkFutureImpl<>(requireNonNull(ses, "executor is null"));
+        final Future<?> f;
+        try {
+            f = ses.schedule(new Runnable() {
+                public void run() {
+                    if (!isDone()) {
+                        cf.completeExceptionally(new TimeoutException("Timed out after " + timeout + " "
+                                + unit.toString().toLowerCase()));
+                    }
                 }
-            }
-        }, timeout, unit);
+            }, timeout, unit);
+        } catch (RejectedExecutionException e) {
+            // Unfortunately TimeoutException does not allow exceptions in its constructor
+            cf.completeExceptionally(new RuntimeException("Could not scedule task, ", e));
+            return cf;
+        }
+        if (f.isCancelled()) {
+            cf.completeExceptionally(new RuntimeException("Could not scedule task"));
+        }
         // Check if scheduler is shutdown
         // do it after cf.f is set (reversed in shutdown code)
-        if (ses.isShutdown()) {
-            f.cancel(false);
-        }
-        // The peek method could also just take a Runnable. But I see no reason not to take the 2 parameters.
         handle(new BiFun<T, Throwable, Void>() {
             public Void apply(T t, Throwable throwable) {
                 // Users must manually purge if many outstanding tasks
