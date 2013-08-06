@@ -1,17 +1,17 @@
-/*
- * Copyright (c) 2008 Kasper Nielsen.
+/* Copyright (c) 2011 Danish Maritime Authority
  *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ * This library is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 3 of the License, or (at your option) any later version.
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * This library is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ * Lesser General Public License for more details.
+ * 
+ * You should have received a copy of the GNU General Public License
+ * along with this library.  If not, see <http://www.gnu.org/licenses/>.
  */
 package dk.dma.navnet.server;
 
@@ -30,9 +30,9 @@ import dk.dma.commons.app.AbstractCommandLineTool;
 public class Main extends AbstractCommandLineTool {
 
     @Parameter(names = "-port", description = "The port to listen on")
-    int port = ENavNetworkServer.DEFAULT_PORT;
+    int port = EmbeddableCloudServer.DEFAULT_PORT;
 
-    volatile ENavNetworkServer server;
+    volatile EmbeddableCloudServer server;
 
     public static void main(String[] args) throws Exception {
         new Main().execute(args);
@@ -46,15 +46,15 @@ public class Main extends AbstractCommandLineTool {
                 kill();
             }
         });
-        ENavNetworkServer server = new ENavNetworkServer(port);
+        EmbeddableCloudServer server = new EmbeddableCloudServer(port);
         server.start();
         this.server = server; // only set it if it started
-        System.out.println("Wuhuu Server started! Running on port " + port);
+        System.out.println("Wuhuu Maritime Cloud Server started! Running on port " + port);
         System.out.println("Use CTRL+C to stop it");
     }
 
     void kill() {
-        ENavNetworkServer server = this.server;
+        EmbeddableCloudServer server = this.server;
         if (server != null) {
             server.shutdown();
             try {

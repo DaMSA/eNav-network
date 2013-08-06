@@ -1,17 +1,17 @@
-/*
- * Copyright (c) 2008 Kasper Nielsen.
+/* Copyright (c) 2011 Danish Maritime Authority
  *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ * This library is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 3 of the License, or (at your option) any later version.
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * This library is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ * Lesser General Public License for more details.
+ * 
+ * You should have received a copy of the GNU General Public License
+ * along with this library.  If not, see <http://www.gnu.org/licenses/>.
  */
 package dk.dma.navnet.client;
 
@@ -22,45 +22,34 @@ import java.io.InterruptedIOException;
 import java.net.ConnectException;
 import java.util.concurrent.TimeUnit;
 
-import dk.dma.enav.model.geometry.PositionTime;
-import dk.dma.navnet.core.messages.AbstractTextMessage;
-import dk.dma.navnet.core.messages.auxiliary.ConnectedMessage;
-import dk.dma.navnet.core.messages.auxiliary.HelloMessage;
-import dk.dma.navnet.core.messages.auxiliary.WelcomeMessage;
+import dk.dma.navnet.client.util.DefaultConnectionFuture;
+import dk.dma.navnet.core.messages.ConnectionMessage;
+import dk.dma.navnet.core.messages.TransportMessage;
 import dk.dma.navnet.core.messages.c2c.broadcast.BroadcastMsg;
 import dk.dma.navnet.core.messages.c2c.service.InvokeService;
 import dk.dma.navnet.core.messages.c2c.service.InvokeServiceResult;
 import dk.dma.navnet.core.messages.s2c.service.FindServiceResult;
 import dk.dma.navnet.core.messages.s2c.service.RegisterServiceResult;
-import dk.dma.navnet.core.spi.AbstractConnection;
-import dk.dma.navnet.core.util.NetworkFutureImpl;
 
 /**
  * 
  * @author Kasper Nielsen
  */
-class ClientConnection extends AbstractConnection {
+class ClientConnection extends AbstractClientConnection {
 
     final DefaultPersistentConnection cm;
 
-    private volatile ClientTransport ch;
-
     volatile String connectionId;
 
-    ClientConnection(DefaultPersistentConnection cn) {
-        super(cn.cfs);
+    ClientConnection(String id, DefaultPersistentConnection cn) {
+        super(id, cn.cfs);
         this.cm = requireNonNull(cn);
-        this.ch = new ClientTransport();
-        super.setTransport(ch);
+        super.setTransport(new ClientTransport(cn));
     }
 
     /** {@inheritDoc} */
-    protected final void handleMessage(AbstractTextMessage m) {
-        if (m instanceof WelcomeMessage) {
-            welcome((WelcomeMessage) m);
-        } else if (m instanceof ConnectedMessage) {
-            connected((ConnectedMessage) m);
-        } else if (m instanceof InvokeService) {
+    public final void handleMessage(ConnectionMessage m) {
+        if (m instanceof InvokeService) {
             invokeService((InvokeService) m);
         } else if (m instanceof InvokeServiceResult) {
             invokeServiceAck((InvokeServiceResult) m);
@@ -73,20 +62,19 @@ class ClientConnection extends AbstractConnection {
 
     /** {@inheritDoc} */
     @SuppressWarnings("unchecked")
-    protected final void handleMessageReply(AbstractTextMessage m, NetworkFutureImpl<?> f) {
+    @Override
+    protected final void handleMessageReply(ConnectionMessage m, DefaultConnectionFuture<?> f) {
         if (m instanceof RegisterServiceResult) {
-            serviceRegisteredAck((RegisterServiceResult) m, (NetworkFutureImpl<RegisterServiceResult>) f);
+            serviceRegisteredAck((RegisterServiceResult) m, (DefaultConnectionFuture<RegisterServiceResult>) f);
         } else if (m instanceof FindServiceResult) {
-            serviceFindAck((FindServiceResult) m, (NetworkFutureImpl<FindServiceResult>) f);
+            serviceFindAck((FindServiceResult) m, (DefaultConnectionFuture<FindServiceResult>) f);
         } else {
             unknownMessage(m);
         }
     }
 
-    /** {@inheritDoc} */
-    protected void connected(ConnectedMessage m) {
-        connectionId = m.getConnectionId();
-        ch.connected.countDown();
+    protected void unknownMessage(TransportMessage m) {
+        System.err.println("Received an unknown message " + m.getReceivedRawMesage());
     }
 
     /** {@inheritDoc} */
@@ -105,29 +93,21 @@ class ClientConnection extends AbstractConnection {
     }
 
     /** {@inheritDoc} */
-    protected void serviceFindAck(FindServiceResult a, NetworkFutureImpl<FindServiceResult> f) {
+    protected void serviceFindAck(FindServiceResult a, DefaultConnectionFuture<FindServiceResult> f) {
         f.complete(a);
     }
 
     /** {@inheritDoc} */
-    protected void serviceRegisteredAck(RegisterServiceResult a, NetworkFutureImpl<RegisterServiceResult> f) {
+    protected void serviceRegisteredAck(RegisterServiceResult a, DefaultConnectionFuture<RegisterServiceResult> f) {
         f.complete(a);
-    }
-
-    /** {@inheritDoc} */
-    protected void welcome(WelcomeMessage m) {
-        PositionTime pt = cm.positionManager.getPositionTime();
-        ch.sendMessage(new HelloMessage(cm.getLocalId(), "enavClient/1.0", "", 2, pt.getLatitude(), pt.getLongitude()));
     }
 
     public void connect(long timeout, TimeUnit unit) throws IOException {
         try {
-            cm.transportFactory.connect(ch, timeout, unit);
-            ch.connected.await(timeout, unit);
-            if (ch.connected.getCount() > 0) {
+            cm.transportFactory.connect(getTransport(), timeout, unit);
+            if (!((ClientTransport) getTransport()).awaitFullyConnected(timeout, unit)) {
                 throw new ConnectException("Timedout while connecting to ");
             }
-
         } catch (IOException e) {
             cm.es.shutdown();
             cm.ses.shutdown();

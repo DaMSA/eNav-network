@@ -6,12 +6,12 @@
   <parent>
     <groupId>dk.dma</groupId>
     <artifactId>dma-root-pom</artifactId>
-    <version>8</version>
+    <version>9</version>
   </parent>
 
   <groupId>dk.dma.network</groupId>
   <artifactId>dma-network-parent</artifactId>
-  <version>0.1-SNAPSHOT</version>
+  <version>0.2-SNAPSHOT</version>
   <name>eNav Network Parent</name>
   <packaging>pom</packaging>
   <description>This parent pom for enav network</description>
@@ -23,9 +23,6 @@
     <module>dma-network-server-distribution</module>
   </modules>
 
-    <properties>
-        <jetty.version>9.0.0.v20130308</jetty.version>
-    </properties>
   <repositories>
     <repository>
       <id>dma-releases</id>

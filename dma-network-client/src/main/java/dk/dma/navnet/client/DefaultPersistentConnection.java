@@ -1,17 +1,17 @@
-/*
- * Copyright (c) 2008 Kasper Nielsen.
+/* Copyright (c) 2011 Danish Maritime Authority
  *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ * This library is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 3 of the License, or (at your option) any later version.
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * This library is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ * Lesser General Public License for more details.
+ * 
+ * You should have received a copy of the GNU General Public License
+ * along with this library.  If not, see <http://www.gnu.org/licenses/>.
  */
 package dk.dma.navnet.client;
 
@@ -32,6 +32,7 @@ import java.util.concurrent.locks.ReentrantLock;
 
 import org.eclipse.jetty.util.component.Container;
 
+import dk.dma.commons.util.LongUtil;
 import dk.dma.commons.util.concurrent.CustomConcurrentHashMap;
 import dk.dma.enav.communication.ConnectionClosedException;
 import dk.dma.enav.communication.ConnectionFuture;
@@ -46,19 +47,18 @@ import dk.dma.enav.communication.service.ServiceRegistration;
 import dk.dma.enav.communication.service.spi.ServiceInitiationPoint;
 import dk.dma.enav.communication.service.spi.ServiceMessage;
 import dk.dma.enav.model.MaritimeId;
+import dk.dma.enav.model.geometry.PositionTime;
 import dk.dma.enav.util.function.Consumer;
-import dk.dma.navnet.core.messages.util.LongUtil;
-import dk.dma.navnet.core.transport.ClientTransportFactory;
-import dk.dma.navnet.core.transport.websocket.WebsocketTransports;
-import dk.dma.navnet.core.util.ConnectionFutureSupplier;
-import dk.dma.navnet.core.util.NetworkFutureImpl;
+import dk.dma.navnet.client.util.ConnectionFutureSupplier;
+import dk.dma.navnet.client.util.DefaultConnectionFuture;
+import dk.dma.navnet.protocol.transport.TransportClientFactory;
 
 /**
  * An implementation of {@link PersistentConnection} using websockets and JSON.
  * 
  * @author Kasper Nielsen
  */
-class DefaultPersistentConnection implements PersistentConnection {
+class DefaultPersistentConnection extends ClientState implements PersistentConnection {
 
     /** A latch used for waiting on state changes from the {@link #awaitState(Container.State, long, TimeUnit)} method. */
     volatile CountDownLatch awaitStateLatch = new CountDownLatch(1);
@@ -68,11 +68,8 @@ class DefaultPersistentConnection implements PersistentConnection {
 
     final NetworkFutureSupplier cfs = new NetworkFutureSupplier();
 
-    /** The id of this client */
-    private final MaritimeId clientId;
-
     /** The single connection to a server. */
-    private final ClientConnection connection;
+    private volatile ClientConnection connection;
 
     /** An {@link ExecutorService} for running various tasks. */
     final ExecutorService es = Executors.newCachedThreadPool();
@@ -87,7 +84,7 @@ class DefaultPersistentConnection implements PersistentConnection {
     final PositionManager positionManager;
 
     /** Manages registration of services. */
-    final ServiceManager services;
+    final ClientServiceManager services;
 
     /** A {@link ScheduledExecutorService} for scheduling various tasks. */
     final ScheduledThreadPoolExecutor ses = new ScheduledThreadPoolExecutor(2);
@@ -96,7 +93,7 @@ class DefaultPersistentConnection implements PersistentConnection {
     private volatile State state = State.INITIALIZED;
 
     /** Factory for creating new transports. */
-    final ClientTransportFactory transportFactory;
+    final TransportClientFactory transportFactory;
 
     /**
      * Creates a new instance of this class.
@@ -105,12 +102,12 @@ class DefaultPersistentConnection implements PersistentConnection {
      *            the configuration
      */
     DefaultPersistentConnection(MaritimeNetworkConnectionBuilder builder) {
-        this.clientId = requireNonNull(builder.getId());
+        super(builder);
         this.positionManager = new PositionManager(this, builder.getPositionSupplier());
         this.broadcaster = new BroadcastManager(this);
-        this.services = new ServiceManager(this);
-        this.transportFactory = WebsocketTransports.createClient(builder.getHost());
-        this.connection = new ClientConnection(this);
+        this.services = new ClientServiceManager(this);
+        this.transportFactory = TransportClientFactory.createClient(builder.getHost());
+        this.connection = new ClientConnection("fff", this);
         listeners.addAll(builder.listeners);
     }
 
@@ -162,7 +159,7 @@ class DefaultPersistentConnection implements PersistentConnection {
                 es.shutdown();
                 ses.shutdown();
 
-                for (NetworkFutureImpl<?> f : cfs.futures) {
+                for (DefaultConnectionFuture<?> f : cfs.futures) {
                     if (!f.isDone()) {
                         f.completeExceptionally(new ConnectionClosedException());
                     }
@@ -204,8 +201,8 @@ class DefaultPersistentConnection implements PersistentConnection {
 
     /** {@inheritDoc} */
     @Override
-    public MaritimeId getLocalId() {
-        return clientId;
+    PositionTime getCurrentPosition() {
+        return positionManager.getPositionTime();
     }
 
     /** {@inheritDoc} */
@@ -274,19 +271,18 @@ class DefaultPersistentConnection implements PersistentConnection {
     }
 
     class NetworkFutureSupplier extends ConnectionFutureSupplier {
-        final Set<NetworkFutureImpl<?>> futures = Collections
-                .newSetFromMap(new CustomConcurrentHashMap<NetworkFutureImpl<?>, Boolean>(CustomConcurrentHashMap.WEAK,
-                        CustomConcurrentHashMap.EQUALS, CustomConcurrentHashMap.STRONG, CustomConcurrentHashMap.EQUALS,
-                        0));
+        final Set<DefaultConnectionFuture<?>> futures = Collections
+                .newSetFromMap(new CustomConcurrentHashMap<DefaultConnectionFuture<?>, Boolean>(
+                        CustomConcurrentHashMap.WEAK, CustomConcurrentHashMap.EQUALS, CustomConcurrentHashMap.STRONG,
+                        CustomConcurrentHashMap.EQUALS, 0));
 
         /** {@inheritDoc} */
         @Override
-        public <T> NetworkFutureImpl<T> create() {
-            NetworkFutureImpl<T> t = create(ses);
+        public <T> DefaultConnectionFuture<T> create() {
+            DefaultConnectionFuture<T> t = create(ses);
             futures.add(t);
             return t;
         }
-
     }
 }
 

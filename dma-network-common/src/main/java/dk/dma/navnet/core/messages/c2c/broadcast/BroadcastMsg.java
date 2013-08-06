@@ -1,17 +1,17 @@
-/*
- * Copyright (c) 2008 Kasper Nielsen.
+/* Copyright (c) 2011 Danish Maritime Authority
  *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ * This library is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 3 of the License, or (at your option) any later version.
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * This library is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ * Lesser General Public License for more details.
+ * 
+ * You should have received a copy of the GNU General Public License
+ * along with this library.  If not, see <http://www.gnu.org/licenses/>.
  */
 package dk.dma.navnet.core.messages.c2c.broadcast;
 
@@ -27,17 +27,18 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import dk.dma.enav.communication.broadcast.BroadcastMessage;
 import dk.dma.enav.model.MaritimeId;
 import dk.dma.enav.model.geometry.PositionTime;
-import dk.dma.navnet.core.messages.AbstractTextMessage;
+import dk.dma.navnet.core.messages.ConnectionMessage;
 import dk.dma.navnet.core.messages.MessageType;
+import dk.dma.navnet.core.messages.util.JSonUtil;
 import dk.dma.navnet.core.messages.util.TextMessageReader;
 import dk.dma.navnet.core.messages.util.TextMessageWriter;
-import dk.dma.navnet.core.util.JSonUtil;
 
 /**
  * 
  * @author Kasper Nielsen
  */
-public class BroadcastMsg extends AbstractTextMessage {
+public class BroadcastMsg extends ConnectionMessage {
+
     /** The logger. */
     static final Logger LOG = LoggerFactory.getLogger(BroadcastMsg.class);
 
@@ -60,17 +61,20 @@ public class BroadcastMsg extends AbstractTextMessage {
         this.message = requireNonNull(message);
     }
 
-    public static BroadcastMsg create(MaritimeId sender, PositionTime position, BroadcastMessage message) {
-        return new BroadcastMsg(sender, position, message.channel(), JSonUtil.persistAndEscape(message));
-    }
-
     /**
      * @param messageType
      * @throws IOException
      */
     public BroadcastMsg(TextMessageReader pr) throws IOException {
-        this(MaritimeId.create(pr.takeString()), PositionTime.create(pr.takeDouble(), pr.takeDouble(), pr.takeLong()),
-                pr.takeString(), pr.takeString());
+        super(MessageType.BROADCAST, pr);
+        this.id = requireNonNull(MaritimeId.create(pr.takeString()));
+        this.positionTime = requireNonNull(PositionTime.create(pr.takeDouble(), pr.takeDouble(), pr.takeLong()));
+        this.channel = requireNonNull(pr.takeString());
+        this.message = requireNonNull(pr.takeString());
+    }
+
+    public BroadcastMsg cloneIt() {
+        return new BroadcastMsg(id, positionTime, channel, JSonUtil.escape(message));
     }
 
     /**
@@ -121,12 +125,16 @@ public class BroadcastMsg extends AbstractTextMessage {
 
     /** {@inheritDoc} */
     @Override
-    protected void write(TextMessageWriter w) {
+    protected void write0(TextMessageWriter w) {
         w.writeString(id.toString());
         w.writeDouble(positionTime.getLatitude());
         w.writeDouble(positionTime.getLongitude());
         w.writeLong(positionTime.getTime());
         w.writeString(channel);
         w.writeString(message);
+    }
+
+    public static BroadcastMsg create(MaritimeId sender, PositionTime position, BroadcastMessage message) {
+        return new BroadcastMsg(sender, position, message.channel(), JSonUtil.persistAndEscape(message));
     }
 }

@@ -1,102 +1,85 @@
-/*
- * Copyright (c) 2008 Kasper Nielsen.
+/* Copyright (c) 2011 Danish Maritime Authority
  *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ * This library is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 3 of the License, or (at your option) any later version.
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * This library is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ * Lesser General Public License for more details.
+ * 
+ * You should have received a copy of the GNU General Public License
+ * along with this library.  If not, see <http://www.gnu.org/licenses/>.
  */
 package dk.dma.navnet.server;
 
 import static java.util.Objects.requireNonNull;
 import dk.dma.enav.communication.CloseReason;
-import dk.dma.enav.model.geometry.PositionTime;
-import dk.dma.navnet.core.messages.AbstractTextMessage;
-import dk.dma.navnet.core.messages.auxiliary.HelloMessage;
-import dk.dma.navnet.core.messages.auxiliary.WelcomeMessage;
-import dk.dma.navnet.core.spi.AbstractMessageTransport;
+import dk.dma.navnet.core.messages.TransportMessage;
+import dk.dma.navnet.core.messages.transport.ConnectedMessage;
+import dk.dma.navnet.core.messages.transport.HelloMessage;
+import dk.dma.navnet.core.messages.transport.WelcomeMessage;
+import dk.dma.navnet.protocol.transport.Transport;
 
 /**
  * 
  * @author Kasper Nielsen
  */
-class ServerTransport extends AbstractMessageTransport {
+class ServerTransport extends Transport {
 
-    final ConnectionManager cm;
+    /** Whether or not we have received the first hello message from the client. */
+    private boolean helloReceived;
 
-    boolean isConnecting = true;
+    /** The server manager. */
+    private final EmbeddableCloudServer server;
 
-    ServerTransport(ConnectionManager cm) {
-        this.cm = requireNonNull(cm);
-    }
-
-    ServerConnection c() {
-        return (ServerConnection) super.ac;
+    ServerTransport(EmbeddableCloudServer server) {
+        this.server = requireNonNull(server);
     }
 
     /** {@inheritDoc} */
     @Override
-    protected void closed(CloseReason reason) {
-        lock.lock();
-        try {
-            ServerConnection con = c();
-            if (con != null) {
-                cm.server.tracker.remove(c());
-                cm.clients.remove(con.sid);
+    public void onTransportConnect() {
+        // send a Welcome message to the client as the first thing
+        sendTransportMessage(new WelcomeMessage(1, server.getLocalId(), "enavServer/1.0"));
+    }
+
+    /** {@inheritDoc} */
+    @Override
+    public void onTransportMessage(TransportMessage m) {
+        if (m instanceof WelcomeMessage || m instanceof ConnectedMessage) {
+            // Close should never see this messages on the server
+        } else if (m instanceof HelloMessage) {
+            if (helloReceived) {
+                // Close should never see a hello message now
+            } else {
+                helloReceived = true;
+                server.connectionManager.onMessageHello(this, (HelloMessage) m);
             }
-            super.closed(reason);
-        } finally {
-            lock.unlock();
+        } else if (!helloReceived) {
+            // Close, expecting HelloMessage as the first message from the client
+        } else {
+            super.onTransportMessage(m);
         }
     }
 
     /** {@inheritDoc} */
     @Override
-    public void connected() {
-        sendMessage(new WelcomeMessage(1, cm.server.getLocalId(), "enavServer/1.0"));
+    public void onTransportError(Throwable cause) {
+        ServerConnection sc = (ServerConnection) super.getConnection();
+        server.tracker.remove(sc);
+        server.connectionManager.disconnected(sc);
     }
 
     /** {@inheritDoc} */
     @Override
-    public void onError(Throwable cause) {
-        cm.server.tracker.remove(c());
-        cm.server.connections.disconnected(this);
-    }
-
-    /** {@inheritDoc} */
-    @Override
-    protected void onReceivedText0(AbstractTextMessage m) {
-        if (isConnecting) {
-            isConnecting = false;
-            if (m instanceof HelloMessage) {
-                // check that nobody else has removed the connection, in which case it has already been closed
-                if (cm.connectingTransports.remove(this)) {
-                    HelloMessage hm = (HelloMessage) m;
-                    String reconnectId = hm.getReconnectId();
-                    String id = hm.getClientId().toString();
-                    PositionTime pt = new PositionTime(hm.getLat(), hm.getLon(), -1);
-                    for (;;) {
-                        ServerConnection sc = cm.clients.get(id);
-                        if (sc == null) {
-                            sc = new ServerConnection(cm, hm.getClientId());
-                        }
-                        if (sc.connect(this, reconnectId, pt)) {
-                            return;
-                        }
-                    }
-                }
-            } else {
-                // oops
-            }
-        } else {
-            super.onReceivedText0(m);
+    public void onTransportClose(CloseReason reason) {
+        ServerConnection con = (ServerConnection) super.getConnection();
+        if (con != null) {
+            server.tracker.remove(con);
+            server.connectionManager.disconnected(con);
         }
     }
 }

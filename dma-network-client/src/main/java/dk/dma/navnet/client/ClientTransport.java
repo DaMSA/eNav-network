@@ -1,36 +1,83 @@
-/*
- * Copyright (c) 2008 Kasper Nielsen.
+/* Copyright (c) 2011 Danish Maritime Authority
  *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ * This library is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 3 of the License, or (at your option) any later version.
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * This library is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ * Lesser General Public License for more details.
+ * 
+ * You should have received a copy of the GNU General Public License
+ * along with this library.  If not, see <http://www.gnu.org/licenses/>.
  */
 package dk.dma.navnet.client;
 
+import static java.util.Objects.requireNonNull;
+
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
+
 import dk.dma.enav.communication.CloseReason;
-import dk.dma.navnet.core.spi.AbstractMessageTransport;
+import dk.dma.enav.model.geometry.PositionTime;
+import dk.dma.navnet.core.messages.TransportMessage;
+import dk.dma.navnet.core.messages.transport.ConnectedMessage;
+import dk.dma.navnet.core.messages.transport.HelloMessage;
+import dk.dma.navnet.core.messages.transport.WelcomeMessage;
+import dk.dma.navnet.protocol.transport.Transport;
 
 /**
+ * The client implementation of a transport
  * 
  * @author Kasper Nielsen
  */
-class ClientTransport extends AbstractMessageTransport {
+class ClientTransport extends Transport {
+
+    private final ClientState client;
+
+    /** A latch that is released when the client receives a ConnectedMessage from the server. */
+    private final CountDownLatch fullyConnected = new CountDownLatch(1);
+
+    private final long reconnectId;
+
+    ClientTransport(ClientState client) {
+        this(client, -1);
+    }
+
+    ClientTransport(ClientState client, long reconnectId) {
+        this.client = requireNonNull(client);
+        this.reconnectId = reconnectId;
+    }
+
+    boolean awaitFullyConnected(long timeout, TimeUnit unit) throws InterruptedException {
+        return fullyConnected.await(timeout, unit);
+    }
 
     /** {@inheritDoc} */
     @Override
-    protected void closed(CloseReason reason) {
-        super.closed(reason);
-        ClientConnection cc = (ClientConnection) ac;
+    public void onTransportClose(CloseReason reason) {
+        ClientConnection cc = (ClientConnection) getConnection();
         if (cc != null) {
             cc.cm.close();
+        }
+    }
+
+    /** {@inheritDoc} */
+    @Override
+    public void onTransportMessage(TransportMessage message) {
+        if (message instanceof WelcomeMessage) {
+            // WelcomeMessage m = (WelcomeMessage) message; we do not care about the contents atm
+            PositionTime pt = client.getCurrentPosition();
+            sendTransportMessage(new HelloMessage(client.getLocalId(), "enavClient/1.0", "", reconnectId,
+                    pt.getLatitude(), pt.getLongitude()));
+        } else if (message instanceof ConnectedMessage) {
+            ConnectedMessage m = (ConnectedMessage) message;
+            ((ClientConnection) getConnection()).connectionId = m.getConnectionId();
+            fullyConnected.countDown();
+        } else {
+            super.onTransportMessage(message);
         }
     }
 }
