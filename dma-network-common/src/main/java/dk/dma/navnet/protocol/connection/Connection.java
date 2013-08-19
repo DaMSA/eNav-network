@@ -32,7 +32,9 @@ import dk.dma.navnet.protocol.transport.Transport;
  */
 public abstract class Connection extends AbstractProtocol {
 
+    /** The unique id of the connection. */
     private final String connectionId;
+
     public long latestLocalIdAcked;
 
     public long latestLocalIdSend;
@@ -47,11 +49,11 @@ public abstract class Connection extends AbstractProtocol {
 
     private volatile Transport transport;
 
-    public Connection(String id) {
+    protected Connection(String id) {
         this.connectionId = requireNonNull(id);
     }
 
-    public void closeNormally() {
+    public final void closeNormally() {
         transport.close(CloseReason.NORMAL);
     }
 
@@ -88,5 +90,4 @@ public abstract class Connection extends AbstractProtocol {
             lock.unlock();
         }
     }
-
 }

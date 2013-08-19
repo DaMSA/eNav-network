@@ -23,6 +23,9 @@ import dk.dma.navnet.protocol.AbstractProtocol;
 import dk.dma.navnet.protocol.connection.Connection;
 
 /**
+ * The main purpose of the transport layer is to convert web socket messages to {@link TransportMessage} and the other
+ * way. If a transport accidently break. The connection layer will automatically create a new one, and re send any
+ * packets that might not have been received by the remote end.
  * 
  * @author Kasper Nielsen
  */
@@ -31,7 +34,7 @@ public abstract class Transport extends AbstractProtocol {
     /** If closed, the reason why this transport was closed. */
     private volatile CloseReason closeReason;
 
-    private Connection connection;
+    private volatile Connection connection;
 
     /** The websocket listener, or null if not yet connected. */
     private volatile TransportWebSocketListener session;
@@ -75,7 +78,7 @@ public abstract class Transport extends AbstractProtocol {
     /**
      * @return the connection
      */
-    public Connection getConnection() {
+    public final Connection getConnection() {
         return connection;
     }
 
@@ -161,7 +164,7 @@ public abstract class Transport extends AbstractProtocol {
      * @param connection
      *            the connection to set
      */
-    public void setConnection(Connection connection) {
+    public final void setConnection(Connection connection) {
         fullyLock();
         try {
             this.connection = connection;

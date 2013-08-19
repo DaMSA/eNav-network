@@ -89,7 +89,7 @@ class ClientConnection extends AbstractClientConnection {
 
     /** {@inheritDoc} */
     protected void receivedBroadcast(BroadcastMsg m) {
-        cm.broadcaster.receive(m);
+        cm.broadcaster.onBroadcastMessage(m);
     }
 
     /** {@inheritDoc} */

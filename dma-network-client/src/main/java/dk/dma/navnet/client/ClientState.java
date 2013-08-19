@@ -33,6 +33,9 @@ abstract class ClientState {
         this.clientId = requireNonNull(builder.getId());
     }
 
+    /** The single connection to a server. */
+    volatile ClientConnection connection;
+
     public final MaritimeId getLocalId() {
         return clientId;
     }

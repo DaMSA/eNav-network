@@ -19,7 +19,6 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import dk.dma.navnet.client.DefaultPersistentConnection.NetworkFutureSupplier;
-import dk.dma.navnet.client.util.ConnectionFutureSupplier;
 import dk.dma.navnet.client.util.DefaultConnectionFuture;
 import dk.dma.navnet.core.messages.ConnectionMessage;
 import dk.dma.navnet.core.messages.s2c.ServerRequestMessage;
@@ -36,7 +35,7 @@ public abstract class AbstractClientConnection extends Connection {
 
     final AtomicInteger ai = new AtomicInteger();
 
-    final ConnectionFutureSupplier cfs;
+    final NetworkFutureSupplier cfs;
 
     final ConcurrentHashMap<String, DefaultConnectionFuture<?>> replies = new ConcurrentHashMap<>();
 

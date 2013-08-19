@@ -83,7 +83,7 @@ class BroadcastManager {
      * @param broadcast
      *            the broadcast that was received
      */
-    void receive(BroadcastMsg broadcast) {
+    void onBroadcastMessage(BroadcastMsg broadcast) {
         CopyOnWriteArraySet<Listener> set = listeners.get(broadcast.getChannel());
         if (set != null && !set.isEmpty()) {
             final BroadcastMessage bm = broadcast.tryRead();
@@ -107,7 +107,7 @@ class BroadcastManager {
      * @param broadcast
      *            the broadcast to send
      */
-    void send(BroadcastMessage broadcast) {
+    void sendBroadcastMessage(BroadcastMessage broadcast) {
         requireNonNull(broadcast, "broadcast is null");
         BroadcastMsg b = BroadcastMsg.create(c.getLocalId(), c.positionManager.getPositionTime(), broadcast);
         c.connection().sendConnectionMessage(b);

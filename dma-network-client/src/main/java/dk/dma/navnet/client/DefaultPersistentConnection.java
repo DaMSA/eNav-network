@@ -49,7 +49,6 @@ import dk.dma.enav.communication.service.spi.ServiceMessage;
 import dk.dma.enav.model.MaritimeId;
 import dk.dma.enav.model.geometry.PositionTime;
 import dk.dma.enav.util.function.Consumer;
-import dk.dma.navnet.client.util.ConnectionFutureSupplier;
 import dk.dma.navnet.client.util.DefaultConnectionFuture;
 import dk.dma.navnet.protocol.transport.TransportClientFactory;
 
@@ -67,9 +66,6 @@ class DefaultPersistentConnection extends ClientState implements PersistentConne
     final BroadcastManager broadcaster;
 
     final NetworkFutureSupplier cfs = new NetworkFutureSupplier();
-
-    /** The single connection to a server. */
-    private volatile ClientConnection connection;
 
     /** An {@link ExecutorService} for running various tasks. */
     final ExecutorService es = Executors.newCachedThreadPool();
@@ -107,8 +103,8 @@ class DefaultPersistentConnection extends ClientState implements PersistentConne
         this.broadcaster = new BroadcastManager(this);
         this.services = new ClientServiceManager(this);
         this.transportFactory = TransportClientFactory.createClient(builder.getHost());
-        this.connection = new ClientConnection("fff", this);
         listeners.addAll(builder.listeners);
+        this.connection = new ClientConnection("fff", this);
     }
 
     /** {@inheritDoc} */
@@ -135,7 +131,7 @@ class DefaultPersistentConnection extends ClientState implements PersistentConne
     /** {@inheritDoc} */
     @Override
     public void broadcast(BroadcastMessage message) {
-        broadcaster.send(message);
+        broadcaster.sendBroadcastMessage(message);
     }
 
     /** {@inheritDoc} */
@@ -270,16 +266,15 @@ class DefaultPersistentConnection extends ClientState implements PersistentConne
         // Schedules regular position updates to the server
     }
 
-    class NetworkFutureSupplier extends ConnectionFutureSupplier {
+    class NetworkFutureSupplier {
         final Set<DefaultConnectionFuture<?>> futures = Collections
                 .newSetFromMap(new CustomConcurrentHashMap<DefaultConnectionFuture<?>, Boolean>(
                         CustomConcurrentHashMap.WEAK, CustomConcurrentHashMap.EQUALS, CustomConcurrentHashMap.STRONG,
                         CustomConcurrentHashMap.EQUALS, 0));
 
         /** {@inheritDoc} */
-        @Override
         public <T> DefaultConnectionFuture<T> create() {
-            DefaultConnectionFuture<T> t = create(ses);
+            DefaultConnectionFuture<T> t = new DefaultConnectionFuture<>(ses);
             futures.add(t);
             return t;
         }
