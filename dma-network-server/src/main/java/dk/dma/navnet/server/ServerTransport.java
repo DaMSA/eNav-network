@@ -70,7 +70,6 @@ class ServerTransport extends Transport {
     @Override
     public void onTransportError(Throwable cause) {
         ServerConnection sc = (ServerConnection) super.getConnection();
-        server.tracker.remove(sc);
         server.connectionManager.disconnected(sc);
     }
 
@@ -79,7 +78,6 @@ class ServerTransport extends Transport {
     public void onTransportClose(CloseReason reason) {
         ServerConnection con = (ServerConnection) super.getConnection();
         if (con != null) {
-            server.tracker.remove(con);
             server.connectionManager.disconnected(con);
         }
     }

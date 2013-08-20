@@ -24,6 +24,7 @@ import dk.dma.enav.communication.CloseReason;
 import dk.dma.navnet.core.messages.ConnectionMessage;
 import dk.dma.navnet.core.messages.TransportMessage;
 import dk.dma.navnet.protocol.AbstractProtocol;
+import dk.dma.navnet.protocol.application.Application;
 import dk.dma.navnet.protocol.transport.Transport;
 
 /**
@@ -32,12 +33,14 @@ import dk.dma.navnet.protocol.transport.Transport;
  */
 public abstract class Connection extends AbstractProtocol {
 
+    private volatile Application application;
+
     /** The unique id of the connection. */
     private final String connectionId;
 
     public long latestLocalIdAcked;
-
     public long latestLocalIdSend;
+
     public long latestRemoteAckedIdSend;
 
     public long latestRemoteIdReceived;
@@ -55,6 +58,13 @@ public abstract class Connection extends AbstractProtocol {
 
     public final void closeNormally() {
         transport.close(CloseReason.NORMAL);
+    }
+
+    /**
+     * @return the application
+     */
+    public Application getApplication() {
+        return application;
     }
 
     public final String getConnectionId() {
@@ -77,6 +87,18 @@ public abstract class Connection extends AbstractProtocol {
         transport.sendTransportMessage(m);
     }
 
+    /**
+     * @param application
+     *            the application to set
+     */
+    public void setApplication(Application application) {
+        this.application = application;
+        if (application == null) {
+            // We should clear buffers here
+            // will never work again
+        }
+    }
+
     public void setTransport(Transport transport) {
         lock.lock();
         try {
@@ -85,9 +107,16 @@ public abstract class Connection extends AbstractProtocol {
                 old.setConnection(null);
             }
             this.transport = transport;
-            transport.setConnection(this);
+            if (transport != null) {
+                transport.setConnection(this);
+            }
         } finally {
             lock.unlock();
         }
+    }
+
+    /** The current state of the transport. */
+    public enum State {
+        CLOSED, CONNECTED, CONNECTING, INITIALIZED;
     }
 }

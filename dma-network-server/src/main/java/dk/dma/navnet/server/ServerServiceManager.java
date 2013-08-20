@@ -76,9 +76,10 @@ class ServerServiceManager {
         Area a = new Circle(pos, meters, CoordinateSystem.GEODETIC);
         // Find all services with the area
         final ConcurrentHashMapV8<ServerConnection, PositionTime> map = new ConcurrentHashMapV8<>();
-        connection.server.tracker.forEachWithinArea(a, new BiConsumer<ServerConnection, PositionTime>() {
-            public void accept(ServerConnection l, PositionTime r) {
-                if (l.services.hasService(m.getServiceName())) {
+        connection.server.tracker.forEachWithinArea(a, new BiConsumer<Target, PositionTime>() {
+            public void accept(Target target, PositionTime r) {
+                ServerConnection l = (ServerConnection) target.getConnection();
+                if (l != null && l.services.hasService(m.getServiceName())) {
                     map.put(l, r);
                 }
             }
@@ -105,5 +106,4 @@ class ServerServiceManager {
         }
         connection.sendConnectionMessage(m.createReply(list.toArray(new String[list.size()])));
     }
-
 }

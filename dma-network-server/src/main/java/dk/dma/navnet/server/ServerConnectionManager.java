@@ -20,11 +20,10 @@ import static java.util.Objects.requireNonNull;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
-import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.ReentrantLock;
 
 import jsr166e.ConcurrentHashMapV8;
-import jsr166e.ConcurrentHashMapV8.BiFun;
+import jsr166e.ConcurrentHashMapV8.Fun;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -48,7 +47,10 @@ class ServerConnectionManager {
     private volatile Set<ServerTransport> connectingTransports = Collections
             .newSetFromMap(new ConcurrentHashMapV8<ServerTransport, Boolean>());
 
-    /** All connections. */
+    /** All targets. */
+    private final ConcurrentHashMapV8<String, Target> targets = new ConcurrentHashMapV8<>();
+
+    /** All current active connections. */
     private final ConcurrentHashMapV8<String, ServerConnection> connections = new ConcurrentHashMapV8<>();
 
     /** The connection manager lock */
@@ -73,41 +75,7 @@ class ServerConnectionManager {
         }
     }
 
-    public static void main(String[] args) {
-        ConcurrentHashMapV8<String, String> cm = new ConcurrentHashMapV8<>();
-        cm.compute("A", new BiFun<String, String, String>() {
-
-            @Override
-            public String apply(String paramA, String paramB) {
-                return "fffd";
-            }
-        });
-        cm.compute("A", new BiFun<String, String, String>() {
-
-            @Override
-            public String apply(String paramA, String paramB) {
-                return "fff";
-            }
-        });
-
-        System.out.println(cm.size());
-    }
-
     public Transport createNewTransport() {
-        // // The only reason we need to lock here is to avoid competing with shutdown.
-        // Set<ServerTransport> connectingTransports = this.connectingTransports;
-        // if (connectingTransports != null) {
-        // ServerTransport s = new ServerTransport(server);
-        // connectingTransports.add(s);
-        // if (this.connectingTransports != null) {
-        // return s;
-        // }
-        // }
-        // return null;
-        //
-        // ; // add the new created transport to set of connecting transports
-        // return s;
-
         lock.lock();
         try {
             ServerTransport s = new ServerTransport(server);
@@ -150,17 +118,45 @@ class ServerConnectionManager {
         if (connectingTransports.remove(transport)) {
             String clientId = message.getClientId().toString();
 
-            final AtomicReference<ServerConnection> existing = new AtomicReference<>();
-            connections.compute(clientId, new BiFun<String, ServerConnection, ServerConnection>() {
-                public ServerConnection apply(String id, ServerConnection connection) {
-                    existing.set(connection);
-                    return ServerConnection.connect(server, transport, connection, message);
+            final Target target = targets.computeIfAbsent(clientId, new Fun<String, Target>() {
+                public Target apply(String key) {
+                    return new Target(key);
                 }
             });
-            if (existing.get() != null) {
-                Transport old = existing.get().getTransport();
-                old.close(CloseReason.DUPLICATE_CONNECT);
-                server.tracker.remove(existing.get());
+
+            target.lock();
+            try {
+                final ServerConnection existing = (ServerConnection) target.getConnection();
+                if (existing != null) {
+                    existing.fullyLock();
+                    try {
+                        Transport oldTransport = existing.getTransport();
+                        existing.setApplication(null);
+                        if (oldTransport != null) {
+                            oldTransport.fullyLock();
+                            try {
+                                existing.setTransport(null);
+                                oldTransport.setConnection(null);
+                                oldTransport.close(CloseReason.DUPLICATE_CONNECT);
+                            } finally {
+                                oldTransport.fullyUnlock();
+                            }
+                        } else {
+                            existing.setTransport(null);
+                        }
+
+                    } finally {
+                        if (existing != null) {
+                            existing.fullyUnlock();
+                        }
+                    }
+                }
+                ServerConnection newConnection = ServerConnection.connect(server, target, transport, existing, message);
+                connections.put(clientId, newConnection);
+                target.setConnection(newConnection);
+                newConnection.setApplication(target);
+            } finally {
+                target.unlock();
             }
         }
     }

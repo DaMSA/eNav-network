@@ -71,7 +71,7 @@ public class EmbeddableCloudServer {
     final CountDownLatch termination = new CountDownLatch(1);
 
     /** The position tracker. */
-    final PositionTracker<ServerConnection> tracker = new PositionTracker<>();
+    final PositionTracker<Target> tracker = new PositionTracker<>();
 
     /** Creates a new ENavNetworkServer */
     public EmbeddableCloudServer() {

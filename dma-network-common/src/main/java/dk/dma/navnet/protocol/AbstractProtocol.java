@@ -35,12 +35,12 @@ public abstract class AbstractProtocol {
     /** A write lock. */
     private final ReentrantLock writeLock = new ReentrantLock();
 
-    protected final void fullyLock() {
+    public final void fullyLock() {
         readLock.lock();
         writeLock.lock();
     }
 
-    protected final void fullyUnlock() {
+    public final void fullyUnlock() {
         writeLock.unlock();
         readLock.unlock();
     }
