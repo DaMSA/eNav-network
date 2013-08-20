@@ -20,18 +20,17 @@ import static java.util.Objects.requireNonNull;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
-import java.util.UUID;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.ReentrantLock;
 
 import jsr166e.ConcurrentHashMapV8;
+import jsr166e.ConcurrentHashMapV8.BiFun;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import dk.dma.enav.communication.CloseReason;
-import dk.dma.enav.model.geometry.PositionTime;
 import dk.dma.navnet.core.messages.c2c.broadcast.BroadcastMsg;
-import dk.dma.navnet.core.messages.transport.ConnectedMessage;
 import dk.dma.navnet.core.messages.transport.HelloMessage;
 import dk.dma.navnet.protocol.transport.Transport;
 
@@ -74,11 +73,41 @@ class ServerConnectionManager {
         }
     }
 
-    void disconnected(ServerConnection c) {
-        connections.remove(c.remoteId);
+    public static void main(String[] args) {
+        ConcurrentHashMapV8<String, String> cm = new ConcurrentHashMapV8<>();
+        cm.compute("A", new BiFun<String, String, String>() {
+
+            @Override
+            public String apply(String paramA, String paramB) {
+                return "fffd";
+            }
+        });
+        cm.compute("A", new BiFun<String, String, String>() {
+
+            @Override
+            public String apply(String paramA, String paramB) {
+                return "fff";
+            }
+        });
+
+        System.out.println(cm.size());
     }
 
     public Transport createNewTransport() {
+        // // The only reason we need to lock here is to avoid competing with shutdown.
+        // Set<ServerTransport> connectingTransports = this.connectingTransports;
+        // if (connectingTransports != null) {
+        // ServerTransport s = new ServerTransport(server);
+        // connectingTransports.add(s);
+        // if (this.connectingTransports != null) {
+        // return s;
+        // }
+        // }
+        // return null;
+        //
+        // ; // add the new created transport to set of connecting transports
+        // return s;
+
         lock.lock();
         try {
             ServerTransport s = new ServerTransport(server);
@@ -87,6 +116,10 @@ class ServerConnectionManager {
         } finally {
             lock.unlock();
         }
+    }
+
+    void disconnected(ServerConnection c) {
+        connections.remove(c.remoteId, c);
     }
 
     public Set<String> getAllConnectionIds() {
@@ -102,69 +135,34 @@ class ServerConnectionManager {
     }
 
     /**
-     * Invoked when a hello message is received on a transport
+     * Invoked when a hello message is received on a newly created transport.
+     * {@link ServerTransport#onTransportMessage(dk.dma.navnet.core.messages.TransportMessage)} has already made sure
+     * that the message is the first message received on the transport.
      * 
      * @param transport
      *            the transport the message was received on
      * @param message
-     *            the message
+     *            the hello message
      */
-    void onMessageHello(ServerTransport transport, HelloMessage message) {
+    void onMessageHello(final ServerTransport transport, final HelloMessage message) {
         // check that nobody else has removed the connection, in which case the underlying socket has already been
         // closed and the hello message can safely be ignored
         if (connectingTransports.remove(transport)) {
-            String reconnectId = message.getReconnectId();
-            String id = message.getClientId().toString();
-            PositionTime pt = new PositionTime(message.getLat(), message.getLon(), -1);
-            for (;;) {
-                // See if we already have information about a client with id
-                ServerConnection c = connections.get(id);
-                if (c == null) {
-                    // no info about the clients id, create a new ServerConnection
-                    c = new ServerConnection(server, message.getClientId(), UUID.randomUUID().toString());
-                }
-                if (connect(c, transport, reconnectId, pt)) {
-                    return;
-                }
-            }
-        }
-    }
+            String clientId = message.getClientId().toString();
 
-    boolean connect(ServerConnection c, ServerTransport transport, String reconnect, PositionTime pt) {
-        c.lock.lock();
-        try {
-            if (c.connectionId == null) { // new connection
-                c.latestPosition = pt;
-                c.connectionId = UUID.randomUUID().toString();
-                if (connections.putIfAbsent(c.remoteId, c) != null) {
-                    return false;
+            final AtomicReference<ServerConnection> existing = new AtomicReference<>();
+            connections.compute(clientId, new BiFun<String, ServerConnection, ServerConnection>() {
+                public ServerConnection apply(String id, ServerConnection connection) {
+                    existing.set(connection);
+                    return ServerConnection.connect(server, transport, connection, message);
                 }
-                c.setTransport(transport);
-                transport.sendTransportMessage(new ConnectedMessage(c.connectionId));
-                server.tracker.update(c, pt);
-            } else if (reconnect.equals("")) { // replacing
-                System.out.println("XXXX" + connections.size());
-                c.latestPosition = pt;
-                Transport old = c.getTransport();
-                c.setTransport(transport);
+            });
+            if (existing.get() != null) {
+                Transport old = existing.get().getTransport();
                 old.close(CloseReason.DUPLICATE_CONNECT);
-
-                c.connectionId = UUID.randomUUID().toString();
-                transport.sendTransportMessage(new ConnectedMessage(c.connectionId));
-                server.tracker.update(c, pt);
-                System.out.println("XXXX" + connections.size());
-            } else { // reconnect
-                // if (cm.clients.get(sid) == this) {
-                // sh.close(CloseReason.DUPLICATE_CONNECT);
-                // setTransport(other);
-                // sh = other;
-                // }
+                server.tracker.remove(existing.get());
             }
-            // make sure this is the current connection
-        } finally {
-            c.lock.unlock();
         }
-        return true;
     }
 
     void shutdown() {
@@ -184,3 +182,4 @@ class ServerConnectionManager {
 // // send news to sender?
 // // but not if they are dead
 // }
+

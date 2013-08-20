@@ -20,8 +20,8 @@ import static java.util.Objects.requireNonNull;
 import java.io.IOException;
 
 import dk.dma.enav.model.MaritimeId;
-import dk.dma.navnet.core.messages.TransportMessage;
 import dk.dma.navnet.core.messages.MessageType;
+import dk.dma.navnet.core.messages.TransportMessage;
 import dk.dma.navnet.core.messages.util.TextMessageReader;
 import dk.dma.navnet.core.messages.util.TextMessageWriter;
 

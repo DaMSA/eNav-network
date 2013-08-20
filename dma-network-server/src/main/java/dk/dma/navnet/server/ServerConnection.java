@@ -16,6 +16,9 @@
 package dk.dma.navnet.server;
 
 import static java.util.Objects.requireNonNull;
+
+import java.util.UUID;
+
 import dk.dma.enav.model.MaritimeId;
 import dk.dma.enav.model.geometry.PositionTime;
 import dk.dma.navnet.core.messages.ConnectionMessage;
@@ -23,6 +26,8 @@ import dk.dma.navnet.core.messages.c2c.ClientRelayedMessage;
 import dk.dma.navnet.core.messages.c2c.broadcast.BroadcastMsg;
 import dk.dma.navnet.core.messages.s2c.service.FindService;
 import dk.dma.navnet.core.messages.s2c.service.RegisterService;
+import dk.dma.navnet.core.messages.transport.ConnectedMessage;
+import dk.dma.navnet.core.messages.transport.HelloMessage;
 import dk.dma.navnet.core.messages.transport.PositionReportMessage;
 import dk.dma.navnet.protocol.connection.Connection;
 
@@ -40,8 +45,6 @@ public class ServerConnection extends Connection {
     volatile PositionTime latestPosition;
     final ServerServiceManager services;
     final String remoteId;
-
-    volatile String connectionId;
 
     /**
      * @param cm
@@ -98,4 +101,76 @@ public class ServerConnection extends Connection {
         }
     }
 
+    static ServerConnection connect(EmbeddableCloudServer server, ServerTransport connectingTransport,
+            ServerConnection existing, HelloMessage message) {
+        // See if we already have information about a client with id
+        // if (existing!=null) {
+        // // existing.fullyLock();
+        // }try {
+        String reconnectId = message.getReconnectId();
+        String id = message.getClientId().toString();
+
+        final PositionTime pt = new PositionTime(message.getLat(), message.getLon(), -1);
+        if (existing == null || reconnectId.equals("")) {
+            ServerConnection c = new ServerConnection(server, message.getClientId(), UUID.randomUUID().toString());
+            c.latestPosition = pt;
+            c.setTransport(connectingTransport);
+            connectingTransport.sendTransportMessage(new ConnectedMessage(c.getConnectionId()));
+            server.tracker.update(c, pt);
+            return c;
+        }
+        throw new Error();
+        // if (existing == null) {
+        // // no info about the clients id, create a new ServerConnection
+        // ServerConnection c = new ServerConnection(server, message.getClientId(), UUID.randomUUID().toString());
+        // c.latestPosition = pt;
+        // c.setTransport(connectingTransport);
+        // connectingTransport.sendTransportMessage(new ConnectedMessage(c.getConnectionId()));
+        // server.tracker.update(c, pt);
+        // return c;
+        // } else if (reconnectId.equals("")) { // replacing
+        // existing.latestPosition = pt;
+        //
+        // Transport old = existing.getTransport();
+        // old.close(CloseReason.DUPLICATE_CONNECT);
+        //
+        // existing.setTransport(connectingTransport);
+        //
+        // existing.connectionId = UUID.randomUUID().toString();
+        // connectingTransport.sendTransportMessage(new ConnectedMessage(existing.connectionId));
+        // return existing;
+        // }
+    }
+
+    // boolean connect(ServerConnection c, ServerTransport transport, String reconnect, PositionTime pt) {
+    // c.lock.lock();
+    // try {
+    // if (c.connectionId == null) { // new connection
+    // c.latestPosition = pt;
+    // c.connectionId = UUID.randomUUID().toString();
+    // c.setTransport(transport);
+    // transport.sendTransportMessage(new ConnectedMessage(c.connectionId));
+    // server.tracker.update(c, pt);
+    // } else if (reconnect.equals("")) { // replacing
+    // c.latestPosition = pt;
+    // Transport old = c.getTransport();
+    // c.setTransport(transport);
+    // old.close(CloseReason.DUPLICATE_CONNECT);
+    //
+    // c.connectionId = UUID.randomUUID().toString();
+    // transport.sendTransportMessage(new ConnectedMessage(c.connectionId));
+    //
+    // } else { // reconnect
+    // // if (cm.clients.get(sid) == this) {
+    // // sh.close(CloseReason.DUPLICATE_CONNECT);
+    // // setTransport(other);
+    // // sh = other;
+    // // }
+    // }
+    // // make sure this is the current connection
+    // } finally {
+    // c.lock.unlock();
+    // }
+    // return true;
+    // }
 }
