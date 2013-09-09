@@ -22,9 +22,9 @@ import java.net.InetSocketAddress;
 
 import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.server.ServerConnector;
-import org.eclipse.jetty.websocket.api.UpgradeRequest;
-import org.eclipse.jetty.websocket.api.UpgradeResponse;
 import org.eclipse.jetty.websocket.server.WebSocketHandler;
+import org.eclipse.jetty.websocket.servlet.ServletUpgradeRequest;
+import org.eclipse.jetty.websocket.servlet.ServletUpgradeResponse;
 import org.eclipse.jetty.websocket.servlet.WebSocketCreator;
 import org.eclipse.jetty.websocket.servlet.WebSocketServletFactory;
 import org.slf4j.Logger;
@@ -65,7 +65,7 @@ public final class TransportServerFactory {
         WebSocketHandler wsHandler = new WebSocketHandler() {
             public void configure(WebSocketServletFactory factory) {
                 factory.setCreator(new WebSocketCreator() {
-                    public Object createWebSocket(UpgradeRequest req, UpgradeResponse resp) {
+                    public Object createWebSocket(ServletUpgradeRequest req, ServletUpgradeResponse resp) {
                         return new TransportWebSocketListener(supplier.get());
                     }
                 });

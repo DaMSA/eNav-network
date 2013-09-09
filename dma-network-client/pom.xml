@@ -26,6 +26,12 @@
       <artifactId>dma-network-common</artifactId>
       <version>${project.version}</version>
     </dependency>
+
+    <dependency>
+      <groupId>org.eclipse.jetty.websocket</groupId>
+      <artifactId>javax-websocket-client-impl</artifactId>
+      <version>${dependencies.jetty.version}</version>
+    </dependency>
   </dependencies>
 
 </project>

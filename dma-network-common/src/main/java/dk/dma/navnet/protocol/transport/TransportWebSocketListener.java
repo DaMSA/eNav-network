@@ -20,6 +20,10 @@ import static java.util.Objects.requireNonNull;
 import java.io.IOException;
 import java.util.concurrent.CountDownLatch;
 
+import org.eclipse.jetty.websocket.api.RemoteEndpoint;
+import org.eclipse.jetty.websocket.api.Session;
+import org.eclipse.jetty.websocket.api.WebSocketListener;
+
 import dk.dma.enav.communication.CloseReason;
 
 /**
@@ -27,7 +31,7 @@ import dk.dma.enav.communication.CloseReason;
  * 
  * @author Kasper Nielsen
  */
-class TransportWebSocketListener implements WebSocketListener {
+final class TransportWebSocketListener implements WebSocketListener, SomeListener {
 
     /** A latch that is released when we receive a connected message from the remote end. */
     final CountDownLatch connected = new CountDownLatch(1);
@@ -49,7 +53,7 @@ class TransportWebSocketListener implements WebSocketListener {
     }
 
     /** {@inheritDoc} */
-    final void close(CloseReason reason) {
+    public final void close(CloseReason reason) {
         Session s = session;
         try {
             if (s != null) {
@@ -105,7 +109,7 @@ class TransportWebSocketListener implements WebSocketListener {
     }
 
     /** {@inheritDoc} */
-    final void sendText(String text) {
+    public final void sendText(String text) {
         Session s = session;
         RemoteEndpoint r = s == null ? null : s.getRemote();
         if (r != null) {

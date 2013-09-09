@@ -37,7 +37,7 @@ public abstract class Transport extends AbstractProtocol {
     private volatile Connection connection;
 
     /** The websocket listener, or null if not yet connected. */
-    private volatile TransportWebSocketListener session;
+    private volatile SomeListener session;
 
     /** The current state of the transport */
     private volatile State state = State.INITIALIZED;
@@ -142,7 +142,7 @@ public abstract class Transport extends AbstractProtocol {
      */
     final void rawSend(String text) {
         requireNonNull(text, "text is null");
-        TransportWebSocketListener session = this.session;
+        SomeListener session = this.session;
         if (session == null) {
             throw new IllegalStateException("Not connected yet");
         }
@@ -173,7 +173,7 @@ public abstract class Transport extends AbstractProtocol {
         }
     }
 
-    final void setSession(TransportWebSocketListener session) {
+    final void setSession(SomeListener session) {
         fullyLock();
         try {
             this.session = requireNonNull(session, "session is null");

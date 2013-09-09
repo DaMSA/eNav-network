@@ -21,11 +21,13 @@ import java.io.IOException;
 import java.io.InterruptedIOException;
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
 
-import org.eclipse.jetty.websocket.client.WebSocketClient;
+import javax.websocket.ContainerProvider;
+import javax.websocket.DeploymentException;
+import javax.websocket.WebSocketContainer;
+
+import org.eclipse.jetty.util.component.ContainerLifeCycle;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -43,7 +45,7 @@ public final class TransportClientFactory {
     private final URI uri;
 
     /** The actual WebSocket client. Changes when reconnecting. */
-    volatile WebSocketClient client;
+    volatile WebSocketContainer container;
 
     /**
      * Creates a new ClientTransportFactory.
@@ -55,17 +57,12 @@ public final class TransportClientFactory {
         this.uri = requireNonNull(uri);
     }
 
-    private synchronized WebSocketClient lazyInitialize() throws IOException {
-        if (client == null) {
-            WebSocketClient client = new WebSocketClient();
-            try {
-                client.start();
-            } catch (Exception e) {
-                throw new IOException(e);
-            }
-            this.client = client;// only set if it could be succesfully started
+    private synchronized WebSocketContainer lazyInitialize2() {
+        if (container == null) {
+            WebSocketContainer container = ContainerProvider.getWebSocketContainer();
+            this.container = container;// only set if it could be succesfully started
         }
-        return client;
+        return container;
     }
 
     /**
@@ -81,20 +78,20 @@ public final class TransportClientFactory {
      *             could not connect
      */
     public void connect(Transport listener, long timeout, TimeUnit unit) throws IOException {
-        TransportWebSocketListener client = new TransportWebSocketListener(listener);
+        TransportClientListener client = new TransportClientListener(listener);
         long now = System.nanoTime();
         LOG.info("Connecting to " + uri);
         try {
-            lazyInitialize().connect(client, uri).get(timeout, unit);
-        } catch (InterruptedException e) {
+            lazyInitialize2().connectToServer(client, uri);// . .get(timeout, unit);
+        } catch (DeploymentException e) {
             throw new InterruptedIOException();
-        } catch (ExecutionException e) {
-            if (e.getCause() instanceof IOException) {
-                throw (IOException) e.getCause();
-            }
-            throw new IOException(e);
-        } catch (TimeoutException e) {
-            throw new IOException("Connect timed out", e);
+            // } catch (ExecutionException e) {
+            // if (e.getCause() instanceof IOException) {
+            // throw (IOException) e.getCause();
+            // }
+            // throw new IOException(e);
+            // } catch (IOException e) {
+            // throw new IOException("Connect timed out", e);
         }
         long remaining = unit.toNanos(timeout) - (System.nanoTime() - now);
         try {
@@ -113,13 +110,20 @@ public final class TransportClientFactory {
      */
     public void shutdown() throws IOException {
         try {
-            client.stop();
+            ((ContainerLifeCycle) container).stop();
         } catch (Exception e) {
-            if (e.getCause() instanceof IOException) {
-                throw (IOException) e.getCause();
-            }
             throw new IOException(e);
         }
+
+        // try {
+        // container.
+        // client.stop();
+        // } catch (Exception e) {
+        // if (e.getCause() instanceof IOException) {
+        // throw (IOException) e.getCause();
+        // }
+        // throw new IOException(e);
+        // }
     }
 
     public static TransportClientFactory createClient(String hostPort) {
