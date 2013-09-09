@@ -37,26 +37,29 @@ import dk.dma.navnet.protocol.connection.Connection;
  */
 public class ServerConnection extends Connection {
 
+    /** The server we are connected to. */
     final EmbeddableCloudServer server;
 
-    final MaritimeId id;
+    /** The id of the client. */
+    final MaritimeId clientId;
 
     volatile Target target;
+
     /** The latest position of the client. */
     volatile PositionTime latestPosition;
-    final ServerServiceManager services;
-    final String remoteId;
+
+    /** Manages all services registered for a client. */
+    final ServerConnectionServiceManager services;
 
     /**
      * @param cm
      * @param sh
      */
-    public ServerConnection(EmbeddableCloudServer server, MaritimeId id, String connectionId) {
+    public ServerConnection(EmbeddableCloudServer server, MaritimeId clientId, String connectionId) {
         super(connectionId);
         this.server = requireNonNull(server);
-        this.remoteId = id.toString();
-        this.id = requireNonNull(id);
-        services = new ServerServiceManager(this);
+        this.clientId = requireNonNull(clientId);
+        services = new ServerConnectionServiceManager(this);
     }
 
     /** {@inheritDoc} */
@@ -117,6 +120,8 @@ public class ServerConnection extends Connection {
             connectingTransport.sendTransportMessage(new ConnectedMessage(c.getConnectionId()));
             server.tracker.update(target, pt);
             return c;
+        } else {
+            // Trying to reconnect
         }
         throw new Error();
     }

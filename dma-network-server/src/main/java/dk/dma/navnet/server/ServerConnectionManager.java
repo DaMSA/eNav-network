@@ -87,7 +87,7 @@ class ServerConnectionManager {
     }
 
     void disconnected(ServerConnection c) {
-        connections.remove(c.remoteId, c);
+        connections.remove(c.clientId.toString(), c);
     }
 
     public Set<String> getAllConnectionIds() {
@@ -144,7 +144,6 @@ class ServerConnectionManager {
                         } else {
                             existing.setTransport(null);
                         }
-
                     } finally {
                         if (existing != null) {
                             existing.fullyUnlock();

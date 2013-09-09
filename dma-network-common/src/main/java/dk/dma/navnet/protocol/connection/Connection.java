@@ -39,6 +39,7 @@ public abstract class Connection extends AbstractProtocol {
     private final String connectionId;
 
     public long latestLocalIdAcked;
+
     public long latestLocalIdSend;
 
     public long latestRemoteAckedIdSend;

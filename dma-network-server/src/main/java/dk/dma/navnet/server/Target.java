@@ -21,7 +21,7 @@ import dk.dma.navnet.protocol.application.Application;
 
 /**
  * There exist at most one target per remote client. A target does not necessarily have an active connection. But at
- * some a client with the specified id has been connected.
+ * some point, some client with the specified id have connected.
  * 
  * @author Kasper Nielsen
  */

@@ -21,6 +21,8 @@ import com.beust.jcommander.Parameter;
 import com.google.inject.Injector;
 
 import dk.dma.commons.app.AbstractCommandLineTool;
+import dk.dma.commons.web.rest.AbstractResource;
+import dk.dma.navnet.server.rest.WebServer;
 
 /**
  * Used to start a server from the command line.
@@ -49,8 +51,15 @@ public class Main extends AbstractCommandLineTool {
         EmbeddableCloudServer server = new EmbeddableCloudServer(port);
         server.start();
         this.server = server; // only set it if it started
+
+        WebServer ws = new WebServer(8090);
+        ws.getContext().setAttribute(AbstractResource.CONFIG, AbstractResource.create(server));
+
+        ws.start();
         System.out.println("Wuhuu Maritime Cloud Server started! Running on port " + port);
         System.out.println("Use CTRL+C to stop it");
+
+        ws.join();
     }
 
     void kill() {

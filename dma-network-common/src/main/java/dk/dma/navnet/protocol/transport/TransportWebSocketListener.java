@@ -20,10 +20,6 @@ import static java.util.Objects.requireNonNull;
 import java.io.IOException;
 import java.util.concurrent.CountDownLatch;
 
-import org.eclipse.jetty.websocket.api.RemoteEndpoint;
-import org.eclipse.jetty.websocket.api.Session;
-import org.eclipse.jetty.websocket.api.WebSocketListener;
-
 import dk.dma.enav.communication.CloseReason;
 
 /**
@@ -59,7 +55,7 @@ class TransportWebSocketListener implements WebSocketListener {
             if (s != null) {
                 s.close(reason.getId(), reason.getMessage());
             }
-        } catch (IOException e) {
+        } catch (Exception e) {
             e.printStackTrace();
         }
     }
@@ -72,7 +68,7 @@ class TransportWebSocketListener implements WebSocketListener {
             CloseReason r = CloseReason.create(CloseReason.BAD_DATA.getId(), "Expected text only");
             s.close(r.getId(), r.getMessage());
             transport.closedByWebsocket(r);
-        } catch (IOException e) {
+        } catch (Exception e) {
             e.printStackTrace();
         }
     }
@@ -101,7 +97,11 @@ class TransportWebSocketListener implements WebSocketListener {
     /** {@inheritDoc} */
     @Override
     public final void onWebSocketText(String message) {
-        transport.rawReceive(message);
+        try {
+            transport.rawReceive(message);
+        } catch (Exception e) {
+            // close connection, for example parse error
+        }
     }
 
     /** {@inheritDoc} */

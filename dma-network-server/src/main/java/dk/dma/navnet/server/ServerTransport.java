@@ -31,7 +31,7 @@ import dk.dma.navnet.protocol.transport.Transport;
 class ServerTransport extends Transport {
 
     /** Whether or not we have received the first hello message from the client. */
-    private boolean helloReceived;
+    private boolean hasReceivedHelloFromClient;
 
     /** The server. */
     private final EmbeddableCloudServer server;
@@ -53,13 +53,13 @@ class ServerTransport extends Transport {
         if (m instanceof WelcomeMessage || m instanceof ConnectedMessage) {
             // Close Transport should never see this messages on the server
         } else if (m instanceof HelloMessage) {
-            if (helloReceived) {
+            if (hasReceivedHelloFromClient) {
                 // Close Transport should never see a hello message now
             } else {
-                helloReceived = true;
+                hasReceivedHelloFromClient = true;
                 server.connectionManager.onMessageHello(this, (HelloMessage) m);
             }
-        } else if (!helloReceived) {
+        } else if (!hasReceivedHelloFromClient) {
             // Close transport, expecting HelloMessage as the first message from the client
         } else {
             super.onTransportMessage(m);

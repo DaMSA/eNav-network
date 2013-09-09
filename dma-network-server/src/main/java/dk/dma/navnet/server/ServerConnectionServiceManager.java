@@ -41,10 +41,10 @@ import dk.dma.navnet.core.messages.s2c.service.RegisterService;
  * 
  * @author Kasper Nielsen
  */
-class ServerServiceManager {
+class ServerConnectionServiceManager {
 
     /** A logger. */
-    private static final Logger LOG = LoggerFactory.getLogger(ServerServiceManager.class);
+    private static final Logger LOG = LoggerFactory.getLogger(ServerConnectionServiceManager.class);
 
     /** The client */
     final ServerConnection connection;
@@ -52,12 +52,12 @@ class ServerServiceManager {
     /** A map of all registered services at the client. */
     final ConcurrentHashMapV8<String, String> services = new ConcurrentHashMapV8<>();
 
-    ServerServiceManager(ServerConnection connection) {
+    ServerConnectionServiceManager(ServerConnection connection) {
         this.connection = requireNonNull(connection);
     }
 
     void registerService(RegisterService s) {
-        LOG.debug("Registered remote service " + s.getServiceName() + "@" + connection.id);
+        LOG.debug("Registered remote service " + s.getServiceName() + "@" + connection.clientId);
         services.put(s.getServiceName(), s.getServiceName());
     }
 
@@ -102,7 +102,7 @@ class ServerServiceManager {
         // Extract the maritime id
         List<String> list = new ArrayList<>();
         for (Entry<ServerConnection, PositionTime> e : l) {
-            list.add(e.getKey().id.toString());
+            list.add(e.getKey().clientId.toString());
         }
         connection.sendConnectionMessage(m.createReply(list.toArray(new String[list.size()])));
     }
