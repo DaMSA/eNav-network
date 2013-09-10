@@ -21,6 +21,7 @@
   </properties>
   
   <modules>
+    <module>dma-network-messages</module>
     <module>dma-network-common</module>
     <module>dma-network-client</module>
     <module>dma-network-server</module>

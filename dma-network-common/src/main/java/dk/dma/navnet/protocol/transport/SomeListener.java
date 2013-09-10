@@ -15,14 +15,14 @@
  */
 package dk.dma.navnet.protocol.transport;
 
-import dk.dma.enav.communication.CloseReason;
+import dk.dma.enav.communication.ClosingCode;
 
 /**
  * 
  * @author Kasper Nielsen
  */
 public interface SomeListener {
-    void close(CloseReason reason);
+    void close(ClosingCode reason);
 
     void sendText(String text);
 }

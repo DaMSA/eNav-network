@@ -29,7 +29,7 @@ import dk.dma.enav.communication.broadcast.BroadcastListener;
 import dk.dma.enav.communication.broadcast.BroadcastMessage;
 import dk.dma.enav.communication.broadcast.BroadcastMessageHeader;
 import dk.dma.enav.communication.broadcast.BroadcastSubscription;
-import dk.dma.navnet.core.messages.c2c.broadcast.BroadcastMsg;
+import dk.dma.navnet.messages.c2c.broadcast.BroadcastMsg;
 
 /**
  * Manages sending and receiving of broadcasts.
@@ -86,7 +86,15 @@ class BroadcastManager {
     void onBroadcastMessage(BroadcastMsg broadcast) {
         CopyOnWriteArraySet<Listener> set = listeners.get(broadcast.getChannel());
         if (set != null && !set.isEmpty()) {
-            final BroadcastMessage bm = broadcast.tryRead();
+            BroadcastMessage bm = null;
+            try {
+                bm = broadcast.tryRead();
+            } catch (Exception e) {
+                LOG.error("Exception while trying to deserialize an incoming broadcast message ", e);
+                LOG.error(broadcast.toJSON());
+            }
+
+            final BroadcastMessage bmm = bm;
             final BroadcastMessageHeader bp = new BroadcastMessageHeader(broadcast.getId(), broadcast.getPositionTime());
 
             // Deliver to each listener
@@ -94,7 +102,7 @@ class BroadcastManager {
                 c.es.execute(new Runnable() {
                     @Override
                     public void run() {
-                        s.deliver(bp, bm);
+                        s.deliver(bp, bmm);
                     }
                 });
             }

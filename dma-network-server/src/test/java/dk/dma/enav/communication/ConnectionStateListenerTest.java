@@ -62,7 +62,7 @@ public class ConnectionStateListenerTest extends AbstractNetworkTest {
     public void closed() throws Exception {
         final CountDownLatch cdl = new CountDownLatch(1);
         newClient(newBuilder(ID1).addListener(new AbstractConnectionTestListener() {
-            public void closed(CloseReason reason) {
+            public void closed(ClosingCode reason) {
                 assertEquals(1000, reason.getId());
                 cdl.countDown();
             }

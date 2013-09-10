@@ -21,14 +21,14 @@ import java.util.UUID;
 
 import dk.dma.enav.model.MaritimeId;
 import dk.dma.enav.model.geometry.PositionTime;
-import dk.dma.navnet.core.messages.ConnectionMessage;
-import dk.dma.navnet.core.messages.c2c.ClientRelayedMessage;
-import dk.dma.navnet.core.messages.c2c.broadcast.BroadcastMsg;
-import dk.dma.navnet.core.messages.s2c.service.FindService;
-import dk.dma.navnet.core.messages.s2c.service.RegisterService;
-import dk.dma.navnet.core.messages.transport.ConnectedMessage;
-import dk.dma.navnet.core.messages.transport.HelloMessage;
-import dk.dma.navnet.core.messages.transport.PositionReportMessage;
+import dk.dma.navnet.messages.ConnectionMessage;
+import dk.dma.navnet.messages.auxiliary.ConnectedMessage;
+import dk.dma.navnet.messages.auxiliary.HelloMessage;
+import dk.dma.navnet.messages.auxiliary.PositionReportMessage;
+import dk.dma.navnet.messages.c2c.ClientRelayedMessage;
+import dk.dma.navnet.messages.c2c.broadcast.BroadcastMsg;
+import dk.dma.navnet.messages.s2c.service.FindService;
+import dk.dma.navnet.messages.s2c.service.RegisterService;
 import dk.dma.navnet.protocol.connection.Connection;
 
 /**
@@ -65,6 +65,7 @@ public class ServerConnection extends Connection {
     /** {@inheritDoc} */
     @Override
     public final void onConnectionMessage(ConnectionMessage m) {
+        super.onConnectionMessage(m);
         if (m instanceof RegisterService) {
             registerService((RegisterService) m);
         } else if (m instanceof FindService) {

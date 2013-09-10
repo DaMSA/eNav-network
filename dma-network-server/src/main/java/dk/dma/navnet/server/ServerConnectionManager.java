@@ -28,9 +28,9 @@ import jsr166e.ConcurrentHashMapV8.Fun;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import dk.dma.enav.communication.CloseReason;
-import dk.dma.navnet.core.messages.c2c.broadcast.BroadcastMsg;
-import dk.dma.navnet.core.messages.transport.HelloMessage;
+import dk.dma.enav.communication.ClosingCode;
+import dk.dma.navnet.messages.auxiliary.HelloMessage;
+import dk.dma.navnet.messages.c2c.broadcast.BroadcastMsg;
 import dk.dma.navnet.protocol.transport.Transport;
 
 /**
@@ -104,7 +104,7 @@ class ServerConnectionManager {
 
     /**
      * Invoked when a hello message is received on a newly created transport.
-     * {@link ServerTransport#onTransportMessage(dk.dma.navnet.core.messages.TransportMessage)} has already made sure
+     * {@link ServerTransport#onTransportMessage(dk.dma.navnet.messages.TransportMessage)} has already made sure
      * that the message is the first message received on the transport.
      * 
      * @param transport
@@ -137,7 +137,7 @@ class ServerConnectionManager {
                             try {
                                 existing.setTransport(null);
                                 oldTransport.setConnection(null);
-                                oldTransport.close(CloseReason.DUPLICATE_CONNECT);
+                                oldTransport.close(ClosingCode.DUPLICATE_CONNECT);
                             } finally {
                                 oldTransport.fullyUnlock();
                             }

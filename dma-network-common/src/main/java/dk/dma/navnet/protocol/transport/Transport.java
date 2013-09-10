@@ -16,9 +16,9 @@
 package dk.dma.navnet.protocol.transport;
 
 import static java.util.Objects.requireNonNull;
-import dk.dma.enav.communication.CloseReason;
-import dk.dma.navnet.core.messages.ConnectionMessage;
-import dk.dma.navnet.core.messages.TransportMessage;
+import dk.dma.enav.communication.ClosingCode;
+import dk.dma.navnet.messages.ConnectionMessage;
+import dk.dma.navnet.messages.TransportMessage;
 import dk.dma.navnet.protocol.AbstractProtocol;
 import dk.dma.navnet.protocol.connection.Connection;
 
@@ -32,7 +32,7 @@ import dk.dma.navnet.protocol.connection.Connection;
 public abstract class Transport extends AbstractProtocol {
 
     /** If closed, the reason why this transport was closed. */
-    private volatile CloseReason closeReason;
+    private volatile ClosingCode closeReason;
 
     private volatile Connection connection;
 
@@ -42,7 +42,7 @@ public abstract class Transport extends AbstractProtocol {
     /** The current state of the transport */
     private volatile State state = State.INITIALIZED;
 
-    public final void close(CloseReason reason) {
+    public final void close(ClosingCode reason) {
         requireNonNull(reason);
         fullyLock();
         try {
@@ -58,7 +58,7 @@ public abstract class Transport extends AbstractProtocol {
         }
     }
 
-    final void closedByWebsocket(CloseReason reason) {
+    final void closedByWebsocket(ClosingCode reason) {
         fullyLock();
         try {
             onTransportClose(reason);
@@ -71,7 +71,7 @@ public abstract class Transport extends AbstractProtocol {
      * If this transport has been closed. The reason for closing it. Returns <code>null</code> if the transport is still
      * active.
      */
-    public final CloseReason getCloseReason() {
+    public final ClosingCode getCloseReason() {
         return closeReason;
     }
 
@@ -91,7 +91,7 @@ public abstract class Transport extends AbstractProtocol {
         return state;
     }
 
-    public void onTransportClose(CloseReason reason) {}
+    public void onTransportClose(ClosingCode reason) {}
 
     /**
      * A remote end has connected successfully and the transport is ready to be used.
@@ -119,14 +119,13 @@ public abstract class Transport extends AbstractProtocol {
      * @param message
      *            the string message
      */
-    // this mainly exist for the unit test
     void rawReceive(String message) {
         System.out.println("Received: " + message);
         try {
             onTransportMessage(TransportMessage.parseMessage(message));
         } catch (Throwable e) {
             e.printStackTrace();
-            close(CloseReason.WRONG_MESSAGE.withMessage(e.getMessage()));
+            close(ClosingCode.WRONG_MESSAGE.withMessage(e.getMessage()));
         }
     }
 

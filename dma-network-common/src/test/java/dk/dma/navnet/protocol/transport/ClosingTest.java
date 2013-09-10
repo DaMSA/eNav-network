@@ -25,7 +25,7 @@ import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
 
-import dk.dma.enav.communication.CloseReason;
+import dk.dma.enav.communication.ClosingCode;
 import dk.dma.enav.util.function.Supplier;
 
 /**
@@ -50,21 +50,21 @@ public class ClosingTest {
         stf.startAccept(new Supplier<Transport>() {
             public Transport get() {
                 return new Transport() {
-                    public void onTransportClose(CloseReason reason) {
+                    public void onTransportClose(ClosingCode reason) {
                         assertEquals(1000, reason.getId());
                         cdl.countDown();
 
                     }
 
                     public void onTransportConnect() {
-                        close(CloseReason.NORMAL);
+                        close(ClosingCode.NORMAL);
                     }
                 };
             }
         });
         // Client
         ctf.connect(new Transport() {
-            public void onTransportClose(CloseReason reason) {
+            public void onTransportClose(ClosingCode reason) {
                 System.out.println("GOT " + reason.getId());
                 cdl.countDown();
             }
@@ -78,7 +78,7 @@ public class ClosingTest {
         stf.startAccept(new Supplier<Transport>() {
             public Transport get() {
                 return new Transport() {
-                    public void onTransportClose(CloseReason reason) {
+                    public void onTransportClose(ClosingCode reason) {
                         assertEquals(1000, reason.getId());
                         cdl.countDown();
 
@@ -94,10 +94,10 @@ public class ClosingTest {
         ctf.connect(new Transport() {
             public void rawReceive(String text) {
                 assertEquals("CloseMe", text);
-                close(CloseReason.NORMAL);
+                close(ClosingCode.NORMAL);
             }
 
-            public void onTransportClose(CloseReason reason) {
+            public void onTransportClose(ClosingCode reason) {
                 assertEquals(1000, reason.getId());
                 cdl.countDown();
             }

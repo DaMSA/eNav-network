@@ -18,7 +18,7 @@ package dk.dma.navnet.client;
 import static java.util.Objects.requireNonNull;
 import dk.dma.enav.model.MaritimeId;
 import dk.dma.enav.model.geometry.PositionTime;
-import dk.dma.navnet.core.messages.transport.ConnectedMessage;
+import dk.dma.navnet.messages.auxiliary.ConnectedMessage;
 
 /**
  * 

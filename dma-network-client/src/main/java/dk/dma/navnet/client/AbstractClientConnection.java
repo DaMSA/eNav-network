@@ -20,9 +20,9 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import dk.dma.navnet.client.DefaultPersistentConnection.NetworkFutureSupplier;
 import dk.dma.navnet.client.util.DefaultConnectionFuture;
-import dk.dma.navnet.core.messages.ConnectionMessage;
-import dk.dma.navnet.core.messages.s2c.ServerRequestMessage;
-import dk.dma.navnet.core.messages.s2c.ServerResponseMessage;
+import dk.dma.navnet.messages.ConnectionMessage;
+import dk.dma.navnet.messages.s2c.ServerRequestMessage;
+import dk.dma.navnet.messages.s2c.ServerResponseMessage;
 import dk.dma.navnet.protocol.connection.Connection;
 
 /**
@@ -48,6 +48,7 @@ public abstract class AbstractClientConnection extends Connection {
     }
 
     public final void onConnectionMessage(ConnectionMessage m) {
+        super.onConnectionMessage(m);
         if (m instanceof ServerResponseMessage) {
             ServerResponseMessage am = (ServerResponseMessage) m;
             DefaultConnectionFuture<?> f = acks.remove(am.getMessageAck());

@@ -33,8 +33,8 @@ import dk.dma.enav.model.geometry.Circle;
 import dk.dma.enav.model.geometry.CoordinateSystem;
 import dk.dma.enav.model.geometry.PositionTime;
 import dk.dma.enav.util.function.BiConsumer;
-import dk.dma.navnet.core.messages.s2c.service.FindService;
-import dk.dma.navnet.core.messages.s2c.service.RegisterService;
+import dk.dma.navnet.messages.s2c.service.FindService;
+import dk.dma.navnet.messages.s2c.service.RegisterService;
 
 /**
  * Manages services for a single connected client.

@@ -20,12 +20,12 @@ import static java.util.Objects.requireNonNull;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
-import dk.dma.enav.communication.CloseReason;
+import dk.dma.enav.communication.ClosingCode;
 import dk.dma.enav.model.geometry.PositionTime;
-import dk.dma.navnet.core.messages.TransportMessage;
-import dk.dma.navnet.core.messages.transport.ConnectedMessage;
-import dk.dma.navnet.core.messages.transport.HelloMessage;
-import dk.dma.navnet.core.messages.transport.WelcomeMessage;
+import dk.dma.navnet.messages.TransportMessage;
+import dk.dma.navnet.messages.auxiliary.ConnectedMessage;
+import dk.dma.navnet.messages.auxiliary.HelloMessage;
+import dk.dma.navnet.messages.auxiliary.WelcomeMessage;
 import dk.dma.navnet.protocol.transport.Transport;
 
 /**
@@ -57,7 +57,7 @@ class ClientTransport extends Transport {
 
     /** {@inheritDoc} */
     @Override
-    public void onTransportClose(CloseReason reason) {
+    public void onTransportClose(ClosingCode reason) {
         ClientConnection cc = (ClientConnection) getConnection();
         if (cc != null) {
             cc.cm.close();

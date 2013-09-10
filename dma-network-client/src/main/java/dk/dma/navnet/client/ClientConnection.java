@@ -23,13 +23,13 @@ import java.net.ConnectException;
 import java.util.concurrent.TimeUnit;
 
 import dk.dma.navnet.client.util.DefaultConnectionFuture;
-import dk.dma.navnet.core.messages.ConnectionMessage;
-import dk.dma.navnet.core.messages.TransportMessage;
-import dk.dma.navnet.core.messages.c2c.broadcast.BroadcastMsg;
-import dk.dma.navnet.core.messages.c2c.service.InvokeService;
-import dk.dma.navnet.core.messages.c2c.service.InvokeServiceResult;
-import dk.dma.navnet.core.messages.s2c.service.FindServiceResult;
-import dk.dma.navnet.core.messages.s2c.service.RegisterServiceResult;
+import dk.dma.navnet.messages.ConnectionMessage;
+import dk.dma.navnet.messages.TransportMessage;
+import dk.dma.navnet.messages.c2c.broadcast.BroadcastMsg;
+import dk.dma.navnet.messages.c2c.service.InvokeService;
+import dk.dma.navnet.messages.c2c.service.InvokeServiceResult;
+import dk.dma.navnet.messages.s2c.service.FindServiceResult;
+import dk.dma.navnet.messages.s2c.service.RegisterServiceResult;
 
 /**
  * 

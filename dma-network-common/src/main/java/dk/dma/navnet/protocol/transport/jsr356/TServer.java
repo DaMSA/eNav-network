@@ -20,13 +20,8 @@ package dk.dma.navnet.protocol.transport.jsr356;
  * 
  * @author Kasper Nielsen
  */
-public class Dooo {
-    //
-    // public static void main(String[] args) throws Exception {
-    // WebSocketContainer container = ContainerProvider.getWebSocketContainer();
-    // AnnotatedEchoClient echoer = new AnnotatedEchoClient();
-    // Session session = container.connectToServer(echoer, new URI("ws://localhost:43234"));
-    // session.getBasicRemote().sendText("Echo");
-    // }
-
+public class TServer {
+    public static void main(String[] args) {
+        // ServerContainer
+    }
 }

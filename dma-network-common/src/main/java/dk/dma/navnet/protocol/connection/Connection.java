@@ -17,12 +17,10 @@ package dk.dma.navnet.protocol.connection;
 
 import static java.util.Objects.requireNonNull;
 
-import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.concurrent.locks.ReentrantLock;
 
-import dk.dma.enav.communication.CloseReason;
-import dk.dma.navnet.core.messages.ConnectionMessage;
-import dk.dma.navnet.core.messages.TransportMessage;
+import dk.dma.enav.communication.ClosingCode;
+import dk.dma.navnet.messages.ConnectionMessage;
 import dk.dma.navnet.protocol.AbstractProtocol;
 import dk.dma.navnet.protocol.application.Application;
 import dk.dma.navnet.protocol.transport.Transport;
@@ -40,16 +38,13 @@ public abstract class Connection extends AbstractProtocol {
 
     public long latestLocalIdAcked;
 
-    public long latestLocalIdSend;
-
     public long latestRemoteAckedIdSend;
 
     public long latestRemoteIdReceived;
 
     public final ReentrantLock lock = new ReentrantLock();
 
-    /** All messages that not yet been acked by the remote end. */
-    public final ConcurrentSkipListMap<Long, TransportMessage> nonAcked = new ConcurrentSkipListMap<>();
+    ResumingQueue rq = new ResumingQueue();
 
     private volatile Transport transport;
 
@@ -58,7 +53,7 @@ public abstract class Connection extends AbstractProtocol {
     }
 
     public final void closeNormally() {
-        transport.close(CloseReason.NORMAL);
+        transport.close(ClosingCode.NORMAL);
     }
 
     /**
@@ -76,16 +71,21 @@ public abstract class Connection extends AbstractProtocol {
         return transport;
     }
 
-    public void onConnectionClose(CloseReason reason) {}
+    public void onConnectionClose(ClosingCode reason) {}
 
     public void onConnectionCreate() {}
 
     public void onConnectionError(Throwable cause) {}
 
-    public void onConnectionMessage(ConnectionMessage message) {}
+    public void onConnectionMessage(ConnectionMessage message) {
+        latestRemoteIdReceived = message.getMessageId();
+        rq.acked(message.getLatestReceivedId());
+    }
 
     public final void sendConnectionMessage(ConnectionMessage m) {
-        transport.sendTransportMessage(m);
+        m.setLatestReceivedId(latestRemoteIdReceived);
+        rq.write(transport, m);
+        // transport.sendTransportMessage(m);
     }
 
     /**

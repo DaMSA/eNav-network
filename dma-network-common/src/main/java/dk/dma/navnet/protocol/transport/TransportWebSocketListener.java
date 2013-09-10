@@ -24,7 +24,7 @@ import org.eclipse.jetty.websocket.api.RemoteEndpoint;
 import org.eclipse.jetty.websocket.api.Session;
 import org.eclipse.jetty.websocket.api.WebSocketListener;
 
-import dk.dma.enav.communication.CloseReason;
+import dk.dma.enav.communication.ClosingCode;
 
 /**
  * The listener interacting with Jettys websocket library.
@@ -53,7 +53,7 @@ final class TransportWebSocketListener implements WebSocketListener, SomeListene
     }
 
     /** {@inheritDoc} */
-    public final void close(CloseReason reason) {
+    public final void close(ClosingCode reason) {
         Session s = session;
         try {
             if (s != null) {
@@ -69,7 +69,7 @@ final class TransportWebSocketListener implements WebSocketListener, SomeListene
     public final void onWebSocketBinary(byte[] payload, int offset, int len) {
         Session s = session;
         try {
-            CloseReason r = CloseReason.create(CloseReason.BAD_DATA.getId(), "Expected text only");
+            ClosingCode r = ClosingCode.create(ClosingCode.BAD_DATA.getId(), "Expected text only");
             s.close(r.getId(), r.getMessage());
             transport.closedByWebsocket(r);
         } catch (Exception e) {
@@ -81,7 +81,7 @@ final class TransportWebSocketListener implements WebSocketListener, SomeListene
     @Override
     public final void onWebSocketClose(int statusCode, String reason) {
         session = null;
-        transport.closedByWebsocket(CloseReason.create(statusCode, reason));
+        transport.closedByWebsocket(ClosingCode.create(statusCode, reason));
     }
 
     /** {@inheritDoc} */

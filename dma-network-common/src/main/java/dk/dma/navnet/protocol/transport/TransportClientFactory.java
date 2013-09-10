@@ -57,10 +57,10 @@ public final class TransportClientFactory {
         this.uri = requireNonNull(uri);
     }
 
-    private synchronized WebSocketContainer lazyInitialize2() {
+    private synchronized WebSocketContainer lazyInitialize() {
+        WebSocketContainer container = this.container;
         if (container == null) {
-            WebSocketContainer container = ContainerProvider.getWebSocketContainer();
-            this.container = container;// only set if it could be succesfully started
+            return this.container = ContainerProvider.getWebSocketContainer();
         }
         return container;
     }
@@ -82,22 +82,15 @@ public final class TransportClientFactory {
         long now = System.nanoTime();
         LOG.info("Connecting to " + uri);
         try {
-            lazyInitialize2().connectToServer(client, uri);// . .get(timeout, unit);
+            lazyInitialize().connectToServer(client, uri);// . .get(timeout, unit);
         } catch (DeploymentException e) {
-            throw new InterruptedIOException();
-            // } catch (ExecutionException e) {
-            // if (e.getCause() instanceof IOException) {
-            // throw (IOException) e.getCause();
-            // }
-            // throw new IOException(e);
-            // } catch (IOException e) {
-            // throw new IOException("Connect timed out", e);
+            throw new IOException(e);
         }
         long remaining = unit.toNanos(timeout) - (System.nanoTime() - now);
         try {
             // TODO check return status
             // TODO Make sure transport is not used again. Its invalid
-            client.connected.await(remaining, TimeUnit.NANOSECONDS);
+            client.connectedLatch.await(remaining, TimeUnit.NANOSECONDS);
         } catch (InterruptedException e) {
             throw new InterruptedIOException();
         }
@@ -114,16 +107,6 @@ public final class TransportClientFactory {
         } catch (Exception e) {
             throw new IOException(e);
         }
-
-        // try {
-        // container.
-        // client.stop();
-        // } catch (Exception e) {
-        // if (e.getCause() instanceof IOException) {
-        // throw (IOException) e.getCause();
-        // }
-        // throw new IOException(e);
-        // }
     }
 
     public static TransportClientFactory createClient(String hostPort) {

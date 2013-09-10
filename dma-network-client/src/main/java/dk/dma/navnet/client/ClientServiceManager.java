@@ -36,13 +36,12 @@ import dk.dma.enav.communication.service.spi.ServiceInitiationPoint;
 import dk.dma.enav.communication.service.spi.ServiceMessage;
 import dk.dma.enav.model.MaritimeId;
 import dk.dma.navnet.client.util.DefaultConnectionFuture;
-import dk.dma.navnet.core.messages.c2c.service.InvokeService;
-import dk.dma.navnet.core.messages.c2c.service.InvokeServiceResult;
-import dk.dma.navnet.core.messages.s2c.service.FindService;
-import dk.dma.navnet.core.messages.s2c.service.FindServiceResult;
-import dk.dma.navnet.core.messages.s2c.service.RegisterService;
-import dk.dma.navnet.core.messages.s2c.service.RegisterServiceResult;
-import dk.dma.navnet.core.messages.util.JSonUtil;
+import dk.dma.navnet.messages.c2c.service.InvokeService;
+import dk.dma.navnet.messages.c2c.service.InvokeServiceResult;
+import dk.dma.navnet.messages.s2c.service.FindService;
+import dk.dma.navnet.messages.s2c.service.FindServiceResult;
+import dk.dma.navnet.messages.s2c.service.RegisterService;
+import dk.dma.navnet.messages.s2c.service.RegisterServiceResult;
 
 /**
  * 
@@ -82,7 +81,7 @@ class ClientServiceManager {
     /** {@inheritDoc} */
     <T, S extends ServiceMessage<T>> DefaultConnectionFuture<T> invokeService(MaritimeId id, S msg) {
         InvokeService is = new InvokeService(1, UUID.randomUUID().toString(), msg.getClass().getName(),
-                msg.messageName(), JSonUtil.persistAndEscape(msg));
+                msg.messageName(), msg);
         is.setDestination(id.toString());
         is.setSource(c.getLocalId().toString());
         final DefaultConnectionFuture<T> f = c.cfs.create();

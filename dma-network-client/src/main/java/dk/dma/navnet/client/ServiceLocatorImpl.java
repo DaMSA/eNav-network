@@ -28,8 +28,8 @@ import dk.dma.enav.communication.service.spi.ServiceInitiationPoint;
 import dk.dma.enav.communication.service.spi.ServiceMessage;
 import dk.dma.enav.model.MaritimeId;
 import dk.dma.navnet.client.util.DefaultConnectionFuture;
-import dk.dma.navnet.core.messages.s2c.service.FindService;
-import dk.dma.navnet.core.messages.s2c.service.FindServiceResult;
+import dk.dma.navnet.messages.s2c.service.FindService;
+import dk.dma.navnet.messages.s2c.service.FindServiceResult;
 
 /**
  * 

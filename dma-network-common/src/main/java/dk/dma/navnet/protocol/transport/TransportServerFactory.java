@@ -66,6 +66,7 @@ public final class TransportServerFactory {
             public void configure(WebSocketServletFactory factory) {
                 factory.setCreator(new WebSocketCreator() {
                     public Object createWebSocket(ServletUpgradeRequest req, ServletUpgradeResponse resp) {
+                        // return new TransportClientListener(supplier.get());
                         return new TransportWebSocketListener(supplier.get());
                     }
                 });
