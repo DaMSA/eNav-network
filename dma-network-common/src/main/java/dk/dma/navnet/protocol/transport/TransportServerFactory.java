@@ -20,13 +20,18 @@ import static java.util.Objects.requireNonNull;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 
+import javax.servlet.ServletException;
+import javax.servlet.http.HttpServlet;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import javax.websocket.DeploymentException;
+import javax.websocket.server.ServerContainer;
+
 import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.server.ServerConnector;
-import org.eclipse.jetty.websocket.server.WebSocketHandler;
-import org.eclipse.jetty.websocket.servlet.ServletUpgradeRequest;
-import org.eclipse.jetty.websocket.servlet.ServletUpgradeResponse;
-import org.eclipse.jetty.websocket.servlet.WebSocketCreator;
-import org.eclipse.jetty.websocket.servlet.WebSocketServletFactory;
+import org.eclipse.jetty.servlet.ServletContextHandler;
+import org.eclipse.jetty.servlet.ServletHolder;
+import org.eclipse.jetty.websocket.jsr356.server.WebSocketConfiguration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -52,6 +57,8 @@ public final class TransportServerFactory {
         connector.setReuseAddress(true);
     }
 
+    static Supplier<Transport> supplier;
+
     /**
      * Invoked whenever a client has connected.
      * 
@@ -62,18 +69,40 @@ public final class TransportServerFactory {
     public void startAccept(final Supplier<Transport> supplier) throws IOException {
         requireNonNull(supplier);
         // Creates the web socket handler that accept incoming requests
-        WebSocketHandler wsHandler = new WebSocketHandler() {
-            public void configure(WebSocketServletFactory factory) {
-                factory.setCreator(new WebSocketCreator() {
-                    public Object createWebSocket(ServletUpgradeRequest req, ServletUpgradeResponse resp) {
-                        // return new TransportClientListener(supplier.get());
-                        return new TransportWebSocketListener(supplier.get());
-                    }
-                });
-            }
-        };
+        // WebSocketHandler wsHandler = new WebSocketHandler() {
+        // public void configure(WebSocketServletFactory factory) {
+        // factory.setCreator(new WebSocketCreator() {
+        // public Object createWebSocket(ServletUpgradeRequest req, ServletUpgradeResponse resp) {
+        // // return new TransportClientListener(supplier.get());
+        // return new TransportWebSocketListener(supplier.get());
+        // }
+        // });
+        // }
+        // };
+        //
+        // server.setHandler(wsHandler);
+        TransportServerFactory.supplier = supplier;
+        // New handler
+        ServletContextHandler context = new ServletContextHandler(ServletContextHandler.SESSIONS);
+        context.setContextPath("/");
+        server.setHandler(context);
 
-        server.setHandler(wsHandler);
+        // Add a servlet to your context.
+        // It is required that you provide at least 1 servlet.
+        // Recommended that this servlet mere provide a
+        // "This is a websocket only server" style response
+        context.addServlet(new ServletHolder(new DumpServlet()), "/*");
+
+        // Enable javax.websocket configuration for the context
+        ServerContainer wsContainer = WebSocketConfiguration.configureContext(context);
+
+        // Add your websockets to the container
+        try {
+            wsContainer.addEndpoint(TransportListener.class);
+        } catch (DeploymentException e2) {
+            e2.printStackTrace();
+        }
+
         try {
             server.start();
             LOG.info("System is ready accept client connections");
@@ -127,5 +156,29 @@ public final class TransportServerFactory {
      */
     public static TransportServerFactory createServer(InetSocketAddress address) {
         return new TransportServerFactory(address);
+    }
+
+    @SuppressWarnings("serial")
+    static class DumpServlet extends HttpServlet {
+
+        @Override
+        protected void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException,
+                IOException {
+            response.setContentType("text/html");
+            response.setStatus(HttpServletResponse.SC_OK);
+            response.getWriter().println("<h1>DumpServlet</h1><pre>");
+            response.getWriter().println("requestURI=" + request.getRequestURI());
+            response.getWriter().println("contextPath=" + request.getContextPath());
+            response.getWriter().println("servletPath=" + request.getServletPath());
+            response.getWriter().println("pathInfo=" + request.getPathInfo());
+            response.getWriter().println("session=" + request.getSession(true).getId());
+
+            String r = request.getParameter("resource");
+            if (r != null) {
+                response.getWriter().println("resource(" + r + ")=" + getServletContext().getResource(r));
+            }
+
+            response.getWriter().println("</pre>");
+        }
     }
 }

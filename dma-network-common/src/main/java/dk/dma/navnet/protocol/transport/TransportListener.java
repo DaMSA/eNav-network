@@ -36,9 +36,9 @@ import dk.dma.enav.communication.ClosingCode;
  * 
  * @author Kasper Nielsen
  */
-@ClientEndpoint()
+@ClientEndpoint
 @ServerEndpoint(value = "/")
-public final class TransportClientListener implements SomeListener {
+public class TransportListener {
 
     volatile Session session = null;
 
@@ -51,12 +51,19 @@ public final class TransportClientListener implements SomeListener {
     private final Transport transport;
 
     /**
+     * @param transport
+     */
+    public TransportListener() {
+        this(TransportServerFactory.supplier.get());
+    }
+
+    /**
      * Creates a new listener.
      * 
      * @param transport
      *            the upstream protocol layer
      */
-    TransportClientListener(Transport transport) {
+    TransportListener(Transport transport) {
         this.transport = requireNonNull(transport);
     }
 

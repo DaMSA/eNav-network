@@ -78,7 +78,7 @@ public final class TransportClientFactory {
      *             could not connect
      */
     public void connect(Transport listener, long timeout, TimeUnit unit) throws IOException {
-        TransportClientListener client = new TransportClientListener(listener);
+        TransportListener client = new TransportListener(listener);
         long now = System.nanoTime();
         LOG.info("Connecting to " + uri);
         try {

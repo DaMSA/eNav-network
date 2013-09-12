@@ -104,8 +104,8 @@ class ServerConnectionManager {
 
     /**
      * Invoked when a hello message is received on a newly created transport.
-     * {@link ServerTransport#onTransportMessage(dk.dma.navnet.messages.TransportMessage)} has already made sure
-     * that the message is the first message received on the transport.
+     * {@link ServerTransport#onTransportMessage(dk.dma.navnet.messages.TransportMessage)} has already made sure that
+     * the message is the first message received on the transport.
      * 
      * @param transport
      *            the transport the message was received on
