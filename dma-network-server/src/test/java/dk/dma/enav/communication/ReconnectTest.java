@@ -17,8 +17,11 @@ package dk.dma.enav.communication;
 
 import static org.junit.Assert.assertEquals;
 
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -26,16 +29,18 @@ import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.Ignore;
 import org.junit.Test;
 
+import test.stubs.BroadcastTestMessage;
 import test.util.TestService;
 import test.util.TestService.TestInit;
 import test.util.TestService.TestReply;
+import dk.dma.enav.communication.broadcast.BroadcastListener;
+import dk.dma.enav.communication.broadcast.BroadcastMessageHeader;
 import dk.dma.enav.communication.service.InvocationCallback;
 
 /**
  * 
  * @author Kasper Nielsen
  */
-@Ignore
 public class ReconnectTest extends AbstractNetworkTest {
 
     public ReconnectTest() {
@@ -47,13 +52,14 @@ public class ReconnectTest extends AbstractNetworkTest {
     public void randomKilling() throws Exception {
         final AtomicInteger ai = new AtomicInteger();
         PersistentConnection c1 = newClient(ID1);
-        c1.serviceRegister(null, new InvocationCallback<TestService.TestInit, TestService.TestReply>() {
-            public void process(TestService.TestInit l, Context<TestService.TestReply> context) {
-                context.complete(l.reply());
-                ai.incrementAndGet();
-                System.out.println("Receive " + l);
-            }
-        }).awaitRegistered(1, TimeUnit.SECONDS);
+        c1.serviceRegister(TestService.TEST_INIT,
+                new InvocationCallback<TestService.TestInit, TestService.TestReply>() {
+                    public void process(TestService.TestInit l, Context<TestService.TestReply> context) {
+                        context.complete(l.reply());
+                        ai.incrementAndGet();
+                        System.out.println("Receive " + l);
+                    }
+                }).awaitRegistered(1, TimeUnit.SECONDS);
 
         PersistentConnection c6 = newClient(ID6);
 
@@ -83,16 +89,18 @@ public class ReconnectTest extends AbstractNetworkTest {
     }
 
     @Test
+    @Ignore
     public void randomKilling2() throws Exception {
         final AtomicInteger ai = new AtomicInteger();
         PersistentConnection c1 = newClient(ID1);
-        c1.serviceRegister(null, new InvocationCallback<TestService.TestInit, TestService.TestReply>() {
-            public void process(TestService.TestInit l, Context<TestService.TestReply> context) {
-                context.complete(l.reply());
-                ai.incrementAndGet();
-                System.out.println("Receive " + l);
-            }
-        }).awaitRegistered(1, TimeUnit.SECONDS);
+        c1.serviceRegister(TestService.TEST_INIT,
+                new InvocationCallback<TestService.TestInit, TestService.TestReply>() {
+                    public void process(TestService.TestInit l, Context<TestService.TestReply> context) {
+                        context.complete(l.reply());
+                        ai.incrementAndGet();
+                        System.out.println("Receive " + l);
+                    }
+                }).awaitRegistered(1, TimeUnit.SECONDS);
 
         PersistentConnection c6 = newClient(ID6);
 
@@ -124,12 +132,14 @@ public class ReconnectTest extends AbstractNetworkTest {
     public void singleClient() throws Exception {
         final AtomicInteger ai = new AtomicInteger();
         PersistentConnection c1 = newClient(ID1);
-        c1.serviceRegister(null, new InvocationCallback<TestService.TestInit, TestService.TestReply>() {
-            public void process(TestService.TestInit l, Context<TestService.TestReply> context) {
-                context.complete(l.reply());
-                ai.incrementAndGet();
-            }
-        }).awaitRegistered(1, TimeUnit.SECONDS);
+
+        c1.serviceRegister(TestService.TEST_INIT,
+                new InvocationCallback<TestService.TestInit, TestService.TestReply>() {
+                    public void process(TestService.TestInit l, Context<TestService.TestReply> context) {
+                        context.complete(l.reply());
+                        ai.incrementAndGet();
+                    }
+                }).awaitRegistered(1, TimeUnit.SECONDS);
 
         PersistentConnection c6 = newClient(ID6);
 
@@ -141,5 +151,29 @@ public class ReconnectTest extends AbstractNetworkTest {
         }
 
         System.out.println(ai);
+    }
+
+    @Test
+    public void singleClient2() throws Exception {
+        final int count = 10;
+        final Set<Integer> received = new HashSet<>();
+        final CountDownLatch cdl = new CountDownLatch(count);
+        PersistentConnection c1 = newClient(ID1);
+        PersistentConnection c2 = newClient(ID2);
+
+        c2.broadcastListen(BroadcastTestMessage.class, new BroadcastListener<BroadcastTestMessage>() {
+            public void onMessage(BroadcastMessageHeader header, BroadcastTestMessage broadcast) {
+                received.add(Integer.parseInt(broadcast.getName()));
+                cdl.countDown();
+            }
+        });
+
+        for (int i = 0; i < count; i++) {
+            c1.broadcast(new BroadcastTestMessage("" + i));
+            pt.killAll();
+        }
+
+        cdl.await(2, TimeUnit.SECONDS);
+        System.out.println(received);
     }
 }

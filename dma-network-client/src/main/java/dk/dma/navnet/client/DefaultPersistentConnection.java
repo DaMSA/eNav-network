@@ -216,7 +216,7 @@ class DefaultPersistentConnection extends ClientState implements PersistentConne
     /** {@inheritDoc} */
     @Override
     public <T, S extends ServiceMessage<T>> ConnectionFuture<T> serviceInvoke(MaritimeId id, S initiatingServiceMessage) {
-        throw new UnsupportedOperationException();
+        return services.invokeService(id, initiatingServiceMessage);
     }
 
     /** {@inheritDoc} */

@@ -13,11 +13,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package dk.dma.navnet.protocol.transport;
+package dk.dma.navnet.protocol.transport2;
 
-import static java.util.Objects.requireNonNull;
-
-import java.io.IOException;
 import java.util.concurrent.CountDownLatch;
 
 import javax.websocket.ClientEndpoint;
@@ -27,11 +24,11 @@ import javax.websocket.OnClose;
 import javax.websocket.OnMessage;
 import javax.websocket.OnOpen;
 import javax.websocket.RemoteEndpoint.Async;
-import javax.websocket.RemoteEndpoint.Basic;
 import javax.websocket.Session;
 import javax.websocket.server.ServerEndpoint;
 
 import dk.dma.enav.communication.ClosingCode;
+import dk.dma.navnet.messages.TransportMessage;
 
 /**
  * 
@@ -39,50 +36,34 @@ import dk.dma.enav.communication.ClosingCode;
  */
 @ClientEndpoint
 @ServerEndpoint(value = "/")
-public class TransportListener {
+public abstract class Transport2 {
 
     volatile Session session = null;
 
     public CloseCode close = null;
 
     /** A latch that is released when we receive a connected message from the remote end. */
-    final CountDownLatch connectedLatch = new CountDownLatch(1);
+    final CountDownLatch openedLatch = new CountDownLatch(1);
 
-    /** The upstream protocol layer. */
-    private final Transport transport;
-
-    /**
-     * @param transport
-     */
-    public TransportListener() {
-        this(TransportServerFactory.supplier.get());
-    }
-
-    /**
-     * Creates a new listener.
-     * 
-     * @param transport
-     *            the upstream protocol layer
-     */
-    TransportListener(Transport transport) {
-        this.transport = requireNonNull(transport);
-    }
+    final CountDownLatch closedLatch = new CountDownLatch(1);
 
     @OnOpen
     public void onOpen(Session session) {
         this.session = session;
-        connectedLatch.countDown();
-        transport.setSession(this);
+        openedLatch.countDown();
     }
 
     @OnMessage
     public void onMessage(String message) {
+        System.out.println("Received: " + message);
         try {
-            transport.rawReceive(message);
-        } catch (Exception e) {
-            // close connection, for example parse error
+            onTransportMessage(TransportMessage.parseMessage(message));
+        } catch (Throwable e) {
+            close(ClosingCode.WRONG_MESSAGE.withMessage(e.getMessage()));
         }
     }
+
+    protected abstract void onTransportMessage(TransportMessage message);
 
     /** {@inheritDoc} */
     public final void sendTextAsync(String text) {
@@ -90,20 +71,6 @@ public class TransportListener {
         Async r = s == null ? null : s.getAsyncRemote();
         if (r != null) {
             r.sendText(text);
-        }
-    }
-
-    /** {@inheritDoc} */
-    public final void sendText(String text) {
-        Session s = session;
-        Basic r = s == null ? null : s.getBasicRemote();
-        if (r != null) {
-            try {
-                r.sendText(text);
-            } catch (IOException e) {
-                e.printStackTrace();
-                // We nede to reconnect
-            }
         }
     }
 
@@ -126,8 +93,11 @@ public class TransportListener {
     /** {@inheritDoc} */
     @OnClose
     public final void onWebSocketClose(javax.websocket.CloseReason closeReason) {
-        session = null;
-        transport.closedByWebsocket(ClosingCode.create(closeReason.getCloseCode().getCode(),
-                closeReason.getReasonPhrase()));
+        try {
+            session = null;
+            ClosingCode cc = ClosingCode.create(closeReason.getCloseCode().getCode(), closeReason.getReasonPhrase());
+        } finally {
+            closedLatch.countDown();
+        }
     }
 }

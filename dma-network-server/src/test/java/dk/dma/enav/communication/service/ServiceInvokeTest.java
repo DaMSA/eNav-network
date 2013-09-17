@@ -13,20 +13,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package dk.dma.navnet.protocol.transport.jsr356;
-
+package dk.dma.enav.communication.service;
 
 /**
- * 
+ *
  * @author Kasper Nielsen
  */
-public class Dooo {
-    //
-    // public static void main(String[] args) throws Exception {
-    // WebSocketContainer container = ContainerProvider.getWebSocketContainer();
-    // AnnotatedEchoClient echoer = new AnnotatedEchoClient();
-    // Session session = container.connectToServer(echoer, new URI("ws://localhost:43234"));
-    // session.getBasicRemote().sendText("Echo");
-    // }
+public class ServiceInvokeTest {
 
 }

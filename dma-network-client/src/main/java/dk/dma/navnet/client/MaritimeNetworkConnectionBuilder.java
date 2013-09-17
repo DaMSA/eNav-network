@@ -19,6 +19,7 @@ import static java.util.Objects.requireNonNull;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 import dk.dma.enav.communication.ConnectionListener;
 import dk.dma.enav.communication.PersistentConnection;
@@ -39,6 +40,8 @@ public class MaritimeNetworkConnectionBuilder {
 
     private String nodes = "localhost:43234";
 
+    long heartbeatInterval = TimeUnit.SECONDS.toNanos(3);
+
     private Supplier<PositionTime> positionSupplier = new Supplier<PositionTime>() {
         public PositionTime get() {
             return PositionTime.create(0, 0, 0);
@@ -47,6 +50,11 @@ public class MaritimeNetworkConnectionBuilder {
 
     MaritimeNetworkConnectionBuilder(MaritimeId id) {
         this.id = requireNonNull(id);
+    }
+
+    public MaritimeNetworkConnectionBuilder setHeartbeatInterval(long interval, TimeUnit intervalUnit) {
+        this.heartbeatInterval = intervalUnit.toNanos(interval);
+        return this;
     }
 
     /**

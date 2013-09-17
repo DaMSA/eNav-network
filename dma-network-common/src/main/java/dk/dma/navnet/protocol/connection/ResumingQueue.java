@@ -55,10 +55,10 @@ public class ResumingQueue {
             if (message instanceof ConnectionMessage) {
                 ConnectionMessage m = (ConnectionMessage) message;
                 m.setMessageId(nextId++);
-                System.out.println("setting id " + nextId);
+                System.out.println("setting nextid= " + nextId);
                 messages.add(m);
             }
-            t.sendTransportMessage(message);
+            t.sendTransportMessageAsync(message);
         } finally {
             lock.unlock();
         }
@@ -69,7 +69,7 @@ public class ResumingQueue {
         try {
             acked(id);
             for (ConnectionMessage m : messages) {
-                t.sendTransportMessage(m);
+                t.sendTransportMessageAsync(m);
             }
         } finally {
             lock.unlock();

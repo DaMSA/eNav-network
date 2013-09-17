@@ -21,7 +21,6 @@ import static org.junit.Assert.fail;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 
-import org.junit.Ignore;
 import org.junit.Test;
 
 import test.stubs.HelloService;
@@ -62,7 +61,6 @@ public class NetworkFuturesOnCloseTest extends AbstractNetworkTest {
     }
 
     @Test
-    @Ignore
     public void serviceInvoke() throws Exception {
         PersistentConnection pc1 = newClient(ID1);
         newClient(ID2);

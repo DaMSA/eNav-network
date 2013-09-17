@@ -75,7 +75,6 @@ public class ServiceTest extends AbstractNetworkTest {
         ConnectionFuture<Reply> f = end.invoke(new HelloService.GetName());
         final CountDownLatch cdl = new CountDownLatch(1);
         f.handle(new BiConsumer<HelloService.Reply, Throwable>() {
-            @Override
             public void accept(Reply l, Throwable r) {
                 assertNull(r);
                 assertEquals("foo123", l.getName());

@@ -91,7 +91,11 @@ public abstract class Transport extends AbstractProtocol {
         return state;
     }
 
-    public void onTransportClose(ClosingCode reason) {}
+    public void onTransportClose(ClosingCode reason) {
+        if (reason.getId() != 1000) {
+            // error code
+        }
+    }
 
     /**
      * A remote end has connected successfully and the transport is ready to be used.
@@ -146,6 +150,20 @@ public abstract class Transport extends AbstractProtocol {
             throw new IllegalStateException("Not connected yet");
         }
         session.sendText(text);
+    }
+
+    final void rawSendAsync(String text) {
+        requireNonNull(text, "text is null");
+        TransportListener session = this.session;
+        if (session != null) {
+            session.sendTextAsync(text);
+        }
+    }
+
+    public final void sendTransportMessageAsync(TransportMessage m) {
+        String msg = m.toJSON();
+        System.out.println("Sending " + msg);
+        rawSendAsync(msg);
     }
 
     public final void sendTransportMessage(TransportMessage m) {
