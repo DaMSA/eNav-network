@@ -1,180 +1,130 @@
-/* Copyright (c) 2011 Danish Maritime Authority
+/*
+ * Copyright (c) 2008 Kasper Nielsen.
  *
- * This library is free software; you can redistribute it and/or
- * modify it under the terms of the GNU Lesser General Public
- * License as published by the Free Software Foundation; either
- * version 3 of the License, or (at your option) any later version.
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
  *
- * This library is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
- * Lesser General Public License for more details.
- * 
- * You should have received a copy of the GNU General Public License
- * along with this library.  If not, see <http://www.gnu.org/licenses/>.
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 package dk.dma.navnet.protocol.transport;
 
-import static java.util.Objects.requireNonNull;
+import java.io.IOException;
+import java.util.concurrent.CountDownLatch;
+
+import javax.websocket.CloseReason;
+import javax.websocket.CloseReason.CloseCode;
+import javax.websocket.OnClose;
+import javax.websocket.OnMessage;
+import javax.websocket.OnOpen;
+import javax.websocket.RemoteEndpoint.Basic;
+import javax.websocket.Session;
+
 import dk.dma.enav.communication.ClosingCode;
-import dk.dma.navnet.messages.ConnectionMessage;
 import dk.dma.navnet.messages.TransportMessage;
 import dk.dma.navnet.protocol.AbstractProtocol;
 import dk.dma.navnet.protocol.connection.Connection;
 
 /**
- * The main purpose of the transport layer is to convert web socket messages to {@link TransportMessage} and the other
- * way. If a transport accidently break. The connection layer will automatically create a new one, and re send any
- * packets that might not have been received by the remote end.
  * 
  * @author Kasper Nielsen
  */
 public abstract class Transport extends AbstractProtocol {
 
-    /** If closed, the reason why this transport was closed. */
-    private volatile ClosingCode closeReason;
+    public CloseCode close = null;
+
+    final CountDownLatch closedLatch = new CountDownLatch(1);
 
     private volatile Connection connection;
 
-    /** The websocket listener, or null if not yet connected. */
-    private volatile TransportListener session;
+    /** A latch that is released when we receive a connected message from the remote end. */
+    final CountDownLatch openedLatch = new CountDownLatch(1);
 
-    /** The current state of the transport */
-    private volatile State state = State.INITIALIZED;
+    volatile Session session = null;
 
-    public final void close(ClosingCode reason) {
-        requireNonNull(reason);
-        fullyLock();
+    /** {@inheritDoc} */
+    public final void close(final ClosingCode reason) {
+        Session s = session;
         try {
-            if (state == State.CLOSED) {
-                return;
+            if (s != null) {
+                s.close(new CloseReason(new CloseCode() {
+                    public int getCode() {
+                        return reason.getId();
+                    }
+                }, reason.getMessage()));
             }
-            closeReason = reason;
-            if (session != null) {
-                session.close(reason);
-            }
-        } finally {
-            fullyUnlock();
+        } catch (Exception e) {
+            e.printStackTrace();
         }
-    }
-
-    final void closedByWebsocket(ClosingCode reason) {
-        fullyLock();
-        try {
-            onTransportClose(reason);
-        } finally {
-            fullyUnlock();
-        }
-    }
-
-    /**
-     * If this transport has been closed. The reason for closing it. Returns <code>null</code> if the transport is still
-     * active.
-     */
-    public final ClosingCode getCloseReason() {
-        return closeReason;
     }
 
     /**
      * @return the connection
      */
-    public final Connection getConnection() {
+    public Connection getConnection() {
         return connection;
     }
 
-    /**
-     * Returns the current state of the transport.
-     * 
-     * @return the current state of the transport
-     */
-    public final State getState() {
-        return state;
-    }
+    protected void onTransportClose(ClosingCode reason) {}
 
-    public void onTransportClose(ClosingCode reason) {
-        if (reason.getId() != 1000) {
-            // error code
+    protected void onTransportConnect() {}
+
+    protected void onTransportError(Throwable cause) {}
+
+    protected abstract void onTransportMessage(TransportMessage message);
+
+    /** {@inheritDoc} */
+    @OnClose
+    public final void onWebSocketClose(javax.websocket.CloseReason closeReason) {
+        try {
+            session = null;
+            ClosingCode cc = ClosingCode.create(closeReason.getCloseCode().getCode(), closeReason.getReasonPhrase());
+            onTransportClose(cc);
+        } finally {
+            closedLatch.countDown();
         }
     }
 
-    /**
-     * A remote end has connected successfully and the transport is ready to be used.
-     */
-    public void onTransportConnect() {}
-
-    public void onTransportError(Throwable cause) {
-        cause.printStackTrace();
-        System.out.println("ERROR " + cause);
-    }
-
-    /**
-     * A message was received from the remote end point
-     * 
-     * @param message
-     *            the message that was received
-     */
-    public void onTransportMessage(TransportMessage message) {
-        connection.onConnectionMessage((ConnectionMessage) message);
-    }
-
-    /**
-     * Receives a string message. The default implementation does nothing.
-     * 
-     * @param message
-     *            the string message
-     */
-    void rawReceive(String message) {
+    @OnMessage
+    public final void onWebsocketMessage(String message) {
         System.out.println("Received: " + message);
         try {
             onTransportMessage(TransportMessage.parseMessage(message));
         } catch (Throwable e) {
-            e.printStackTrace();
             close(ClosingCode.WRONG_MESSAGE.withMessage(e.getMessage()));
         }
     }
 
-    /**
-     * Asynchronous sends a text to the remote end.
-     * 
-     * @param text
-     *            the text to send
-     * @throws IllegalStateException
-     *             if the transport is not yet connected
-     * @throws NullPointerException
-     *             if the specified text is null
-     */
-    final void rawSend(String text) {
-        requireNonNull(text, "text is null");
-        TransportListener session = this.session;
-        if (session == null) {
-            throw new IllegalStateException("Not connected yet");
-        }
-        session.sendText(text);
+    @OnOpen
+    public final void onWebsocketOpen(Session session) {
+        this.session = session;
+        openedLatch.countDown();
+        onTransportConnect();
     }
 
-    final void rawSendAsync(String text) {
-        requireNonNull(text, "text is null");
-        TransportListener session = this.session;
-        if (session != null) {
-            session.sendTextAsync(text);
+    /** {@inheritDoc} */
+    public final void sendTextAsync(String text) {
+        Session s = session;
+        Basic r = s == null ? null : s.getBasicRemote();
+        if (r != null) {
+            try {
+                r.sendText(text);
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
         }
-    }
-
-    public final void sendTransportMessageAsync(TransportMessage m) {
-        String msg = m.toJSON();
-        System.out.println("Sending " + msg);
-        rawSendAsync(msg);
     }
 
     public final void sendTransportMessage(TransportMessage m) {
         String msg = m.toJSON();
-        try {
-            System.out.println("Sending " + msg);
-            rawSend(msg);
-        } catch (Exception e) {
-            onTransportError(e);
-            e.printStackTrace();
-        }
+        System.out.println("Sending " + msg);
+        sendTextAsync(msg);
     }
 
     /**
@@ -182,26 +132,11 @@ public abstract class Transport extends AbstractProtocol {
      *            the connection to set
      */
     public final void setConnection(Connection connection) {
-        fullyLock();
+        // fullyLock();
         try {
             this.connection = connection;
         } finally {
-            fullyUnlock();
+            // fullyUnlock();
         }
-    }
-
-    final void setSession(TransportListener session) {
-        fullyLock();
-        try {
-            this.session = requireNonNull(session, "session is null");
-            onTransportConnect();
-        } finally {
-            fullyUnlock();
-        }
-    }
-
-    /** The current state of the transport. */
-    public enum State {
-        CLOSED, CONNECTED, CONNECTING, INITIALIZED;
     }
 }

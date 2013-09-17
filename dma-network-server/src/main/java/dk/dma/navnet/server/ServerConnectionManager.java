@@ -44,7 +44,7 @@ class ServerConnectionManager {
     static final Logger LOG = LoggerFactory.getLogger(ServerConnectionManager.class);
 
     /** All clients that are currently trying to connect, but where the handshake has not finished. */
-    private volatile Set<ServerTransport> connectingTransports = Collections
+    volatile Set<ServerTransport> connectingTransports = Collections
             .newSetFromMap(new ConcurrentHashMapV8<ServerTransport, Boolean>());
 
     /** All targets. */
@@ -72,17 +72,6 @@ class ServerConnectionManager {
                     }
                 });
             }
-        }
-    }
-
-    public Transport createNewTransport() {
-        lock.lock();
-        try {
-            ServerTransport s = new ServerTransport(server);
-            connectingTransports.add(s); // add the new created transport to set of connecting transports
-            return s;
-        } finally {
-            lock.unlock();
         }
     }
 

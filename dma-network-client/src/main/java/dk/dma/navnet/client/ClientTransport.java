@@ -20,8 +20,11 @@ import static java.util.Objects.requireNonNull;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
+import javax.websocket.ClientEndpoint;
+
 import dk.dma.enav.communication.ClosingCode;
 import dk.dma.enav.model.geometry.PositionTime;
+import dk.dma.navnet.messages.ConnectionMessage;
 import dk.dma.navnet.messages.TransportMessage;
 import dk.dma.navnet.messages.auxiliary.ConnectedMessage;
 import dk.dma.navnet.messages.auxiliary.HelloMessage;
@@ -33,7 +36,8 @@ import dk.dma.navnet.protocol.transport.Transport;
  * 
  * @author Kasper Nielsen
  */
-class ClientTransport extends Transport {
+@ClientEndpoint
+public class ClientTransport extends Transport {
 
     private final ClientState client;
 
@@ -77,7 +81,9 @@ class ClientTransport extends Transport {
             ((ClientConnection) getConnection()).connectionId = m.getConnectionId();
             fullyConnected.countDown();
         } else {
-            super.onTransportMessage(message);
+            ConnectionMessage cm = (ConnectionMessage) message;
+            getConnection().onConnectionMessage(cm);
+            // super.onTransportMessage(message);
         }
     }
 }

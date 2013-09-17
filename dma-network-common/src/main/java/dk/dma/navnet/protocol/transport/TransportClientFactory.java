@@ -77,8 +77,7 @@ public final class TransportClientFactory {
      * @throws IOException
      *             could not connect
      */
-    public void connect(Transport listener, long timeout, TimeUnit unit) throws IOException {
-        TransportListener client = new TransportListener(listener);
+    public void connect(Transport client, long timeout, TimeUnit unit) throws IOException {
         long now = System.nanoTime();
         LOG.info("Connecting to " + uri);
         try {
@@ -90,7 +89,7 @@ public final class TransportClientFactory {
         try {
             // TODO check return status
             // TODO Make sure transport is not used again. Its invalid
-            client.connectedLatch.await(remaining, TimeUnit.NANOSECONDS);
+            client.openedLatch.await(remaining, TimeUnit.NANOSECONDS);
         } catch (InterruptedException e) {
             throw new InterruptedIOException();
         }

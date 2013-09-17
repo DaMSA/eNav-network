@@ -15,8 +15,10 @@
  */
 package dk.dma.navnet.server;
 
-import static java.util.Objects.requireNonNull;
+import javax.websocket.server.ServerEndpoint;
+
 import dk.dma.enav.communication.ClosingCode;
+import dk.dma.navnet.messages.ConnectionMessage;
 import dk.dma.navnet.messages.TransportMessage;
 import dk.dma.navnet.messages.auxiliary.ConnectedMessage;
 import dk.dma.navnet.messages.auxiliary.HelloMessage;
@@ -28,21 +30,19 @@ import dk.dma.navnet.protocol.transport.Transport;
  * 
  * @author Kasper Nielsen
  */
-class ServerTransport extends Transport {
+@ServerEndpoint(value = "/")
+public class ServerTransport extends Transport {
 
     /** Whether or not we have received the first hello message from the client. */
     private boolean hasReceivedHelloFromClient;
 
     /** The server. */
-    private final EmbeddableCloudServer server;
-
-    ServerTransport(EmbeddableCloudServer server) {
-        this.server = requireNonNull(server);
-    }
+    private final EmbeddableCloudServer server = EmbeddableCloudServer.SERVER;
 
     /** {@inheritDoc} */
     @Override
     public void onTransportConnect() {
+        server.connectionManager.connectingTransports.add(this);
         // send a Welcome message to the client as the first thing
         sendTransportMessage(new WelcomeMessage(1, server.getLocalId(), "enavServer/1.0"));
     }
@@ -62,7 +62,8 @@ class ServerTransport extends Transport {
         } else if (!hasReceivedHelloFromClient) {
             // Close transport, expecting HelloMessage as the first message from the client
         } else {
-            super.onTransportMessage(m);
+            ConnectionMessage cm = (ConnectionMessage) m;
+            getConnection().onConnectionMessage(cm);
         }
     }
 

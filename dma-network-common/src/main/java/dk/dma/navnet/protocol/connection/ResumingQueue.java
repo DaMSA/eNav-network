@@ -50,6 +50,7 @@ public class ResumingQueue {
     }
 
     public void write(Transport t, TransportMessage message) {
+        String msg = message.toJSON();
         lock.lock();
         try {
             if (message instanceof ConnectionMessage) {
@@ -58,7 +59,7 @@ public class ResumingQueue {
                 System.out.println("setting nextid= " + nextId);
                 messages.add(m);
             }
-            t.sendTransportMessageAsync(message);
+            t.sendTextAsync(msg);
         } finally {
             lock.unlock();
         }
@@ -69,7 +70,8 @@ public class ResumingQueue {
         try {
             acked(id);
             for (ConnectionMessage m : messages) {
-                t.sendTransportMessageAsync(m);
+                String msg = m.toJSON();
+                t.sendTextAsync(msg);
             }
         } finally {
             lock.unlock();

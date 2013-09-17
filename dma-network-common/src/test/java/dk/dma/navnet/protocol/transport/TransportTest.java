@@ -15,18 +15,10 @@
  */
 package dk.dma.navnet.protocol.transport;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
-
 import java.io.IOException;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.TimeUnit;
 
 import org.junit.After;
 import org.junit.Before;
-import org.junit.Test;
-
-import dk.dma.enav.util.function.Supplier;
 
 /**
  * 
@@ -43,109 +35,109 @@ public class TransportTest {
         stf = TransportServerFactory.createServer(12345);
     }
 
-    @Test(expected = IOException.class)
-    public void notConnectable() throws IOException {
-        ctf.connect(new Transport() {}, 1, TimeUnit.SECONDS);
-    }
-
-    @Test
-    public void transportRecieved() throws IOException, InterruptedException {
-        final CountDownLatch cdl = new CountDownLatch(1);
-        stf.startAccept(new Supplier<Transport>() {
-            public Transport get() {
-                cdl.countDown();
-                return new Transport() {};
-            }
-        });
-        ctf.connect(new Transport() {}, 1, TimeUnit.SECONDS);
-        assertTrue(cdl.await(1, TimeUnit.SECONDS));
-    }
-
-    @Test
-    public void sendTextFromServer() throws Exception {
-        final CountDownLatch cdl = new CountDownLatch(1);
-        stf.startAccept(new Supplier<Transport>() {
-            public Transport get() {
-                return new Transport() {
-                    public void onTransportConnect() {
-                        rawSend("Hello321");
-                    }
-                };
-            }
-        });
-
-        // Client
-
-        ctf.connect(new Transport() {
-            public void onTransportConnect() {
-                assertEquals(1, cdl.getCount());
-            }
-
-            public void rawReceive(String text) {
-                assertEquals("Hello321", text);
-                cdl.countDown();
-            }
-        }, 1, TimeUnit.SECONDS);
-        assertTrue(cdl.await(1, TimeUnit.SECONDS));
-    }
-
-    @Test
-    public void sendTextFromClient() throws Exception {
-        final CountDownLatch cdl = new CountDownLatch(1);
-        final Transport ts = new Transport() {
-            public void onTransportConnect() {
-                assertEquals(1, cdl.getCount());
-            }
-
-            public void rawReceive(String text) {
-                assertEquals("Hello321", text);
-                cdl.countDown();
-            }
-        };
-        stf.startAccept(new Supplier<Transport>() {
-            public Transport get() {
-                return ts;
-            }
-        });
-        ctf.connect(new Transport() {
-            public void onTransportConnect() {
-                rawSend("Hello321");
-            }
-        }, 1, TimeUnit.SECONDS);
-        assertTrue(cdl.await(1, TimeUnit.SECONDS));
-    }
-
-    @Test
-    public void pingPong() throws Exception {
-        final CountDownLatch cdl = new CountDownLatch(1);
-        stf.startAccept(new Supplier<Transport>() {
-            public Transport get() {
-                return new Transport() {
-                    public void rawReceive(String text) {
-                        Integer i = Integer.parseInt(text);
-                        rawSend("" + (i + 1));
-                    }
-                };
-            }
-        });
-
-        ctf.connect(new Transport() {
-            public void onTransportConnect() {
-                rawSend("1");
-            }
-
-            public void rawReceive(String text) {
-                Integer i = Integer.parseInt(text);
-                if (i.equals(100)) {
-                    cdl.countDown();
-                } else {
-                    rawSend("" + (i + 1));
-                }
-
-            }
-        }, 1, TimeUnit.SECONDS);
-        assertTrue(cdl.await(1, TimeUnit.SECONDS));
-    }
+    // @Test(expected = IOException.class)
+    // public void notConnectable() throws IOException {
+    // ctf.connect(new Transport() {}, 1, TimeUnit.SECONDS);
+    // }
+    //
+    // @Test
+    // public void transportRecieved() throws IOException, InterruptedException {
+    // final CountDownLatch cdl = new CountDownLatch(1);
+    // stf.startAccept(new Supplier<Transport>() {
+    // public Transport get() {
+    // cdl.countDown();
+    // return new Transport() {};
+    // }
+    // });
+    // ctf.connect(new Transport() {}, 1, TimeUnit.SECONDS);
+    // assertTrue(cdl.await(1, TimeUnit.SECONDS));
+    // }
+    //
+    // @Test
+    // public void sendTextFromServer() throws Exception {
+    // final CountDownLatch cdl = new CountDownLatch(1);
+    // stf.startAccept(new Supplier<Transport>() {
+    // public Transport get() {
+    // return new Transport() {
+    // public void onTransportConnect() {
+    // rawSend("Hello321");
+    // }
+    // };
+    // }
+    // });
+    //
+    // // Client
+    //
+    // ctf.connect(new Transport() {
+    // public void onTransportConnect() {
+    // assertEquals(1, cdl.getCount());
+    // }
+    //
+    // public void rawReceive(String text) {
+    // assertEquals("Hello321", text);
+    // cdl.countDown();
+    // }
+    // }, 1, TimeUnit.SECONDS);
+    // assertTrue(cdl.await(1, TimeUnit.SECONDS));
+    // }
+    //
+    // @Test
+    // public void sendTextFromClient() throws Exception {
+    // final CountDownLatch cdl = new CountDownLatch(1);
+    // final Transport ts = new Transport() {
+    // public void onTransportConnect() {
+    // assertEquals(1, cdl.getCount());
+    // }
+    //
+    // public void rawReceive(String text) {
+    // assertEquals("Hello321", text);
+    // cdl.countDown();
+    // }
+    // };
+    // stf.startAccept(new Supplier<Transport>() {
+    // public Transport get() {
+    // return ts;
+    // }
+    // });
+    // ctf.connect(new Transport() {
+    // public void onTransportConnect() {
+    // rawSend("Hello321");
+    // }
+    // }, 1, TimeUnit.SECONDS);
+    // assertTrue(cdl.await(1, TimeUnit.SECONDS));
+    // }
+    //
+    // @Test
+    // public void pingPong() throws Exception {
+    // final CountDownLatch cdl = new CountDownLatch(1);
+    // stf.startAccept(new Supplier<Transport>() {
+    // public Transport get() {
+    // return new Transport() {
+    // public void rawReceive(String text) {
+    // Integer i = Integer.parseInt(text);
+    // rawSend("" + (i + 1));
+    // }
+    // };
+    // }
+    // });
+    //
+    // ctf.connect(new Transport() {
+    // public void onTransportConnect() {
+    // rawSend("1");
+    // }
+    //
+    // public void rawReceive(String text) {
+    // Integer i = Integer.parseInt(text);
+    // if (i.equals(100)) {
+    // cdl.countDown();
+    // } else {
+    // rawSend("" + (i + 1));
+    // }
+    //
+    // }
+    // }, 1, TimeUnit.SECONDS);
+    // assertTrue(cdl.await(1, TimeUnit.SECONDS));
+    // }
 
     @After
     public void teardown() throws IOException {

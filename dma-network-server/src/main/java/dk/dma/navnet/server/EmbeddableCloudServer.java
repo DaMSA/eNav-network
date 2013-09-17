@@ -30,8 +30,6 @@ import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import dk.dma.commons.tracker.PositionTracker;
 import dk.dma.enav.model.MaritimeId;
 import dk.dma.enav.model.shore.ServerId;
-import dk.dma.enav.util.function.Supplier;
-import dk.dma.navnet.protocol.transport.Transport;
 import dk.dma.navnet.protocol.transport.TransportServerFactory;
 
 /**
@@ -73,6 +71,8 @@ public class EmbeddableCloudServer {
     /** The position tracker. */
     final PositionTracker<Target> tracker = new PositionTracker<>();
 
+    static EmbeddableCloudServer SERVER;
+
     /** Creates a new ENavNetworkServer */
     public EmbeddableCloudServer() {
         this(DEFAULT_PORT);
@@ -81,6 +81,7 @@ public class EmbeddableCloudServer {
     public EmbeddableCloudServer(int port) {
         factory = TransportServerFactory.createServer(port);
         connectionManager = new ServerConnectionManager(this);
+        SERVER = this;
     }
 
     public boolean awaitTerminated(long timeout, TimeUnit unit) throws InterruptedException {
@@ -125,11 +126,7 @@ public class EmbeddableCloudServer {
                 tracker.schedule(ses, 1);
                 // Starts a new thread that will accept new connections
                 try {
-                    factory.startAccept(new Supplier<Transport>() {
-                        public Transport get() {
-                            return connectionManager.createNewTransport();
-                        }
-                    });
+                    factory.startAccept(ServerTransport.class);
                 } catch (Exception e) {
                     new ShutdownThread().start();
                     state = State.TERMINATED;
