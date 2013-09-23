@@ -15,7 +15,6 @@
  */
 package dk.dma.navnet.protocol.transport;
 
-import org.junit.Before;
 
 /**
  * 
@@ -23,14 +22,14 @@ import org.junit.Before;
  */
 public class ClosingTest {
 
-    TransportClientFactory ctf;
-    TransportServerFactory stf;
-
-    @Before
-    public void setup() {
-        ctf = TransportClientFactory.createClient("localhost:12346");
-        stf = TransportServerFactory.createServer(12346);
-    }
+    // TransportClientFactory ctf;
+    // TransportServerFactory stf;
+    //
+    // @Before
+    // public void setup() {
+    // ctf = TransportClientFactory.createClient("localhost:12346");
+    // stf = TransportServerFactory.createServer(12346);
+    // }
 
     // @Ignore
     // @Test

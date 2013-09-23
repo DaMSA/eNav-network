@@ -15,25 +15,21 @@
  */
 package dk.dma.navnet.protocol.transport;
 
-import java.io.IOException;
-
-import org.junit.After;
-import org.junit.Before;
 
 /**
  * 
  * @author Kasper Nielsen
  */
 public class TransportTest {
-
-    TransportClientFactory ctf;
-    TransportServerFactory stf;
-
-    @Before
-    public void setup() {
-        ctf = TransportClientFactory.createClient("localhost:12345");
-        stf = TransportServerFactory.createServer(12345);
-    }
+    //
+    // TransportClientFactory ctf;
+    // TransportServerFactory stf;
+    //
+    // @Before
+    // public void setup() {
+    // ctf = TransportClientFactory.createClient("localhost:12345");
+    // stf = TransportServerFactory.createServer(12345);
+    // }
 
     // @Test(expected = IOException.class)
     // public void notConnectable() throws IOException {
@@ -139,9 +135,9 @@ public class TransportTest {
     // assertTrue(cdl.await(1, TimeUnit.SECONDS));
     // }
 
-    @After
-    public void teardown() throws IOException {
-        stf.shutdown();
-        ctf.shutdown();
-    }
+    // @After
+    // public void teardown() throws IOException {
+    // stf.shutdown();
+    // ctf.shutdown();
+    // }
 }

@@ -13,14 +13,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package dk.dma.navnet.protocol.connection;
+package dk.dma.navnet.protocol;
 
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.locks.ReentrantLock;
 
 import dk.dma.navnet.messages.ConnectionMessage;
 import dk.dma.navnet.messages.TransportMessage;
-import dk.dma.navnet.protocol.transport.Transport;
 
 /**
  * 
@@ -28,21 +27,23 @@ import dk.dma.navnet.protocol.transport.Transport;
  */
 public class ResumingQueue {
 
+    /** A lock held, every time a message is written. */
     private final ReentrantLock lock = new ReentrantLock();
 
-    final LinkedBlockingQueue<ConnectionMessage> messages = new LinkedBlockingQueue<>();
+    /** A queue of messages that not yet been acked. */
+    private final LinkedBlockingQueue<ConnectionMessage> unacked = new LinkedBlockingQueue<>();
 
     volatile long nextId = 1;
 
-    void acked(long id) {
+    void ackUpToIncluding(long id) {
         lock.lock();
         try {
             for (;;) {
-                ConnectionMessage m = messages.peek();
+                ConnectionMessage m = unacked.peek();
                 if (m == null || m.getMessageId() > id) {
                     return;
                 }
-                messages.poll();
+                unacked.poll();
             }
         } finally {
             lock.unlock();
@@ -57,9 +58,9 @@ public class ResumingQueue {
                 ConnectionMessage m = (ConnectionMessage) message;
                 m.setMessageId(nextId++);
                 System.out.println("setting nextid= " + nextId);
-                messages.add(m);
+                unacked.add(m);
             }
-            t.sendTextAsync(msg);
+            t.doSendTextAsync(msg);
         } finally {
             lock.unlock();
         }
@@ -68,10 +69,10 @@ public class ResumingQueue {
     public void resume(Transport t, long id) {
         lock.lock();
         try {
-            acked(id);
-            for (ConnectionMessage m : messages) {
+            ackUpToIncluding(id);
+            for (ConnectionMessage m : unacked) {
                 String msg = m.toJSON();
-                t.sendTextAsync(msg);
+                t.doSendTextAsync(msg);
             }
         } finally {
             lock.unlock();

@@ -29,7 +29,7 @@ import dk.dma.navnet.messages.TransportMessage;
 import dk.dma.navnet.messages.auxiliary.ConnectedMessage;
 import dk.dma.navnet.messages.auxiliary.HelloMessage;
 import dk.dma.navnet.messages.auxiliary.WelcomeMessage;
-import dk.dma.navnet.protocol.transport.Transport;
+import dk.dma.navnet.protocol.Transport;
 
 /**
  * The client implementation of a transport
@@ -62,9 +62,10 @@ public class ClientTransport extends Transport {
     /** {@inheritDoc} */
     @Override
     public void onTransportClose(ClosingCode reason) {
+        System.out.println("CLOSED XXXXXXXXXXXX " + reason.getId());
         ClientConnection cc = (ClientConnection) getConnection();
         if (cc != null) {
-            cc.cm.close();
+            cc.disconnectOops(reason);
         }
     }
 
@@ -74,7 +75,7 @@ public class ClientTransport extends Transport {
         if (message instanceof WelcomeMessage) {
             // WelcomeMessage m = (WelcomeMessage) message; we do not care about the contents atm
             PositionTime pt = client.getCurrentPosition();
-            sendTransportMessage(new HelloMessage(client.getLocalId(), "enavClient/1.0", "", reconnectId,
+            doSendTransportMessage(new HelloMessage(client.getLocalId(), "enavClient/1.0", "", reconnectId,
                     pt.getLatitude(), pt.getLongitude()));
         } else if (message instanceof ConnectedMessage) {
             ConnectedMessage m = (ConnectedMessage) message;

@@ -30,7 +30,6 @@ import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import dk.dma.commons.tracker.PositionTracker;
 import dk.dma.enav.model.MaritimeId;
 import dk.dma.enav.model.shore.ServerId;
-import dk.dma.navnet.protocol.transport.TransportServerFactory;
 
 /**
  * 

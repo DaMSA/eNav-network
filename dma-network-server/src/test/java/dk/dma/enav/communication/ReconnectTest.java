@@ -168,12 +168,13 @@ public class ReconnectTest extends AbstractNetworkTest {
             }
         });
 
-        for (int i = 0; i < count; i++) {
+        for (int i = 1; i <= count; i++) {
             c1.broadcast(new BroadcastTestMessage("" + i));
+            Thread.sleep(100);
             pt.killAll();
         }
 
         cdl.await(2, TimeUnit.SECONDS);
-        System.out.println(received);
+        System.out.println("Received " + received);
     }
 }

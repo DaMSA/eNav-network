@@ -23,7 +23,7 @@ import dk.dma.navnet.messages.TransportMessage;
 import dk.dma.navnet.messages.auxiliary.ConnectedMessage;
 import dk.dma.navnet.messages.auxiliary.HelloMessage;
 import dk.dma.navnet.messages.auxiliary.WelcomeMessage;
-import dk.dma.navnet.protocol.transport.Transport;
+import dk.dma.navnet.protocol.Transport;
 
 /**
  * The server side transport.
@@ -44,7 +44,7 @@ public class ServerTransport extends Transport {
     public void onTransportConnect() {
         server.connectionManager.connectingTransports.add(this);
         // send a Welcome message to the client as the first thing
-        sendTransportMessage(new WelcomeMessage(1, server.getLocalId(), "enavServer/1.0"));
+        doSendTransportMessage(new WelcomeMessage(1, server.getLocalId(), "enavServer/1.0"));
     }
 
     /** {@inheritDoc} */

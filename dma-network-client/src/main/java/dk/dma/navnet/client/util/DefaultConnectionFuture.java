@@ -91,9 +91,4 @@ public class DefaultConnectionFuture<T> extends CompletableFuture<T> implements 
         });
     }
 
-    // /** {@inheritDoc} */
-    // @Override
-    // public String getRequestId() {
-    // return requestId;
-    // }
 }

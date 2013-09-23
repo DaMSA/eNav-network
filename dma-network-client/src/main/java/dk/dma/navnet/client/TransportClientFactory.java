@@ -13,7 +13,7 @@
  * You should have received a copy of the GNU General Public License
  * along with this library.  If not, see <http://www.gnu.org/licenses/>.
  */
-package dk.dma.navnet.protocol.transport;
+package dk.dma.navnet.client;
 
 import static java.util.Objects.requireNonNull;
 
@@ -31,12 +31,14 @@ import org.eclipse.jetty.util.component.ContainerLifeCycle;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import dk.dma.navnet.protocol.Transport;
+
 /**
  * A factory used to create transports by connecting to a remote server.
  * 
  * @author Kasper Nielsen
  */
-public final class TransportClientFactory {
+final class TransportClientFactory {
 
     /** The logger. */
     static final Logger LOG = LoggerFactory.getLogger(TransportClientFactory.class);
@@ -89,7 +91,7 @@ public final class TransportClientFactory {
         try {
             // TODO check return status
             // TODO Make sure transport is not used again. Its invalid
-            client.openedLatch.await(remaining, TimeUnit.NANOSECONDS);
+            client.awaitOpened(remaining, TimeUnit.NANOSECONDS);
         } catch (InterruptedException e) {
             throw new InterruptedIOException();
         }

@@ -50,7 +50,6 @@ import dk.dma.enav.model.MaritimeId;
 import dk.dma.enav.model.geometry.PositionTime;
 import dk.dma.enav.util.function.Consumer;
 import dk.dma.navnet.client.util.DefaultConnectionFuture;
-import dk.dma.navnet.protocol.transport.TransportClientFactory;
 
 /**
  * An implementation of {@link PersistentConnection} using websockets and JSON.
@@ -97,7 +96,7 @@ class DefaultPersistentConnection extends ClientState implements PersistentConne
      * @param builder
      *            the configuration
      */
-    DefaultPersistentConnection(MaritimeNetworkConnectionBuilder builder) {
+    public DefaultPersistentConnection(MaritimeNetworkConnectionBuilder builder) {
         super(builder);
         this.positionManager = new PositionManager(this, builder.getPositionSupplier());
         this.broadcaster = new BroadcastManager(this);
@@ -242,9 +241,14 @@ class DefaultPersistentConnection extends ClientState implements PersistentConne
         // TODO update of listeners should be synchronous in some way
     }
 
-    void start() throws IOException {
+    public void connect() {
         setState(State.CONNECTING);
-        connection.connect(10, TimeUnit.SECONDS);
+        try {
+            connection.connect(10, TimeUnit.SECONDS);
+        } catch (IOException e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+        }
         lock.lock();
         try {
             if (state == State.CONNECTING) {
@@ -257,7 +261,7 @@ class DefaultPersistentConnection extends ClientState implements PersistentConne
 
                 ses.scheduleAtFixedRate(positionManager, 0, 1, TimeUnit.SECONDS);
             } else {
-                throw new IOException("Could not connect");
+                throw new RuntimeException("Could not connect");
             }
         } finally {
             lock.unlock();

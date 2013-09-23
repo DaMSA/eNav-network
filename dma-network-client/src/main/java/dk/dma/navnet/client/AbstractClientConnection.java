@@ -23,7 +23,7 @@ import dk.dma.navnet.client.util.DefaultConnectionFuture;
 import dk.dma.navnet.messages.ConnectionMessage;
 import dk.dma.navnet.messages.s2c.ServerRequestMessage;
 import dk.dma.navnet.messages.s2c.ServerResponseMessage;
-import dk.dma.navnet.protocol.connection.Connection;
+import dk.dma.navnet.protocol.Connection;
 
 /**
  * 

@@ -29,7 +29,7 @@ import dk.dma.navnet.messages.c2c.ClientRelayedMessage;
 import dk.dma.navnet.messages.c2c.broadcast.BroadcastMsg;
 import dk.dma.navnet.messages.s2c.service.FindService;
 import dk.dma.navnet.messages.s2c.service.RegisterService;
-import dk.dma.navnet.protocol.connection.Connection;
+import dk.dma.navnet.protocol.Connection;
 
 /**
  * 
@@ -118,7 +118,7 @@ public class ServerConnection extends Connection {
             ServerConnection c = new ServerConnection(server, message.getClientId(), UUID.randomUUID().toString());
             c.latestPosition = pt;
             c.setTransport(connectingTransport);
-            connectingTransport.sendTransportMessage(new ConnectedMessage(c.getConnectionId()));
+            connectingTransport.doSendTransportMessage(new ConnectedMessage(c.getConnectionId()));
             server.tracker.update(target, pt);
             return c;
         } else {

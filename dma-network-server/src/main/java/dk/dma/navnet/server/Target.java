@@ -17,7 +17,7 @@ package dk.dma.navnet.server;
 
 import static java.util.Objects.requireNonNull;
 import dk.dma.enav.model.geometry.PositionTime;
-import dk.dma.navnet.protocol.application.Application;
+import dk.dma.navnet.protocol.Application;
 
 /**
  * There exist at most one target per remote client. A target does not necessarily have an active connection. But at

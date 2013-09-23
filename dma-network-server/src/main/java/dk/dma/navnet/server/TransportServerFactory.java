@@ -13,7 +13,7 @@
  * You should have received a copy of the GNU General Public License
  * along with this library.  If not, see <http://www.gnu.org/licenses/>.
  */
-package dk.dma.navnet.protocol.transport;
+package dk.dma.navnet.server;
 
 import static java.util.Objects.requireNonNull;
 
@@ -34,6 +34,8 @@ import org.eclipse.jetty.servlet.ServletHolder;
 import org.eclipse.jetty.websocket.jsr356.server.WebSocketConfiguration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import dk.dma.navnet.protocol.Transport;
 
 /**
  * A factory used to create transports from connections by remote clients.

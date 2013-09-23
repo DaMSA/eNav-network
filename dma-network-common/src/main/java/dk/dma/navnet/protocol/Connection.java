@@ -13,7 +13,7 @@
  * You should have received a copy of the GNU General Public License
  * along with this library.  If not, see <http://www.gnu.org/licenses/>.
  */
-package dk.dma.navnet.protocol.connection;
+package dk.dma.navnet.protocol;
 
 import static java.util.Objects.requireNonNull;
 
@@ -21,9 +21,6 @@ import java.util.concurrent.locks.ReentrantLock;
 
 import dk.dma.enav.communication.ClosingCode;
 import dk.dma.navnet.messages.ConnectionMessage;
-import dk.dma.navnet.protocol.AbstractProtocol;
-import dk.dma.navnet.protocol.application.Application;
-import dk.dma.navnet.protocol.transport.Transport;
 
 /**
  * 
@@ -53,7 +50,7 @@ public abstract class Connection extends AbstractProtocol {
     }
 
     public final void closeNormally() {
-        transport.close(ClosingCode.NORMAL);
+        transport.doClose(ClosingCode.NORMAL);
     }
 
     /**
@@ -79,7 +76,7 @@ public abstract class Connection extends AbstractProtocol {
 
     public void onConnectionMessage(ConnectionMessage message) {
         latestRemoteIdReceived = message.getMessageId();
-        rq.acked(message.getLatestReceivedId());
+        rq.ackUpToIncluding(message.getLatestReceivedId());
     }
 
     public final void sendConnectionMessage(ConnectionMessage m) {

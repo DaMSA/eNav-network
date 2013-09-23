@@ -13,29 +13,28 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package dk.dma.navnet.protocol.transport;
+package dk.dma.navnet.protocol;
 
-import java.io.IOException;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.locks.ReentrantLock;
 
 import javax.websocket.CloseReason;
 import javax.websocket.CloseReason.CloseCode;
 import javax.websocket.OnClose;
 import javax.websocket.OnMessage;
 import javax.websocket.OnOpen;
-import javax.websocket.RemoteEndpoint.Basic;
+import javax.websocket.RemoteEndpoint.Async;
 import javax.websocket.Session;
 
 import dk.dma.enav.communication.ClosingCode;
 import dk.dma.navnet.messages.TransportMessage;
-import dk.dma.navnet.protocol.AbstractProtocol;
-import dk.dma.navnet.protocol.connection.Connection;
 
 /**
  * 
  * @author Kasper Nielsen
  */
-public abstract class Transport extends AbstractProtocol {
+public abstract class Transport {
 
     public CloseCode close = null;
 
@@ -46,10 +45,21 @@ public abstract class Transport extends AbstractProtocol {
     /** A latch that is released when we receive a connected message from the remote end. */
     final CountDownLatch openedLatch = new CountDownLatch(1);
 
+    /** A read lock. */
+    private final ReentrantLock readLock = new ReentrantLock();
+
+    /** The websocket session. */
     volatile Session session = null;
 
+    /** A write lock. */
+    private final ReentrantLock writeLock = new ReentrantLock();
+
+    public final boolean awaitOpened(long timeout, TimeUnit unit) throws InterruptedException {
+        return openedLatch.await(timeout, unit);
+    }
+
     /** {@inheritDoc} */
-    public final void close(final ClosingCode reason) {
+    public final void doClose(final ClosingCode reason) {
         Session s = session;
         try {
             if (s != null) {
@@ -62,6 +72,31 @@ public abstract class Transport extends AbstractProtocol {
         } catch (Exception e) {
             e.printStackTrace();
         }
+    }
+
+    /** {@inheritDoc} */
+    public final void doSendTextAsync(String text) {
+        Session s = session;
+        Async r = s == null ? null : s.getAsyncRemote();
+        if (r != null) {
+            System.out.println("Sending " + text);
+            r.sendText(text);
+        }
+    }
+
+    // should only be used to send non-connection messages
+    public final void doSendTransportMessage(TransportMessage m) {
+        doSendTextAsync(m.toJSON());
+    }
+
+    public final void fullyLock() {
+        readLock.lock();
+        writeLock.lock();
+    }
+
+    public final void fullyUnlock() {
+        writeLock.unlock();
+        readLock.unlock();
     }
 
     /**
@@ -81,7 +116,7 @@ public abstract class Transport extends AbstractProtocol {
 
     /** {@inheritDoc} */
     @OnClose
-    public final void onWebSocketClose(javax.websocket.CloseReason closeReason) {
+    public final void onWebSocketClose(CloseReason closeReason) {
         try {
             session = null;
             ClosingCode cc = ClosingCode.create(closeReason.getCloseCode().getCode(), closeReason.getReasonPhrase());
@@ -97,7 +132,7 @@ public abstract class Transport extends AbstractProtocol {
         try {
             onTransportMessage(TransportMessage.parseMessage(message));
         } catch (Throwable e) {
-            close(ClosingCode.WRONG_MESSAGE.withMessage(e.getMessage()));
+            doClose(ClosingCode.WRONG_MESSAGE.withMessage(e.getMessage()));
         }
     }
 
@@ -106,25 +141,6 @@ public abstract class Transport extends AbstractProtocol {
         this.session = session;
         openedLatch.countDown();
         onTransportConnect();
-    }
-
-    /** {@inheritDoc} */
-    public final void sendTextAsync(String text) {
-        Session s = session;
-        Basic r = s == null ? null : s.getBasicRemote();
-        if (r != null) {
-            try {
-                r.sendText(text);
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-        }
-    }
-
-    public final void sendTransportMessage(TransportMessage m) {
-        String msg = m.toJSON();
-        System.out.println("Sending " + msg);
-        sendTextAsync(msg);
     }
 
     /**

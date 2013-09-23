@@ -75,7 +75,8 @@ public class AbstractNetworkTest {
         for (;;) {
             MaritimeId id = MaritimeId.create("mmsi://" + ThreadLocalRandom.current().nextInt(1000));
             if (!clients.containsKey(id)) {
-                return newClient(id);
+                PersistentConnection pc = newClient(id);
+                pc.connect();
             }
         }
     }
@@ -92,6 +93,7 @@ public class AbstractNetworkTest {
     protected PersistentConnection newClient(MaritimeNetworkConnectionBuilder b) throws Exception {
         locs.put(b.getId(), new LocationSup());
         PersistentConnection c = b.build();
+        c.connect();
         clients.put(b.getId(), c);
         return c;
     }
@@ -100,6 +102,7 @@ public class AbstractNetworkTest {
         MaritimeNetworkConnectionBuilder b = newBuilder(id);
         locs.put(id, new LocationSup());
         PersistentConnection c = b.build();
+        c.connect();
         clients.put(id, c);
         return c;
     }
@@ -111,6 +114,7 @@ public class AbstractNetworkTest {
         locs.put(id, ls);
         setPosition(id, lat, lon);
         PersistentConnection c = b.build();
+        c.connect();
         clients.put(id, c);
         return c;
     }
@@ -123,6 +127,7 @@ public class AbstractNetworkTest {
             @Override
             public PersistentConnection call() throws Exception {
                 PersistentConnection c = b.build();
+                c.connect();
                 clients.put(id, c);
                 return c;
             }

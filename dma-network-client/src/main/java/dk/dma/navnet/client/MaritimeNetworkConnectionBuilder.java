@@ -17,6 +17,7 @@ package dk.dma.navnet.client;
 
 import static java.util.Objects.requireNonNull;
 
+import java.lang.reflect.Constructor;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
@@ -34,6 +35,7 @@ import dk.dma.enav.util.function.Supplier;
  */
 public class MaritimeNetworkConnectionBuilder {
 
+    static final String FACTORY = "dk.dma.navnet.client.DefaultPersistentConnection";
     private final MaritimeId id;
 
     final List<ConnectionListener> listeners = new ArrayList<>();
@@ -71,10 +73,26 @@ public class MaritimeNetworkConnectionBuilder {
         return this;
     }
 
-    public PersistentConnection build() throws Exception {
-        DefaultPersistentConnection con = new DefaultPersistentConnection(this);
-        con.start();
-        return con;
+    @SuppressWarnings("unchecked")
+    public PersistentConnection build() {
+        Class<?> c;
+        try {
+            c = Class.forName(FACTORY);
+        } catch (ClassNotFoundException e) {
+            throw new RuntimeException("Could not find factory class " + FACTORY + " make sure it is on the classpath");
+        }
+        Constructor<PersistentConnection> con;
+        try {
+            con = (Constructor<PersistentConnection>) c.getConstructor(MaritimeNetworkConnectionBuilder.class);
+        } catch (NoSuchMethodException e) {
+            throw new RuntimeException("Could not find a valid constructor", e);
+        }
+
+        try {
+            return con.newInstance(this);
+        } catch (ReflectiveOperationException e) {
+            throw new RuntimeException("Could not create a valid connection", e);
+        }
     }
 
     public String getHost() {

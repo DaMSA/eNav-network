@@ -31,7 +31,7 @@ import org.slf4j.LoggerFactory;
 import dk.dma.enav.communication.ClosingCode;
 import dk.dma.navnet.messages.auxiliary.HelloMessage;
 import dk.dma.navnet.messages.c2c.broadcast.BroadcastMsg;
-import dk.dma.navnet.protocol.transport.Transport;
+import dk.dma.navnet.protocol.Transport;
 
 /**
  * Keeps track of all connections from the server and out.
@@ -126,7 +126,7 @@ class ServerConnectionManager {
                             try {
                                 existing.setTransport(null);
                                 oldTransport.setConnection(null);
-                                oldTransport.close(ClosingCode.DUPLICATE_CONNECT);
+                                oldTransport.doClose(ClosingCode.DUPLICATE_CONNECT);
                             } finally {
                                 oldTransport.fullyUnlock();
                             }

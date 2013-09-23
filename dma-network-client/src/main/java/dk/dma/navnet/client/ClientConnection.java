@@ -22,6 +22,7 @@ import java.io.InterruptedIOException;
 import java.net.ConnectException;
 import java.util.concurrent.TimeUnit;
 
+import dk.dma.enav.communication.ClosingCode;
 import dk.dma.navnet.client.util.DefaultConnectionFuture;
 import dk.dma.navnet.messages.ConnectionMessage;
 import dk.dma.navnet.messages.TransportMessage;
@@ -100,6 +101,15 @@ class ClientConnection extends AbstractClientConnection {
     /** {@inheritDoc} */
     protected void serviceRegisteredAck(RegisterServiceResult a, DefaultConnectionFuture<RegisterServiceResult> f) {
         f.complete(a);
+    }
+
+    void disconnectOops(ClosingCode cr) {
+        if (cr.getId() == 1000) {
+            cm.close();
+        } else {
+            // Try to reconnect
+        }
+
     }
 
     public void connect(long timeout, TimeUnit unit) throws IOException {
