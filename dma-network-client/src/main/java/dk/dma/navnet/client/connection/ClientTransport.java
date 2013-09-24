@@ -13,7 +13,7 @@
  * You should have received a copy of the GNU General Public License
  * along with this library.  If not, see <http://www.gnu.org/licenses/>.
  */
-package dk.dma.navnet.client;
+package dk.dma.navnet.client.connection;
 
 import static java.util.Objects.requireNonNull;
 
@@ -24,6 +24,8 @@ import javax.websocket.ClientEndpoint;
 
 import dk.dma.enav.communication.ClosingCode;
 import dk.dma.enav.model.geometry.PositionTime;
+import dk.dma.enav.util.function.Supplier;
+import dk.dma.navnet.client.ClientInfo;
 import dk.dma.navnet.messages.ConnectionMessage;
 import dk.dma.navnet.messages.TransportMessage;
 import dk.dma.navnet.messages.auxiliary.ConnectedMessage;
@@ -39,20 +41,23 @@ import dk.dma.navnet.protocol.Transport;
 @ClientEndpoint
 public class ClientTransport extends Transport {
 
-    private final ClientState client;
+    private final ClientInfo clientInfo;
 
     /** A latch that is released when the client receives a ConnectedMessage from the server. */
     private final CountDownLatch fullyConnected = new CountDownLatch(1);
 
     private final long reconnectId;
 
-    ClientTransport(ClientState client) {
-        this(client, -1);
+    private final Supplier<PositionTime> positionSupplier;
+
+    ClientTransport(ClientInfo clientInfo, Supplier<PositionTime> positionSupplier) {
+        this(clientInfo, positionSupplier, -1);
     }
 
-    ClientTransport(ClientState client, long reconnectId) {
-        this.client = requireNonNull(client);
+    ClientTransport(ClientInfo clientInfo, Supplier<PositionTime> positionSupplier, long reconnectId) {
+        this.clientInfo = requireNonNull(clientInfo);
         this.reconnectId = reconnectId;
+        this.positionSupplier = positionSupplier;
     }
 
     boolean awaitFullyConnected(long timeout, TimeUnit unit) throws InterruptedException {
@@ -74,8 +79,8 @@ public class ClientTransport extends Transport {
     public void onTransportMessage(TransportMessage message) {
         if (message instanceof WelcomeMessage) {
             // WelcomeMessage m = (WelcomeMessage) message; we do not care about the contents atm
-            PositionTime pt = client.getCurrentPosition();
-            doSendTransportMessage(new HelloMessage(client.getLocalId(), "enavClient/1.0", "", reconnectId,
+            PositionTime pt = positionSupplier.get();
+            doSendTransportMessage(new HelloMessage(clientInfo.getLocalId(), "enavClient/1.0", "", reconnectId,
                     pt.getLatitude(), pt.getLongitude()));
         } else if (message instanceof ConnectedMessage) {
             ConnectedMessage m = (ConnectedMessage) message;

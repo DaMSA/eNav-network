@@ -38,7 +38,7 @@ public class NetworkFuturesOnCloseTest extends AbstractNetworkTest {
 
     @Test
     public void serviceFind() throws Exception {
-        PersistentConnection pc1 = newClient(ID1);
+        MaritimeNetworkConnection pc1 = newClient(ID1);
 
         ConnectionFuture<ServiceEndpoint<GetName, Reply>> f = pc1.serviceFind(HelloService.GET_NAME).nearest();
         ConnectionFuture<ServiceEndpoint<GetName, Reply>> f2 = f.timeout(4, TimeUnit.SECONDS);
@@ -62,7 +62,7 @@ public class NetworkFuturesOnCloseTest extends AbstractNetworkTest {
 
     @Test
     public void serviceInvoke() throws Exception {
-        PersistentConnection pc1 = newClient(ID1);
+        MaritimeNetworkConnection pc1 = newClient(ID1);
         newClient(ID2);
 
         ConnectionFuture<ServiceEndpoint<GetName, Reply>> f = pc1.serviceFind(HelloService.GET_NAME).nearest();

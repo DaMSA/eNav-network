@@ -13,7 +13,7 @@
  * You should have received a copy of the GNU General Public License
  * along with this library.  If not, see <http://www.gnu.org/licenses/>.
  */
-package dk.dma.navnet.client;
+package dk.dma.navnet.client.service;
 
 import static java.util.Objects.requireNonNull;
 
@@ -28,10 +28,12 @@ import dk.dma.enav.communication.service.spi.ServiceInitiationPoint;
 import dk.dma.enav.communication.service.spi.ServiceMessage;
 import dk.dma.enav.model.MaritimeId;
 import dk.dma.navnet.client.util.DefaultConnectionFuture;
+import dk.dma.navnet.client.util.ThreadManager;
 import dk.dma.navnet.messages.s2c.service.FindService;
 import dk.dma.navnet.messages.s2c.service.FindServiceResult;
 
 /**
+ * The default implementation of ServiceLocator.
  * 
  * @author Kasper Nielsen
  */
@@ -43,10 +45,14 @@ class ServiceLocatorImpl<T, E extends ServiceMessage<T>> implements ServiceLocat
 
     final ServiceInitiationPoint<E> sip;
 
-    ServiceLocatorImpl(ServiceInitiationPoint<E> sip, ClientServiceManager csm, int distance) {
+    final ThreadManager threadManager;
+
+    ServiceLocatorImpl(ThreadManager threadManager, ServiceInitiationPoint<E> sip, ClientServiceManager csm,
+            int distance) {
         this.csm = requireNonNull(csm);
         this.distance = distance;
         this.sip = requireNonNull(sip);
+        this.threadManager = threadManager;
     }
 
     /** {@inheritDoc} */
@@ -55,14 +61,14 @@ class ServiceLocatorImpl<T, E extends ServiceMessage<T>> implements ServiceLocat
         if (meters <= 0 || meters >= 99999000) {
             throw new IllegalArgumentException("Meters must be greater >0 and <100000000");
         }
-        return new ServiceLocatorImpl<>(sip, csm, meters);
+        return new ServiceLocatorImpl<>(threadManager, sip, csm, meters);
     }
 
     /** {@inheritDoc} */
     @Override
     public ConnectionFuture<ServiceEndpoint<E, T>> nearest() {
         DefaultConnectionFuture<FindServiceResult> f = csm.serviceFindOne(new FindService(sip.getName(), distance, 1));
-        final DefaultConnectionFuture<ServiceEndpoint<E, T>> result = csm.c.cfs.create();
+        final DefaultConnectionFuture<ServiceEndpoint<E, T>> result = threadManager.create();
         f.thenAcceptAsync(new CompletableFuture.Action<FindServiceResult>() {
             @Override
             public void accept(FindServiceResult ack) {
@@ -84,8 +90,9 @@ class ServiceLocatorImpl<T, E extends ServiceMessage<T>> implements ServiceLocat
         if (limit < 1) {
             throw new IllegalArgumentException("The specified limit must be positive (>=1), was " + limit);
         }
-        DefaultConnectionFuture<FindServiceResult> f = csm.serviceFindOne(new FindService(sip.getName(), distance, limit));
-        final DefaultConnectionFuture<List<ServiceEndpoint<E, T>>> result = csm.c.cfs.create();
+        DefaultConnectionFuture<FindServiceResult> f = csm.serviceFindOne(new FindService(sip.getName(), distance,
+                limit));
+        final DefaultConnectionFuture<List<ServiceEndpoint<E, T>>> result = threadManager.create();
         f.thenAcceptAsync(new CompletableFuture.Action<FindServiceResult>() {
             @Override
             public void accept(FindServiceResult ack) {

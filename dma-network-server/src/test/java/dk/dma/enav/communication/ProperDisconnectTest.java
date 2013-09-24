@@ -36,7 +36,7 @@ public class ProperDisconnectTest extends AbstractNetworkTest {
     @Test
     @Ignore
     public void randomKilling() throws Exception {
-        PersistentConnection c1 = newClient(ID1);
+        MaritimeNetworkConnection c1 = newClient(ID1);
         // c1.serviceRegister(TestService.TEST_INIT,
         // new InvocationCallback<TestService.TestInit, TestService.TestReply>() {
         // public void process(TestService.TestInit l, Context<TestService.TestReply> context) {

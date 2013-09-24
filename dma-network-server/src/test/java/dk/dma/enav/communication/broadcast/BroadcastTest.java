@@ -26,7 +26,7 @@ import org.junit.Test;
 
 import test.stubs.BroadcastTestMessage;
 import dk.dma.enav.communication.AbstractNetworkTest;
-import dk.dma.enav.communication.PersistentConnection;
+import dk.dma.enav.communication.MaritimeNetworkConnection;
 
 /**
  * 
@@ -36,8 +36,8 @@ public class BroadcastTest extends AbstractNetworkTest {
 
     @Test
     public void oneBroadcast() throws Exception {
-        PersistentConnection c1 = newClient(ID1);
-        PersistentConnection c2 = newClient(ID6);
+        MaritimeNetworkConnection c1 = newClient(ID1);
+        MaritimeNetworkConnection c2 = newClient(ID6);
         final CountDownLatch cdl = new CountDownLatch(1);
         c2.broadcastListen(BroadcastTestMessage.class, new BroadcastListener<BroadcastTestMessage>() {
             public void onMessage(BroadcastMessageHeader props, BroadcastTestMessage t) {
@@ -52,10 +52,10 @@ public class BroadcastTest extends AbstractNetworkTest {
 
     @Test
     public void multipleReceivers() throws Exception {
-        PersistentConnection c1 = newClient(ID1);
+        MaritimeNetworkConnection c1 = newClient(ID1);
         final CountDownLatch cdl = new CountDownLatch(10);
 
-        for (PersistentConnection mnc : newClients(10)) {
+        for (MaritimeNetworkConnection mnc : newClients(10)) {
             mnc.broadcastListen(BroadcastTestMessage.class, new BroadcastListener<BroadcastTestMessage>() {
                 public void onMessage(BroadcastMessageHeader props, BroadcastTestMessage t) {
                     assertEquals("fooo", t.getName());
@@ -69,8 +69,8 @@ public class BroadcastTest extends AbstractNetworkTest {
 
     @Test
     public void receiveNotSelf() throws Exception {
-        PersistentConnection c1 = newClient(ID1);
-        PersistentConnection c2 = newClient(ID6);
+        MaritimeNetworkConnection c1 = newClient(ID1);
+        MaritimeNetworkConnection c2 = newClient(ID6);
         final CountDownLatch cdl1 = new CountDownLatch(1);
         final CountDownLatch cdl2 = new CountDownLatch(1);
         c1.broadcastListen(BroadcastTestMessage.class, new BroadcastListener<BroadcastTestMessage>() {

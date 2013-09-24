@@ -20,8 +20,8 @@ import java.util.concurrent.TimeUnit;
 import org.junit.Test;
 
 import test.stubs.HelloWorld;
-import dk.dma.enav.communication.PersistentConnection;
-import dk.dma.navnet.client.MaritimeNetworkConnectionBuilder;
+import dk.dma.enav.communication.MaritimeNetworkConnectionBuilder;
+import dk.dma.enav.communication.MaritimeNetworkConnection;
 import dk.dma.navnet.server.EmbeddableCloudServer;
 
 /**
@@ -38,7 +38,7 @@ public class CustomPortTest {
         MaritimeNetworkConnectionBuilder b = MaritimeNetworkConnectionBuilder.create("mmsi://1234");
         b.setHost("localhost:12445");
         System.out.println("a");
-        try (PersistentConnection c = b.build()) {
+        try (MaritimeNetworkConnection c = b.build()) {
             System.out.println("b");
             c.broadcast(new HelloWorld());
         }

@@ -19,7 +19,7 @@ import java.util.concurrent.TimeUnit;
 
 import test.stubs.HelloService;
 import dk.dma.enav.communication.AbstractNetworkTest;
-import dk.dma.enav.communication.PersistentConnection;
+import dk.dma.enav.communication.MaritimeNetworkConnection;
 
 /**
  * 
@@ -27,7 +27,7 @@ import dk.dma.enav.communication.PersistentConnection;
  */
 public class AbstractServiceTest extends AbstractNetworkTest {
 
-    public PersistentConnection registerService(PersistentConnection pnc, String reply) throws Exception {
+    public MaritimeNetworkConnection registerService(MaritimeNetworkConnection pnc, String reply) throws Exception {
         pnc.serviceRegister(HelloService.GET_NAME, HelloService.create(reply)).awaitRegistered(5, TimeUnit.SECONDS);
         return pnc;
     }

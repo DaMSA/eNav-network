@@ -13,7 +13,7 @@
  * You should have received a copy of the GNU General Public License
  * along with this library.  If not, see <http://www.gnu.org/licenses/>.
  */
-package dk.dma.navnet.client;
+package dk.dma.navnet.client.connection;
 
 import static java.util.Objects.requireNonNull;
 

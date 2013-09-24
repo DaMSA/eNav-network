@@ -13,13 +13,13 @@
  * You should have received a copy of the GNU General Public License
  * along with this library.  If not, see <http://www.gnu.org/licenses/>.
  */
-package dk.dma.navnet.client;
+package dk.dma.navnet.client.connection;
 
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import dk.dma.navnet.client.DefaultPersistentConnection.NetworkFutureSupplier;
 import dk.dma.navnet.client.util.DefaultConnectionFuture;
+import dk.dma.navnet.client.util.ThreadManager;
 import dk.dma.navnet.messages.ConnectionMessage;
 import dk.dma.navnet.messages.s2c.ServerRequestMessage;
 import dk.dma.navnet.messages.s2c.ServerResponseMessage;
@@ -35,16 +35,16 @@ public abstract class AbstractClientConnection extends Connection {
 
     final AtomicInteger ai = new AtomicInteger();
 
-    final NetworkFutureSupplier cfs;
+    final ThreadManager threadManager;
 
     final ConcurrentHashMap<String, DefaultConnectionFuture<?>> replies = new ConcurrentHashMap<>();
 
     /**
      * @param cfs
      */
-    public AbstractClientConnection(String id, NetworkFutureSupplier cfs) {
+    public AbstractClientConnection(String id, ThreadManager threadManager) {
         super(id);
-        this.cfs = cfs;
+        this.threadManager = threadManager;
     }
 
     public final void onConnectionMessage(ConnectionMessage m) {
@@ -88,7 +88,7 @@ public abstract class AbstractClientConnection extends Connection {
         // we need to send the messages in the same order as they are numbered for now
         synchronized (ai) {
             long id = ai.incrementAndGet();
-            DefaultConnectionFuture<T> f = cfs.create();
+            DefaultConnectionFuture<T> f = threadManager.create();
             acks.put(id, f);
             m.setReplyTo(id);
             sendConnectionMessage(m);

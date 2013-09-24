@@ -23,7 +23,7 @@ import java.util.concurrent.TimeUnit;
 
 import org.junit.Test;
 
-import dk.dma.enav.communication.PersistentConnection.State;
+import dk.dma.enav.communication.MaritimeNetworkConnection.State;
 
 /**
  * 
@@ -48,7 +48,7 @@ public class ConnectionTest extends AbstractNetworkTest {
     @Test
     public void singleClientClose() throws Exception {
         @SuppressWarnings("resource")
-        PersistentConnection pc = newClient(ID1);
+        MaritimeNetworkConnection pc = newClient(ID1);
         assertEquals(1, si.getNumberOfConnections());
         pc.awaitState(State.CONNECTED, 1, TimeUnit.SECONDS);
         assertEquals(1, si.getNumberOfConnections());

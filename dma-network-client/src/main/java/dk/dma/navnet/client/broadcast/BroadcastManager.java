@@ -13,15 +13,15 @@
  * You should have received a copy of the GNU General Public License
  * along with this library.  If not, see <http://www.gnu.org/licenses/>.
  */
-package dk.dma.navnet.client;
+package dk.dma.navnet.client.broadcast;
 
 import static java.util.Objects.requireNonNull;
 
 import java.util.concurrent.CopyOnWriteArraySet;
-import java.util.concurrent.atomic.AtomicLong;
 
 import jsr166e.ConcurrentHashMapV8;
 
+import org.picocontainer.Startable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -29,6 +29,11 @@ import dk.dma.enav.communication.broadcast.BroadcastListener;
 import dk.dma.enav.communication.broadcast.BroadcastMessage;
 import dk.dma.enav.communication.broadcast.BroadcastMessageHeader;
 import dk.dma.enav.communication.broadcast.BroadcastSubscription;
+import dk.dma.enav.util.function.Consumer;
+import dk.dma.navnet.client.ClientInfo;
+import dk.dma.navnet.client.connection.ClientConnection;
+import dk.dma.navnet.client.service.PositionManager;
+import dk.dma.navnet.client.util.ThreadManager;
 import dk.dma.navnet.messages.c2c.broadcast.BroadcastMsg;
 
 /**
@@ -36,16 +41,23 @@ import dk.dma.navnet.messages.c2c.broadcast.BroadcastMsg;
  * 
  * @author Kasper Nielsen
  */
-class BroadcastManager {
+public class BroadcastManager implements Startable {
 
     /** The logger. */
-    static final Logger LOG = LoggerFactory.getLogger(BroadcastManager.class);
+    private static final Logger LOG = LoggerFactory.getLogger(BroadcastManager.class);
 
     /** The network */
-    final DefaultPersistentConnection c;
+    private final ClientConnection connection;
 
     /** A map of listeners. ChannelName -> List of listeners. */
-    final ConcurrentHashMapV8<String, CopyOnWriteArraySet<Listener>> listeners = new ConcurrentHashMapV8<>();
+    final ConcurrentHashMapV8<String, CopyOnWriteArraySet<Subscription>> listeners = new ConcurrentHashMapV8<>();
+
+    private final PositionManager positionManager;
+
+    /** Thread manager takes care of asynchronous processing. */
+    private final ThreadManager threadManager;
+
+    private final ClientInfo clientInfo;
 
     /**
      * Creates a new instance of this class.
@@ -53,8 +65,12 @@ class BroadcastManager {
      * @param network
      *            the network
      */
-    BroadcastManager(DefaultPersistentConnection network) {
-        this.c = requireNonNull(network);
+    public BroadcastManager(PositionManager positionManager, ThreadManager threadManager, ClientInfo clientInfo,
+            ClientConnection connection) {
+        this.connection = requireNonNull(connection);
+        this.positionManager = requireNonNull(positionManager);
+        this.threadManager = requireNonNull(threadManager);
+        this.clientInfo = requireNonNull(clientInfo);
     }
 
     /**
@@ -66,11 +82,12 @@ class BroadcastManager {
      *            the callback listener
      * @return a subscription
      */
-    <T extends BroadcastMessage> BroadcastSubscription listenFor(Class<T> messageType, BroadcastListener<T> listener) {
-        Listener sub = new Listener(getChannelName(messageType), listener);
+    public <T extends BroadcastMessage> BroadcastSubscription listenFor(Class<T> messageType,
+            BroadcastListener<T> listener) {
+        Subscription sub = new Subscription(this, getChannelName(messageType), listener);
         listeners.computeIfAbsent(messageType.getCanonicalName(),
-                new ConcurrentHashMapV8.Fun<String, CopyOnWriteArraySet<Listener>>() {
-                    public CopyOnWriteArraySet<Listener> apply(String t) {
+                new ConcurrentHashMapV8.Fun<String, CopyOnWriteArraySet<Subscription>>() {
+                    public CopyOnWriteArraySet<Subscription> apply(String t) {
                         return new CopyOnWriteArraySet<>();
                     }
                 }).add(sub);
@@ -84,7 +101,7 @@ class BroadcastManager {
      *            the broadcast that was received
      */
     void onBroadcastMessage(BroadcastMsg broadcast) {
-        CopyOnWriteArraySet<Listener> set = listeners.get(broadcast.getChannel());
+        CopyOnWriteArraySet<Subscription> set = listeners.get(broadcast.getChannel());
         if (set != null && !set.isEmpty()) {
             BroadcastMessage bm = null;
             try {
@@ -98,9 +115,8 @@ class BroadcastManager {
             final BroadcastMessageHeader bp = new BroadcastMessageHeader(broadcast.getId(), broadcast.getPositionTime());
 
             // Deliver to each listener
-            for (final Listener s : set) {
-                c.es.execute(new Runnable() {
-                    @Override
+            for (final Subscription s : set) {
+                threadManager.execute(new Runnable() {
                     public void run() {
                         s.deliver(bp, bmm);
                     }
@@ -115,10 +131,10 @@ class BroadcastManager {
      * @param broadcast
      *            the broadcast to send
      */
-    void sendBroadcastMessage(BroadcastMessage broadcast) {
+    public void sendBroadcastMessage(BroadcastMessage broadcast) {
         requireNonNull(broadcast, "broadcast is null");
-        BroadcastMsg b = BroadcastMsg.create(c.getLocalId(), c.positionManager.getPositionTime(), broadcast);
-        c.connection().sendConnectionMessage(b);
+        BroadcastMsg b = BroadcastMsg.create(clientInfo.getLocalId(), positionManager.getPositionTime(), broadcast);
+        connection.sendConnectionMessage(b);
     }
 
     /** Translates a class to a channel name. */
@@ -126,52 +142,17 @@ class BroadcastManager {
         return c.getCanonicalName();
     }
 
-    /** The default implementation of BroadcastSubscription. */
-    class Listener implements BroadcastSubscription {
-
-        /** The number of messages received. */
-        private final AtomicLong count = new AtomicLong();
-
-        /** The type of broadcast messages. */
-        private final String channel;
-
-        /** The listener. */
-        private final BroadcastListener<? extends BroadcastMessage> listener;
-
-        /**
-         * @param listener
-         */
-        Listener(String channel, BroadcastListener<? extends BroadcastMessage> listener) {
-            this.channel = requireNonNull(channel);
-            this.listener = requireNonNull(listener);
-        }
-
-        /** {@inheritDoc} */
-        @Override
-        public void cancel() {
-            listeners.get(channel).remove(this);
-        }
-
-        @SuppressWarnings({ "unchecked", "rawtypes" })
-        void deliver(BroadcastMessageHeader properties, BroadcastMessage message) {
-            try {
-                ((BroadcastListener) listener).onMessage(properties, message);
-                count.incrementAndGet();
-            } catch (Exception e) {
-                LOG.error("Exception while handling an incoming broadcast message of type " + message.getClass(), e);
+    /** {@inheritDoc} */
+    @Override
+    public void start() {
+        connection.subscribe(BroadcastMsg.class, new Consumer<BroadcastMsg>() {
+            public void accept(BroadcastMsg t) {
+                onBroadcastMessage(t);
             }
-        }
-
-        /** {@inheritDoc} */
-        @Override
-        public long getNumberOfReceivedMessages() {
-            return count.get();
-        }
-
-        /** {@inheritDoc} */
-        @Override
-        public String getChannel() {
-            return channel;
-        }
+        });
     }
+
+    /** {@inheritDoc} */
+    @Override
+    public void stop() {}
 }

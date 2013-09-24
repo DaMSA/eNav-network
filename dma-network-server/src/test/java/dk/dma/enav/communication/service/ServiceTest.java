@@ -29,7 +29,7 @@ import test.stubs.HelloService.GetName;
 import test.stubs.HelloService.Reply;
 import dk.dma.enav.communication.AbstractNetworkTest;
 import dk.dma.enav.communication.ConnectionFuture;
-import dk.dma.enav.communication.PersistentConnection;
+import dk.dma.enav.communication.MaritimeNetworkConnection;
 import dk.dma.enav.util.function.BiConsumer;
 
 /**
@@ -40,10 +40,10 @@ public class ServiceTest extends AbstractNetworkTest {
 
     @Test
     public void oneClient() throws Exception {
-        PersistentConnection c1 = newClient(ID1);
+        MaritimeNetworkConnection c1 = newClient(ID1);
         c1.serviceRegister(HelloService.GET_NAME, HelloService.create("foo123")).awaitRegistered(4, TimeUnit.SECONDS);
 
-        PersistentConnection c2 = newClient(ID6);
+        MaritimeNetworkConnection c2 = newClient(ID6);
         ServiceEndpoint<GetName, Reply> end = c2.serviceFind(HelloService.GET_NAME).nearest().get(6, TimeUnit.SECONDS);
         assertEquals(ID1, end.getId());
         ConnectionFuture<Reply> f = end.invoke(new HelloService.GetName());
@@ -52,10 +52,10 @@ public class ServiceTest extends AbstractNetworkTest {
 
     @Test
     public void manyClients() throws Exception {
-        PersistentConnection c1 = newClient(ID1);
+        MaritimeNetworkConnection c1 = newClient(ID1);
         c1.serviceRegister(HelloService.GET_NAME, HelloService.create("foo123")).awaitRegistered(4, TimeUnit.SECONDS);
 
-        for (PersistentConnection c : newClients(20)) {
+        for (MaritimeNetworkConnection c : newClients(20)) {
             ServiceEndpoint<GetName, Reply> end = c.serviceFind(HelloService.GET_NAME).nearest()
                     .get(6, TimeUnit.SECONDS);
             assertEquals(ID1, end.getId());
@@ -66,10 +66,10 @@ public class ServiceTest extends AbstractNetworkTest {
 
     @Test
     public void oneClientHandle() throws Exception {
-        PersistentConnection c1 = newClient(ID1);
+        MaritimeNetworkConnection c1 = newClient(ID1);
         c1.serviceRegister(HelloService.GET_NAME, HelloService.create("foo123")).awaitRegistered(4, TimeUnit.SECONDS);
 
-        PersistentConnection c2 = newClient(ID6);
+        MaritimeNetworkConnection c2 = newClient(ID6);
         ServiceEndpoint<GetName, Reply> end = c2.serviceFind(HelloService.GET_NAME).nearest().get(6, TimeUnit.SECONDS);
         assertEquals(ID1, end.getId());
         ConnectionFuture<Reply> f = end.invoke(new HelloService.GetName());

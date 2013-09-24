@@ -13,17 +13,21 @@
  * You should have received a copy of the GNU General Public License
  * along with this library.  If not, see <http://www.gnu.org/licenses/>.
  */
-package dk.dma.navnet.client;
+package dk.dma.navnet.client.service;
 
 import static java.util.Objects.requireNonNull;
 
 import java.util.concurrent.TimeUnit;
 
+import org.picocontainer.Startable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import dk.dma.enav.communication.MaritimeNetworkConnectionBuilder;
 import dk.dma.enav.model.geometry.PositionTime;
 import dk.dma.enav.util.function.Supplier;
+import dk.dma.navnet.client.connection.ClientConnection;
+import dk.dma.navnet.client.util.ThreadManager;
 import dk.dma.navnet.messages.auxiliary.PositionReportMessage;
 
 /**
@@ -31,7 +35,7 @@ import dk.dma.navnet.messages.auxiliary.PositionReportMessage;
  * 
  * @author Kasper Nielsen
  */
-class PositionManager implements Runnable {
+public class PositionManager implements Runnable, Startable {
 
     /** The logger. */
     static final Logger LOG = LoggerFactory.getLogger(PositionManager.class);
@@ -43,18 +47,22 @@ class PositionManager implements Runnable {
     private final Supplier<PositionTime> positionSupplier;
 
     /** The connection to the server. */
-    private final DefaultPersistentConnection c;
+    private final ClientConnection connection;
 
     /** When we send the last message */
     private volatile long latestTime = -MINIMUM_SIGNAL_DURATION; // System.nanoTime>0 so we always send it first time
+
+    private final ThreadManager threadManager;
 
     /**
      * @param transport
      * @param positionSupplier
      */
-    PositionManager(DefaultPersistentConnection c, Supplier<PositionTime> positionSupplier) {
-        this.c = requireNonNull(c);
-        this.positionSupplier = requireNonNull(positionSupplier);
+    public PositionManager(ClientConnection connection, MaritimeNetworkConnectionBuilder builder,
+            ThreadManager threadManager) {
+        this.connection = requireNonNull(connection);
+        this.positionSupplier = requireNonNull(builder.getPositionSupplier());
+        this.threadManager = threadManager;
     }
 
     @Override
@@ -74,11 +82,11 @@ class PositionManager implements Runnable {
 
         if (t != null) {
             latestTime = now;
-            c.connection().sendConnectionMessage(new PositionReportMessage(t));
+            connection.sendConnectionMessage(new PositionReportMessage(t));
         }
     }
 
-    PositionTime getPositionTime() {
+    public PositionTime getPositionTime() {
         PositionTime pt = positionSupplier == null ? null : positionSupplier.get();
         if (pt == null) {
             // We just send a dummy position
@@ -87,4 +95,16 @@ class PositionManager implements Runnable {
         }
         return pt;
     }
+
+    /** {@inheritDoc} */
+    @Override
+    public void start() {
+        // System.out.println("STARTING");
+        // Schedules regular position updates to the server
+        threadManager.scheduleAtFixedRate(this, 0, 1, TimeUnit.SECONDS);
+    }
+
+    /** {@inheritDoc} */
+    @Override
+    public void stop() {}
 }
