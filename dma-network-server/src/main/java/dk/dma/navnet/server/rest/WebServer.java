@@ -9,7 +9,7 @@
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
  * Lesser General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU General Public License
  * along with this library.  If not, see <http://www.gnu.org/licenses/>.
  */
@@ -29,14 +29,18 @@ import org.eclipse.jetty.servlet.ServletContextHandler;
 import org.eclipse.jetty.servlet.ServletHolder;
 import org.glassfish.jersey.CommonProperties;
 import org.glassfish.jersey.servlet.ServletContainer;
+import org.picocontainer.Startable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import dk.dma.commons.web.rest.AbstractResource;
+import dk.dma.navnet.server.ServerConfiguration;
 
 /**
  * 
  * @author Kasper Nielsen
  */
-public class WebServer {
+public class WebServer implements Startable {
 
     static final boolean IS_SECURE = false;
 
@@ -46,9 +50,10 @@ public class WebServer {
 
     final Server server;
 
-    public WebServer(int port) {
-        server = new Server(port);
+    public WebServer(ServerConfiguration configuration) {
+        server = new Server(configuration.getWebserverPort());
         this.context = new ServletContextHandler(ServletContextHandler.SESSIONS);
+        getContext().setAttribute(AbstractResource.CONFIG, AbstractResource.create(server));
     }
 
     /**
@@ -62,7 +67,15 @@ public class WebServer {
         server.join();
     }
 
-    public void start() throws Exception {
+    public void start() {
+        try {
+            start0();
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    public void start0() throws Exception {
         ((ServerConnector) server.getConnectors()[0]).setReuseAddress(true);
 
         context.setContextPath("/");
@@ -96,5 +109,15 @@ public class WebServer {
         hw.setHandler(context);
         server.setHandler(hw);
         server.start();
+    }
+
+    /** {@inheritDoc} */
+    @Override
+    public void stop() {
+        try {
+            join();
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
     }
 }

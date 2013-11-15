@@ -9,7 +9,7 @@
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
  * Lesser General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU General Public License
  * along with this library.  If not, see <http://www.gnu.org/licenses/>.
  */
@@ -24,9 +24,9 @@ import java.util.concurrent.TimeUnit;
 
 import org.junit.Test;
 
-import test.stubs.BroadcastTestMessage;
 import dk.dma.enav.communication.AbstractNetworkTest;
-import dk.dma.enav.communication.MaritimeNetworkConnection;
+import dk.dma.enav.communication.MaritimeNetworkClient;
+import dk.dma.navnet.client.broadcast.stubs.BroadcastTestMessage;
 
 /**
  * 
@@ -36,8 +36,8 @@ public class BroadcastTest extends AbstractNetworkTest {
 
     @Test
     public void oneBroadcast() throws Exception {
-        MaritimeNetworkConnection c1 = newClient(ID1);
-        MaritimeNetworkConnection c2 = newClient(ID6);
+        MaritimeNetworkClient c1 = newClient(ID1);
+        MaritimeNetworkClient c2 = newClient(ID6);
         final CountDownLatch cdl = new CountDownLatch(1);
         c2.broadcastListen(BroadcastTestMessage.class, new BroadcastListener<BroadcastTestMessage>() {
             public void onMessage(BroadcastMessageHeader props, BroadcastTestMessage t) {
@@ -52,10 +52,10 @@ public class BroadcastTest extends AbstractNetworkTest {
 
     @Test
     public void multipleReceivers() throws Exception {
-        MaritimeNetworkConnection c1 = newClient(ID1);
+        MaritimeNetworkClient c1 = newClient(ID1);
         final CountDownLatch cdl = new CountDownLatch(10);
 
-        for (MaritimeNetworkConnection mnc : newClients(10)) {
+        for (MaritimeNetworkClient mnc : newClients(10)) {
             mnc.broadcastListen(BroadcastTestMessage.class, new BroadcastListener<BroadcastTestMessage>() {
                 public void onMessage(BroadcastMessageHeader props, BroadcastTestMessage t) {
                     assertEquals("fooo", t.getName());
@@ -63,14 +63,15 @@ public class BroadcastTest extends AbstractNetworkTest {
                 }
             });
         }
+
         c1.broadcast(new BroadcastTestMessage("fooo"));
         assertTrue(cdl.await(4, TimeUnit.SECONDS));
     }
 
     @Test
     public void receiveNotSelf() throws Exception {
-        MaritimeNetworkConnection c1 = newClient(ID1);
-        MaritimeNetworkConnection c2 = newClient(ID6);
+        MaritimeNetworkClient c1 = newClient(ID1);
+        MaritimeNetworkClient c2 = newClient(ID6);
         final CountDownLatch cdl1 = new CountDownLatch(1);
         final CountDownLatch cdl2 = new CountDownLatch(1);
         c1.broadcastListen(BroadcastTestMessage.class, new BroadcastListener<BroadcastTestMessage>() {

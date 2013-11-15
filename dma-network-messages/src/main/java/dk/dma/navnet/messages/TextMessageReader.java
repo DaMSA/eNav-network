@@ -9,7 +9,7 @@
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
  * Lesser General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU General Public License
  * along with this library.  If not, see <http://www.gnu.org/licenses/>.
  */
@@ -39,6 +39,14 @@ public class TextMessageReader {
         if (jp.nextToken() != JsonToken.START_ARRAY) {
             throw new IOException("Expected the start of a JSON array, but was '" + jp.getText() + "'");
         }
+    }
+
+    public boolean takeBoolean() throws IOException {
+        JsonToken t = jp.nextToken();
+        if (t != JsonToken.VALUE_FALSE && t != JsonToken.VALUE_TRUE) {
+            throw new IOException("Expected a boolean, but was '" + jp.getText() + "'");
+        }
+        return jp.getBooleanValue();
     }
 
     public int takeInt() throws IOException {

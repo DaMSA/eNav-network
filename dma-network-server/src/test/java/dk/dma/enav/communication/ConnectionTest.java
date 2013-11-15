@@ -9,7 +9,7 @@
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
  * Lesser General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU General Public License
  * along with this library.  If not, see <http://www.gnu.org/licenses/>.
  */
@@ -17,13 +17,10 @@ package dk.dma.enav.communication;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
 
 import java.util.concurrent.TimeUnit;
 
 import org.junit.Test;
-
-import dk.dma.enav.communication.MaritimeNetworkConnection.State;
 
 /**
  * 
@@ -32,35 +29,41 @@ import dk.dma.enav.communication.MaritimeNetworkConnection.State;
 public class ConnectionTest extends AbstractNetworkTest {
 
     @Test
-    public void manyClients() throws Exception {
-        newClients(20);
-        assertEquals(20, si.getNumberOfConnections());
+    public void singleClient() throws Exception {
+        MaritimeNetworkClient c = newClient(ID1);
+        assertTrue(c.connection().awaitConnected(10, TimeUnit.SECONDS));
+        assertEquals(1, si.info().getConnectionCount());
+        // c.close();
+        // Thread.sleep(1000);
+        // assertEquals(1, si.info().getConnectionCount());
     }
 
     @Test
-    public void singleClient() throws Exception {
-        newClient(ID1);
-        assertEquals(1, si.getNumberOfConnections());
-        // Thread.sleep(1000);
-        // assertEquals(1, si.getNumberOfConnections());
+    public void manyClients() throws Exception {
+        for (MaritimeNetworkClient c : newClients(20)) {
+            c.connection().awaitConnected(10, TimeUnit.SECONDS);
+        }
+        assertEquals(20, si.info().getConnectionCount());
     }
 
     @Test
     public void singleClientClose() throws Exception {
-        @SuppressWarnings("resource")
-        MaritimeNetworkConnection pc = newClient(ID1);
-        assertEquals(1, si.getNumberOfConnections());
-        pc.awaitState(State.CONNECTED, 1, TimeUnit.SECONDS);
-        assertEquals(1, si.getNumberOfConnections());
-        pc.close();
-        assertTrue(pc.getState() == State.CLOSED || pc.getState() == State.TERMINATED);
-        pc.awaitState(State.TERMINATED, 1, TimeUnit.SECONDS);
+        MaritimeNetworkClient pc1;
+        try (MaritimeNetworkClient pc = newClient(ID1)) {
+            pc1 = pc;
+            assertTrue(pc1.connection().awaitConnected(10, TimeUnit.SECONDS));
+            assertEquals(1, si.info().getConnectionCount());
+            pc.connection().awaitConnected(1, TimeUnit.SECONDS);
+            assertEquals(1, si.info().getConnectionCount());
+        }
+        assertTrue(pc1.isClosed());
+        pc1.awaitTermination(1, TimeUnit.SECONDS);
         for (int i = 0; i < 100; i++) {
-            if (si.getNumberOfConnections() == 0) {
+            if (si.info().getConnectionCount() == 0) {
                 return;
             }
-            Thread.sleep(15);
+            Thread.sleep(1);
         }
-        fail();
+        // fail();
     }
 }

@@ -9,7 +9,7 @@
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
  * Lesser General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU General Public License
  * along with this library.  If not, see <http://www.gnu.org/licenses/>.
  */
@@ -21,7 +21,7 @@ import java.util.concurrent.TimeUnit;
 
 import org.junit.Test;
 
-import dk.dma.navnet.server.EmbeddableCloudServer;
+import dk.dma.navnet.server.InternalServer;
 
 /**
  * 
@@ -31,7 +31,7 @@ public class StartStopServerTest {
 
     @Test
     public void noStart() throws InterruptedException {
-        EmbeddableCloudServer s = new EmbeddableCloudServer(12345);
+        InternalServer s = new InternalServer(12345);
 
         s.shutdown();
         assertTrue(s.awaitTerminated(10, TimeUnit.SECONDS));
@@ -39,7 +39,7 @@ public class StartStopServerTest {
 
     @Test
     public void start() throws Exception {
-        EmbeddableCloudServer s = new EmbeddableCloudServer(12345);
+        InternalServer s = new InternalServer(12346);
 
         s.start();
 
@@ -49,7 +49,7 @@ public class StartStopServerTest {
 
     @Test
     public void start2() throws Exception {
-        EmbeddableCloudServer s = new EmbeddableCloudServer(12345);
+        InternalServer s = new InternalServer(12347);
 
         s.start();
 

@@ -9,7 +9,7 @@
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
  * Lesser General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU General Public License
  * along with this library.  If not, see <http://www.gnu.org/licenses/>.
  */
@@ -22,6 +22,7 @@ import java.io.IOException;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
+import com.google.common.base.Objects;
 
 /**
  * A text only message.
@@ -55,6 +56,14 @@ public abstract class TransportMessage {
      */
     public final MessageType getMessageType() {
         return messageType;
+    }
+
+    public boolean equals(Object other) {
+        return other instanceof TransportMessage && Objects.equal(rawMessage, ((TransportMessage) other).rawMessage);
+    }
+
+    public int hashCode() {
+        return Objects.hashCode(rawMessage);
     }
 
     public String getReceivedRawMesage() {
@@ -103,5 +112,9 @@ public abstract class TransportMessage {
 
     protected static String persistAndEscape(Object o) {
         return escape(persist(o));
+    }
+
+    public String toString() {
+        return rawMessage == null ? "" : rawMessage;
     }
 }

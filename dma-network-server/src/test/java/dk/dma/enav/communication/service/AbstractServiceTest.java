@@ -9,7 +9,7 @@
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
  * Lesser General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU General Public License
  * along with this library.  If not, see <http://www.gnu.org/licenses/>.
  */
@@ -19,15 +19,15 @@ import java.util.concurrent.TimeUnit;
 
 import test.stubs.HelloService;
 import dk.dma.enav.communication.AbstractNetworkTest;
-import dk.dma.enav.communication.MaritimeNetworkConnection;
+import dk.dma.enav.communication.MaritimeNetworkClient;
 
 /**
  * 
  * @author Kasper Nielsen
  */
-public class AbstractServiceTest extends AbstractNetworkTest {
+public abstract class AbstractServiceTest extends AbstractNetworkTest {
 
-    public MaritimeNetworkConnection registerService(MaritimeNetworkConnection pnc, String reply) throws Exception {
+    public MaritimeNetworkClient registerService(MaritimeNetworkClient pnc, String reply) throws Exception {
         pnc.serviceRegister(HelloService.GET_NAME, HelloService.create(reply)).awaitRegistered(5, TimeUnit.SECONDS);
         return pnc;
     }

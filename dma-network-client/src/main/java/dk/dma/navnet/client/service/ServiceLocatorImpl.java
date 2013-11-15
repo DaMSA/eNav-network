@@ -9,7 +9,7 @@
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
  * Lesser General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU General Public License
  * along with this library.  If not, see <http://www.gnu.org/licenses/>.
  */
@@ -39,6 +39,7 @@ import dk.dma.navnet.messages.s2c.service.FindServiceResult;
  */
 class ServiceLocatorImpl<T, E extends ServiceMessage<T>> implements ServiceLocator<T, E> {
 
+    /** The distance in meters for where to look for the service. */
     final int distance;
 
     final ClientServiceManager csm;
@@ -58,8 +59,8 @@ class ServiceLocatorImpl<T, E extends ServiceMessage<T>> implements ServiceLocat
     /** {@inheritDoc} */
     @Override
     public ServiceLocator<T, E> withinDistanceOf(int meters) {
-        if (meters <= 0 || meters >= 99999000) {
-            throw new IllegalArgumentException("Meters must be greater >0 and <100000000");
+        if (meters <= 0 || meters >= 100_000_000) {
+            throw new IllegalArgumentException("Meters must be greater >0 and <100.000.000");
         }
         return new ServiceLocatorImpl<>(threadManager, sip, csm, meters);
     }
@@ -111,6 +112,7 @@ class ServiceLocatorImpl<T, E extends ServiceMessage<T>> implements ServiceLocat
 
     class SI implements ServiceEndpoint<E, T> {
         final MaritimeId id;
+
         final ServiceInitiationPoint<E> sip;
 
         SI(MaritimeId id, ServiceInitiationPoint<E> sip) {

@@ -9,7 +9,7 @@
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
  * Lesser General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU General Public License
  * along with this library.  If not, see <http://www.gnu.org/licenses/>.
  */
@@ -17,12 +17,10 @@ package dk.dma.navnet.server;
 
 import java.util.concurrent.TimeUnit;
 
-import com.beust.jcommander.Parameter;
+import com.beust.jcommander.ParametersDelegate;
 import com.google.inject.Injector;
 
 import dk.dma.commons.app.AbstractCommandLineTool;
-import dk.dma.commons.web.rest.AbstractResource;
-import dk.dma.navnet.server.rest.WebServer;
 
 /**
  * Used to start a server from the command line.
@@ -31,10 +29,10 @@ import dk.dma.navnet.server.rest.WebServer;
  */
 public class Main extends AbstractCommandLineTool {
 
-    @Parameter(names = "-port", description = "The port to listen on")
-    int port = EmbeddableCloudServer.DEFAULT_PORT;
+    @ParametersDelegate
+    ServerConfiguration configuration;
 
-    volatile EmbeddableCloudServer server;
+    volatile InternalServer server;
 
     public static void main(String[] args) throws Exception {
         new Main().execute(args);
@@ -48,22 +46,16 @@ public class Main extends AbstractCommandLineTool {
                 kill();
             }
         });
-        EmbeddableCloudServer server = new EmbeddableCloudServer(port);
+        InternalServer server = new InternalServer(configuration);
         server.start();
-        this.server = server; // only set it if it started
+        this.server = server; // only set it if it started succesfully
 
-        WebServer ws = new WebServer(8090);
-        ws.getContext().setAttribute(AbstractResource.CONFIG, AbstractResource.create(server));
-
-        ws.start();
-        System.out.println("Wuhuu Maritime Cloud Server started! Running on port " + port);
+        System.out.println("Wuhuu Maritime Cloud Server started! Running on port " + configuration.getServerPort());
         System.out.println("Use CTRL+C to stop it");
-
-        ws.join();
     }
 
     void kill() {
-        EmbeddableCloudServer server = this.server;
+        InternalServer server = this.server;
         if (server != null) {
             server.shutdown();
             try {

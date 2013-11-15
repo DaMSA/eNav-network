@@ -1,0 +1,72 @@
+/* Copyright (c) 2011 Danish Maritime Authority
+ *
+ * This library is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 3 of the License, or (at your option) any later version.
+ *
+ * This library is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ * Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this library.  If not, see <http://www.gnu.org/licenses/>.
+ */
+package test.stubs;
+
+import static java.util.Objects.requireNonNull;
+import dk.dma.enav.communication.service.InvocationCallback;
+import dk.dma.enav.communication.service.spi.Service;
+import dk.dma.enav.communication.service.spi.ServiceInitiationPoint;
+import dk.dma.enav.communication.service.spi.ServiceMessage;
+
+/**
+ * 
+ * @author Kasper Nielsen
+ */
+public class HelloService extends Service {
+
+    public static InvocationCallback<HelloService.GetName, HelloService.Reply> create(final String reply) {
+        return new InvocationCallback<HelloService.GetName, HelloService.Reply>() {
+            public void process(GetName message, InvocationCallback.Context<Reply> context) {
+                context.complete(new Reply(reply));
+            }
+        };
+    }
+
+    /** An initiation point */
+    public static final ServiceInitiationPoint<GetName> GET_NAME = new ServiceInitiationPoint<>(GetName.class);
+
+    public static class GetName extends ServiceMessage<Reply> {}
+
+    public static class Reply extends ServiceMessage<Void> {
+
+        /** The name of the ship. */
+        private String name;
+
+        public Reply() {}
+
+        public Reply(String name) {
+            this.name = requireNonNull(name);
+        }
+
+        /** @return the name of the service */
+        public String getName() {
+            return name;
+        }
+
+        /**
+         * @param name
+         *            the name to set
+         */
+        public void setName(String name) {
+            this.name = name;
+        }
+
+        /** {@inheritDoc} */
+        public String toString() {
+            return name;
+        }
+    }
+}

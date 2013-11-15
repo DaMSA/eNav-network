@@ -9,7 +9,7 @@
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
  * Lesser General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU General Public License
  * along with this library.  If not, see <http://www.gnu.org/licenses/>.
  */
@@ -23,10 +23,10 @@ import org.picocontainer.Startable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import dk.dma.enav.communication.MaritimeNetworkConnectionBuilder;
+import dk.dma.enav.communication.MaritimeNetworkClientConfiguration;
 import dk.dma.enav.model.geometry.PositionTime;
 import dk.dma.enav.util.function.Supplier;
-import dk.dma.navnet.client.connection.ClientConnection;
+import dk.dma.navnet.client.connection.ConnectionMessageBus;
 import dk.dma.navnet.client.util.ThreadManager;
 import dk.dma.navnet.messages.auxiliary.PositionReportMessage;
 
@@ -41,16 +41,16 @@ public class PositionManager implements Runnable, Startable {
     static final Logger LOG = LoggerFactory.getLogger(PositionManager.class);
 
     /** Send out a signal no more often than. */
-    static final long MINIMUM_SIGNAL_DURATION = TimeUnit.NANOSECONDS.convert(5, TimeUnit.SECONDS);
+    static long minimumSignalDuration;
 
     /** Responsible for creating a current position and time. */
     private final Supplier<PositionTime> positionSupplier;
 
     /** The connection to the server. */
-    private final ClientConnection connection;
+    private final ConnectionMessageBus connection;
 
     /** When we send the last message */
-    private volatile long latestTime = -MINIMUM_SIGNAL_DURATION; // System.nanoTime>0 so we always send it first time
+    private volatile long latestTime; // <0 so we always send it first time
 
     private final ThreadManager threadManager;
 
@@ -58,18 +58,20 @@ public class PositionManager implements Runnable, Startable {
      * @param transport
      * @param positionSupplier
      */
-    public PositionManager(ClientConnection connection, MaritimeNetworkConnectionBuilder builder,
+    public PositionManager(ConnectionMessageBus connection, MaritimeNetworkClientConfiguration builder,
             ThreadManager threadManager) {
         this.connection = requireNonNull(connection);
         this.positionSupplier = requireNonNull(builder.getPositionSupplier());
         this.threadManager = threadManager;
+        minimumSignalDuration = builder.getKeepAlive(TimeUnit.NANOSECONDS);
+        latestTime = System.nanoTime();// -minimumSignalDuration;
     }
 
     @Override
     public void run() {
         long now = System.nanoTime();
         // Only send a message if it is more MINIMUM_SIGNAL_DURATION time since the last signal
-        if (now - latestTime < MINIMUM_SIGNAL_DURATION) {
+        if (now - latestTime < minimumSignalDuration) {
             return;
         }
 

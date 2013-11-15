@@ -9,7 +9,7 @@
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
  * Lesser General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU General Public License
  * along with this library.  If not, see <http://www.gnu.org/licenses/>.
  */
@@ -32,33 +32,41 @@ import org.junit.After;
 import org.junit.Before;
 
 import test.util.ProxyTester;
-import dk.dma.enav.communication.MaritimeNetworkConnection.State;
 import dk.dma.enav.model.MaritimeId;
 import dk.dma.enav.model.geometry.PositionTime;
 import dk.dma.enav.util.function.Supplier;
-import dk.dma.navnet.server.EmbeddableCloudServer;
+import dk.dma.navnet.server.InternalServer;
+import dk.dma.navnet.server.ServerConfiguration;
 
 /**
  * 
  * @author Kasper Nielsen
  */
-public class AbstractNetworkTest {
+public abstract class AbstractNetworkTest {
 
     public static final MaritimeId ID1 = MaritimeId.create("mmsi://1");
+
     public static final MaritimeId ID2 = MaritimeId.create("mmsi://2");
+
     public static final MaritimeId ID3 = MaritimeId.create("mmsi://3");
+
     public static final MaritimeId ID4 = MaritimeId.create("mmsi://4");
+
     public static final MaritimeId ID5 = MaritimeId.create("mmsi://5");
+
     public static final MaritimeId ID6 = MaritimeId.create("mmsi://6");
 
-    protected final ConcurrentHashMap<MaritimeId, MaritimeNetworkConnection> clients = new ConcurrentHashMap<>();
+    int clientPort;
+
+    protected final ConcurrentHashMap<MaritimeId, MaritimeNetworkClient> clients = new ConcurrentHashMap<>();
+
     ExecutorService es = Executors.newCachedThreadPool();
 
     protected final ConcurrentHashMap<MaritimeId, LocationSup> locs = new ConcurrentHashMap<>();
 
     ProxyTester pt;
 
-    EmbeddableCloudServer si;
+    InternalServer si;
 
     final boolean useProxy;
 
@@ -70,17 +78,22 @@ public class AbstractNetworkTest {
         this.useProxy = useProxy;
     }
 
-    protected MaritimeNetworkConnection newClient() throws Exception {
+    protected MaritimeNetworkClientConfiguration newBuilder(MaritimeId id) {
+        MaritimeNetworkClientConfiguration b = MaritimeNetworkClientConfiguration.create(id);
+        b.setHost("localhost:" + clientPort);
+        return b;
+    }
+
+    protected MaritimeNetworkClient newClient() throws Exception {
         for (;;) {
             MaritimeId id = MaritimeId.create("mmsi://" + ThreadLocalRandom.current().nextInt(1000));
             if (!clients.containsKey(id)) {
-                MaritimeNetworkConnection pc = newClient(id);
-                pc.connect();
+                return newClient(id);
             }
         }
     }
 
-    protected MaritimeNetworkConnection newClient(double lat, double lon) throws Exception {
+    protected MaritimeNetworkClient newClient(double lat, double lon) throws Exception {
         for (;;) {
             MaritimeId id = MaritimeId.create("mmsi://" + ThreadLocalRandom.current().nextInt(1000));
             if (!clients.containsKey(id)) {
@@ -89,63 +102,53 @@ public class AbstractNetworkTest {
         }
     }
 
-    protected MaritimeNetworkConnection newClient(MaritimeNetworkConnectionBuilder b) throws Exception {
-        locs.put(b.getId(), new LocationSup());
-        MaritimeNetworkConnection c = b.build();
-        c.connect();
-        clients.put(b.getId(), c);
-        return c;
-    }
-
-    protected MaritimeNetworkConnection newClient(MaritimeId id) throws Exception {
-        MaritimeNetworkConnectionBuilder b = newBuilder(id);
+    protected MaritimeNetworkClient newClient(MaritimeId id) throws Exception {
+        MaritimeNetworkClientConfiguration b = newBuilder(id);
         locs.put(id, new LocationSup());
-        MaritimeNetworkConnection c = b.build();
-        c.connect();
+        MaritimeNetworkClient c = b.build();
         clients.put(id, c);
         return c;
     }
 
-    protected MaritimeNetworkConnection newClient(MaritimeId id, double lat, double lon) throws Exception {
-        MaritimeNetworkConnectionBuilder b = newBuilder(id);
+    protected MaritimeNetworkClient newClient(MaritimeId id, double lat, double lon) throws Exception {
+        MaritimeNetworkClientConfiguration b = newBuilder(id);
         LocationSup ls = new LocationSup();
         b.setPositionSupplier(ls);
         locs.put(id, ls);
         setPosition(id, lat, lon);
-        MaritimeNetworkConnection c = b.build();
-        c.connect();
+        MaritimeNetworkClient c = b.build();
         clients.put(id, c);
         return c;
     }
 
-    protected Future<MaritimeNetworkConnection> newClientAsync(final MaritimeId id) throws Exception {
-        final MaritimeNetworkConnectionBuilder b = newBuilder(id);
+    protected MaritimeNetworkClient newClient(MaritimeNetworkClientConfiguration b) throws Exception {
+        locs.put(b.getId(), new LocationSup());
+        MaritimeNetworkClient c = b.build();
+        clients.put(b.getId(), c);
+        return c;
+    }
+
+    protected Future<MaritimeNetworkClient> newClientAsync(final MaritimeId id) throws Exception {
+        final MaritimeNetworkClientConfiguration b = newBuilder(id);
         locs.put(id, new LocationSup());
-        return es.submit(new Callable<MaritimeNetworkConnection>() {
+        return es.submit(new Callable<MaritimeNetworkClient>() {
 
             @Override
-            public MaritimeNetworkConnection call() throws Exception {
-                MaritimeNetworkConnection c = b.build();
-                c.connect();
+            public MaritimeNetworkClient call() throws Exception {
+                MaritimeNetworkClient c = b.build();
                 clients.put(id, c);
                 return c;
             }
         });
     }
 
-    protected MaritimeNetworkConnectionBuilder newBuilder(MaritimeId id) {
-        MaritimeNetworkConnectionBuilder b = MaritimeNetworkConnectionBuilder.create(id);
-        b.setHost("localhost:" + clientPort);
-        return b;
-    }
-
-    protected Set<MaritimeNetworkConnection> newClients(int count) throws Exception {
-        HashSet<Future<MaritimeNetworkConnection>> futures = new HashSet<>();
+    protected Set<MaritimeNetworkClient> newClients(int count) throws Exception {
+        HashSet<Future<MaritimeNetworkClient>> futures = new HashSet<>();
         for (int j = 0; j < count; j++) {
             futures.add(newClientAsync(MaritimeId.create("mmsi://1234" + j)));
         }
-        HashSet<MaritimeNetworkConnection> result = new HashSet<>();
-        for (Future<MaritimeNetworkConnection> f : futures) {
+        HashSet<MaritimeNetworkClient> result = new HashSet<>();
+        for (Future<MaritimeNetworkClient> f : futures) {
             result.add(f.get(3, TimeUnit.SECONDS));
         }
         return result;
@@ -157,38 +160,39 @@ public class AbstractNetworkTest {
         return id;
     }
 
-    protected MaritimeNetworkConnection setPosition(MaritimeNetworkConnection pnc, double lat, double lon) {
-        locs.get(pnc.getLocalId()).lat = lat;
-        locs.get(pnc.getLocalId()).lon = lon;
+    protected MaritimeNetworkClient setPosition(MaritimeNetworkClient pnc, double lat, double lon) {
+        locs.get(pnc.getClientId()).lat = lat;
+        locs.get(pnc.getClientId()).lon = lon;
         return pnc;
     }
-
-    int clientPort;
 
     @Before
     public void setup() throws Exception {
         clientPort = ThreadLocalRandom.current().nextInt(40000, 50000);
+        ServerConfiguration sc = new ServerConfiguration();
         if (useProxy) {
-            si = new EmbeddableCloudServer(12222);
+            sc.setServerPort(12222);
+            si = new InternalServer(sc);
             pt = new ProxyTester(new InetSocketAddress(clientPort), new InetSocketAddress(12222));
             pt.start();
         } else {
-            si = new EmbeddableCloudServer(clientPort);
+            sc.setServerPort(clientPort);
+            si = new InternalServer(sc);
         }
         si.start();
     }
 
     @After
     public void teardown() throws InterruptedException {
-        for (final MaritimeNetworkConnection c : clients.values()) {
+        for (final MaritimeNetworkClient c : clients.values()) {
             es.execute(new Runnable() {
                 public void run() {
                     c.close();
                 }
             });
         }
-        for (MaritimeNetworkConnection c : clients.values()) {
-            assertTrue(c.awaitState(State.TERMINATED, 5, TimeUnit.SECONDS));
+        for (MaritimeNetworkClient c : clients.values()) {
+            assertTrue(c.awaitTermination(2, TimeUnit.SECONDS));
         }
 
         clients.clear();
@@ -200,10 +204,12 @@ public class AbstractNetworkTest {
         assertTrue(es.awaitTermination(10, TimeUnit.SECONDS));
 
         assertTrue(si.awaitTerminated(10, TimeUnit.SECONDS));
+        System.out.println("bye");
     }
 
     static class LocationSup extends Supplier<PositionTime> {
         double lat;
+
         double lon;
 
         /** {@inheritDoc} */

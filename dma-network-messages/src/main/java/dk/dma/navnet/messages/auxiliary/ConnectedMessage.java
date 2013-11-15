@@ -9,7 +9,7 @@
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
  * Lesser General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU General Public License
  * along with this library.  If not, see <http://www.gnu.org/licenses/>.
  */
@@ -32,25 +32,36 @@ public class ConnectedMessage extends TransportMessage {
 
     private final String connectionId;
 
-    public ConnectedMessage(TextMessageReader pr) throws IOException {
-        this(pr.takeString());
-    }
+    public final long lastReceivedMessageId;
 
     /**
      * @param messageType
      */
-    public ConnectedMessage(String connectionId) {
+    public ConnectedMessage(String connectionId, long lastReceivedMessageId) {
         super(MessageType.CONNECTED);
         this.connectionId = requireNonNull(connectionId);
+        this.lastReceivedMessageId = lastReceivedMessageId;
+    }
+
+    public ConnectedMessage(TextMessageReader pr) throws IOException {
+        this(pr.takeString(), pr.takeLong());
     }
 
     public String getConnectionId() {
         return connectionId;
     }
 
+    /**
+     * @return the lastReceivedMessageId
+     */
+    public long getLastReceivedMessageId() {
+        return lastReceivedMessageId;
+    }
+
     /** {@inheritDoc} */
     @Override
     public void write(TextMessageWriter w) {
         w.writeString(connectionId);
+        w.writeLong(lastReceivedMessageId);
     }
 }

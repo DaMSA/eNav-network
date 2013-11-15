@@ -9,7 +9,7 @@
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
  * Lesser General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU General Public License
  * along with this library.  If not, see <http://www.gnu.org/licenses/>.
  */
@@ -28,7 +28,7 @@ import org.junit.Test;
 import test.stubs.HelloService;
 import test.stubs.HelloService.GetName;
 import test.stubs.HelloService.Reply;
-import dk.dma.enav.communication.MaritimeNetworkConnection;
+import dk.dma.enav.communication.MaritimeNetworkClient;
 import dk.dma.enav.model.geometry.CoordinateSystem;
 import dk.dma.enav.model.geometry.Position;
 
@@ -45,46 +45,46 @@ public class ServiceFindTest extends AbstractServiceTest {
      */
     @Test
     public void findNearest() throws Exception {
-        MaritimeNetworkConnection s = registerService(newClient(), "foo123");
-        MaritimeNetworkConnection c = newClient();
-        ServiceEndpoint<GetName, Reply> end = c.serviceFind(HelloService.GET_NAME).nearest().get(6, TimeUnit.SECONDS);
-        assertEquals(s.getLocalId(), end.getId());
+        MaritimeNetworkClient s = registerService(newClient(), "foo123");
+        MaritimeNetworkClient c = newClient();
+        ServiceEndpoint<GetName, Reply> end = c.serviceLocate(HelloService.GET_NAME).nearest().get(6, TimeUnit.SECONDS);
+        assertEquals(s.getClientId(), end.getId());
     }
 
     @Test
     public void findNearestOutOf2() throws Exception {
-        MaritimeNetworkConnection s1 = registerService(newClient(1, 1), "A");
-        MaritimeNetworkConnection s2 = registerService(newClient(5, 5), "B");
+        MaritimeNetworkClient s1 = registerService(newClient(1, 1), "A");
+        MaritimeNetworkClient s2 = registerService(newClient(5, 5), "B");
         ServiceEndpoint<GetName, Reply> e;
 
-        e = newClient(2, 2).serviceFind(HelloService.GET_NAME).nearest().get(6, TimeUnit.SECONDS);
-        assertEquals(s1.getLocalId(), e.getId());
+        e = newClient(2, 2).serviceLocate(HelloService.GET_NAME).nearest().get(6, TimeUnit.SECONDS);
+        assertEquals(s1.getClientId(), e.getId());
 
-        e = newClient(3, 4).serviceFind(HelloService.GET_NAME).nearest().get(6, TimeUnit.SECONDS);
-        assertEquals(s2.getLocalId(), e.getId());
+        e = newClient(3, 4).serviceLocate(HelloService.GET_NAME).nearest().get(6, TimeUnit.SECONDS);
+        assertEquals(s2.getClientId(), e.getId());
 
-        e = newClient(4, 4).serviceFind(HelloService.GET_NAME).nearest().get(6, TimeUnit.SECONDS);
-        assertEquals(s2.getLocalId(), e.getId());
+        e = newClient(4, 4).serviceLocate(HelloService.GET_NAME).nearest().get(6, TimeUnit.SECONDS);
+        assertEquals(s2.getClientId(), e.getId());
     }
 
     @Test
     public void findNearestOfMany() throws Exception {
-        Map<Integer, MaritimeNetworkConnection> m = new HashMap<>();
+        Map<Integer, MaritimeNetworkClient> m = new HashMap<>();
         for (int i = 0; i < 10; i++) {
             m.put(i, registerService(newClient(i, i), "A" + i));
         }
 
         List<ServiceEndpoint<GetName, Reply>> e;
 
-        e = newClient(4.4, 4.4).serviceFind(HelloService.GET_NAME).nearest(1).get(6, TimeUnit.SECONDS);
+        e = newClient(4.4, 4.4).serviceLocate(HelloService.GET_NAME).nearest(1).get(6, TimeUnit.SECONDS);
         assertEquals(1, e.size());
-        assertEquals(e.get(0).getId(), m.get(4).getLocalId());
+        assertEquals(e.get(0).getId(), m.get(4).getClientId());
 
-        e = newClient(5.4, 5.4).serviceFind(HelloService.GET_NAME).nearest(3).get(6, TimeUnit.SECONDS);
+        e = newClient(5.4, 5.4).serviceLocate(HelloService.GET_NAME).nearest(3).get(6, TimeUnit.SECONDS);
         assertEquals(3, e.size());
-        assertEquals(e.get(0).getId(), m.get(5).getLocalId());
-        assertEquals(e.get(1).getId(), m.get(6).getLocalId());
-        assertEquals(e.get(2).getId(), m.get(4).getLocalId());
+        assertEquals(e.get(0).getId(), m.get(5).getClientId());
+        assertEquals(e.get(1).getId(), m.get(6).getClientId());
+        assertEquals(e.get(2).getId(), m.get(4).getClientId());
     }
 
     /**
@@ -94,8 +94,8 @@ public class ServiceFindTest extends AbstractServiceTest {
      */
     @Test
     public void cannotFindSelf() throws Exception {
-        MaritimeNetworkConnection s = registerService(newClient(), "foo123");
-        assertNull(s.serviceFind(HelloService.GET_NAME).nearest().get(6, TimeUnit.SECONDS));
+        MaritimeNetworkClient s = registerService(newClient(), "foo123");
+        assertNull(s.serviceLocate(HelloService.GET_NAME).nearest().get(6, TimeUnit.SECONDS));
     }
 
     @Test
@@ -109,20 +109,20 @@ public class ServiceFindTest extends AbstractServiceTest {
 
     @Test
     public void findWithMaxDistance() throws Exception {
-        Map<Integer, MaritimeNetworkConnection> m = new HashMap<>();
+        Map<Integer, MaritimeNetworkClient> m = new HashMap<>();
         for (int i = 0; i < 10; i++) {
             m.put(i, registerService(newClient(i, i), "A" + i));
         }
 
         List<ServiceEndpoint<GetName, Reply>> e;
 
-        e = newClient(4.4, 4.4).serviceFind(HelloService.GET_NAME).withinDistanceOf(62678).nearest(2)
+        e = newClient(4.4, 4.4).serviceLocate(HelloService.GET_NAME).withinDistanceOf(62678).nearest(2)
                 .get(6, TimeUnit.SECONDS);
         assertEquals(0, e.size());
 
-        e = newClient(4.4, 4.4).serviceFind(HelloService.GET_NAME).withinDistanceOf(62679).nearest(2)
+        e = newClient(4.4, 4.4).serviceLocate(HelloService.GET_NAME).withinDistanceOf(62679).nearest(2)
                 .get(6, TimeUnit.SECONDS);
         assertEquals(1, e.size());
-        assertEquals(e.get(0).getId(), m.get(4).getLocalId());
+        assertEquals(e.get(0).getId(), m.get(4).getClientId());
     }
 }

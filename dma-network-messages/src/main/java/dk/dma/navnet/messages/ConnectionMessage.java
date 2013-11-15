@@ -9,7 +9,7 @@
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
  * Lesser General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU General Public License
  * along with this library.  If not, see <http://www.gnu.org/licenses/>.
  */
@@ -29,6 +29,8 @@ public abstract class ConnectionMessage extends TransportMessage {
     /** The last message id that was received by the remote end. */
     private long latestReceivedId;
 
+    // options
+    // boolean fastack <- receiver should send some kind of ack immediatly
     /**
      * @param messageType
      */
@@ -56,12 +58,14 @@ public abstract class ConnectionMessage extends TransportMessage {
         return messageId;
     }
 
-    public void setLatestReceivedId(long latestReceivedId) {
+    public ConnectionMessage setLatestReceivedId(long latestReceivedId) {
         this.latestReceivedId = latestReceivedId;
+        return this;
     }
 
-    public void setMessageId(long messageId) {
+    public ConnectionMessage setMessageId(long messageId) {
         this.messageId = messageId;
+        return this;
     }
 
     /** {@inheritDoc} */

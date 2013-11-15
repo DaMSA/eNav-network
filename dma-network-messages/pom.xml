@@ -17,8 +17,8 @@
   <dependencies>
     <dependency>
       <groupId>dk.dma.enav</groupId>
-      <artifactId>enav-common</artifactId>
-      <version>0.1-SNAPSHOT</version>
+      <artifactId>enav-communication</artifactId>
+      <version>0.2-SNAPSHOT</version>
     </dependency>
     
     <dependency>
@@ -26,6 +26,33 @@
       <artifactId>jackson-databind</artifactId>
       <version>2.1.1</version>
     </dependency>
-  </dependencies>
+    
+    <dependency>
+      <groupId>com.google.guava</groupId>
+      <artifactId>guava</artifactId>
+      <version>${dependencies.guava.version}</version>
+    </dependency>   
 
+    <dependency>
+      <groupId>dk.dma.3rdparty</groupId>
+      <artifactId>jsr166e</artifactId>
+      <version>${dependencies.jsr166e.version}</version>
+    </dependency>
+  </dependencies>
+  <build>
+    <plugins>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-jar-plugin</artifactId>
+        <version>2.2</version>
+        <executions>
+          <execution>
+            <goals>
+              <goal>test-jar</goal>
+            </goals>
+          </execution>
+        </executions>
+      </plugin>
+    </plugins>
+  </build>
 </project>

@@ -9,7 +9,7 @@
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
  * Lesser General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU General Public License
  * along with this library.  If not, see <http://www.gnu.org/licenses/>.
  */
@@ -29,13 +29,13 @@ import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.Ignore;
 import org.junit.Test;
 
-import test.stubs.BroadcastTestMessage;
-import test.util.TestService;
-import test.util.TestService.TestInit;
-import test.util.TestService.TestReply;
+import test.util.TesstService;
+import test.util.TesstService.TestInit;
+import test.util.TesstService.TestReply;
 import dk.dma.enav.communication.broadcast.BroadcastListener;
 import dk.dma.enav.communication.broadcast.BroadcastMessageHeader;
 import dk.dma.enav.communication.service.InvocationCallback;
+import dk.dma.navnet.client.broadcast.stubs.BroadcastTestMessage;
 
 /**
  * 
@@ -51,28 +51,28 @@ public class ReconnectTest extends AbstractNetworkTest {
     @Ignore
     public void randomKilling() throws Exception {
         final AtomicInteger ai = new AtomicInteger();
-        MaritimeNetworkConnection c1 = newClient(ID1);
-        c1.serviceRegister(TestService.TEST_INIT,
-                new InvocationCallback<TestService.TestInit, TestService.TestReply>() {
-                    public void process(TestService.TestInit l, Context<TestService.TestReply> context) {
+        MaritimeNetworkClient c1 = newClient(ID1);
+        c1.serviceRegister(TesstService.TEST_INIT,
+                new InvocationCallback<TesstService.TestInit, TesstService.TestReply>() {
+                    public void process(TesstService.TestInit l, Context<TesstService.TestReply> context) {
                         context.complete(l.reply());
                         ai.incrementAndGet();
                         System.out.println("Receive " + l);
                     }
                 }).awaitRegistered(1, TimeUnit.SECONDS);
 
-        MaritimeNetworkConnection c6 = newClient(ID6);
+        MaritimeNetworkClient c6 = newClient(ID6);
 
         pt.killRandom(1000, TimeUnit.MILLISECONDS);
-        Map<TestInit, ConnectionFuture<TestService.TestReply>> set = new LinkedHashMap<>();
-        assertEquals(2, si.getNumberOfConnections());
+        Map<TestInit, ConnectionFuture<TesstService.TestReply>> set = new LinkedHashMap<>();
+        assertEquals(2, si.info().getConnectionCount());
         for (int i = 0; i < 100; i++) {
             for (int j = 0; j < 100; j++) {
-                TestService.TestInit init = new TestService.TestInit(i * 100 + j, ID6, ID1);
+                TesstService.TestInit init = new TesstService.TestInit(i * 100 + j, ID6, ID1);
                 set.put(init, c6.serviceInvoke(ID1, init));
                 System.out.println("SEND " + init);
             }
-            for (Map.Entry<TestInit, ConnectionFuture<TestService.TestReply>> f : set.entrySet()) {
+            for (Map.Entry<TestInit, ConnectionFuture<TesstService.TestReply>> f : set.entrySet()) {
                 try {
                     TestReply reply = f.getValue().get(5, TimeUnit.SECONDS);
                     System.out.println("End " + reply.getInit());
@@ -92,27 +92,27 @@ public class ReconnectTest extends AbstractNetworkTest {
     @Ignore
     public void randomKilling2() throws Exception {
         final AtomicInteger ai = new AtomicInteger();
-        MaritimeNetworkConnection c1 = newClient(ID1);
-        c1.serviceRegister(TestService.TEST_INIT,
-                new InvocationCallback<TestService.TestInit, TestService.TestReply>() {
-                    public void process(TestService.TestInit l, Context<TestService.TestReply> context) {
+        MaritimeNetworkClient c1 = newClient(ID1);
+        c1.serviceRegister(TesstService.TEST_INIT,
+                new InvocationCallback<TesstService.TestInit, TesstService.TestReply>() {
+                    public void process(TesstService.TestInit l, Context<TesstService.TestReply> context) {
                         context.complete(l.reply());
                         ai.incrementAndGet();
                         System.out.println("Receive " + l);
                     }
                 }).awaitRegistered(1, TimeUnit.SECONDS);
 
-        MaritimeNetworkConnection c6 = newClient(ID6);
+        MaritimeNetworkClient c6 = newClient(ID6);
 
         pt.killRandom(500, TimeUnit.MILLISECONDS);
-        Map<TestInit, ConnectionFuture<TestService.TestReply>> set = new LinkedHashMap<>();
-        assertEquals(2, si.getNumberOfConnections());
+        Map<TestInit, ConnectionFuture<TesstService.TestReply>> set = new LinkedHashMap<>();
+        assertEquals(2, si.info().getConnectionCount());
         for (int j = 0; j < 10; j++) {
-            TestService.TestInit init = new TestService.TestInit(j, ID6, ID1);
+            TesstService.TestInit init = new TesstService.TestInit(j, ID6, ID1);
             set.put(init, c6.serviceInvoke(ID1, init));
             System.out.println("SEND " + init);
         }
-        for (Map.Entry<TestInit, ConnectionFuture<TestService.TestReply>> f : set.entrySet()) {
+        for (Map.Entry<TestInit, ConnectionFuture<TesstService.TestReply>> f : set.entrySet()) {
             try {
                 TestReply reply = f.getValue().get(5, TimeUnit.SECONDS);
                 System.out.println("End " + reply.getInit());
@@ -131,19 +131,19 @@ public class ReconnectTest extends AbstractNetworkTest {
     @Ignore
     public void singleClient() throws Exception {
         final AtomicInteger ai = new AtomicInteger();
-        MaritimeNetworkConnection c1 = newClient(ID1);
+        MaritimeNetworkClient c1 = newClient(ID1);
 
-        c1.serviceRegister(TestService.TEST_INIT,
-                new InvocationCallback<TestService.TestInit, TestService.TestReply>() {
-                    public void process(TestService.TestInit l, Context<TestService.TestReply> context) {
+        c1.serviceRegister(TesstService.TEST_INIT,
+                new InvocationCallback<TesstService.TestInit, TesstService.TestReply>() {
+                    public void process(TesstService.TestInit l, Context<TesstService.TestReply> context) {
                         context.complete(l.reply());
                         ai.incrementAndGet();
                     }
                 }).awaitRegistered(1, TimeUnit.SECONDS);
 
-        MaritimeNetworkConnection c6 = newClient(ID6);
+        MaritimeNetworkClient c6 = newClient(ID6);
 
-        assertEquals(2, si.getNumberOfConnections());
+        assertEquals(2, si.info().getConnectionCount());
         for (int i = 0; i < 100; i++) {
             pt.killAll();
             TestInit ti = new TestInit(i, ID1, ID6);
@@ -159,8 +159,8 @@ public class ReconnectTest extends AbstractNetworkTest {
         final int count = 10;
         final Set<Integer> received = new HashSet<>();
         final CountDownLatch cdl = new CountDownLatch(count);
-        MaritimeNetworkConnection c1 = newClient(ID1);
-        MaritimeNetworkConnection c2 = newClient(ID2);
+        MaritimeNetworkClient c1 = newClient(ID1);
+        MaritimeNetworkClient c2 = newClient(ID2);
 
         c2.broadcastListen(BroadcastTestMessage.class, new BroadcastListener<BroadcastTestMessage>() {
             public void onMessage(BroadcastMessageHeader header, BroadcastTestMessage broadcast) {

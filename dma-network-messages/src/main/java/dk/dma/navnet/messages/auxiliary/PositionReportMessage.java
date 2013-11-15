@@ -9,7 +9,7 @@
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
  * Lesser General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU General Public License
  * along with this library.  If not, see <http://www.gnu.org/licenses/>.
  */
@@ -22,6 +22,7 @@ import java.io.IOException;
 import dk.dma.enav.model.geometry.PositionTime;
 import dk.dma.navnet.messages.ConnectionMessage;
 import dk.dma.navnet.messages.MessageType;
+import dk.dma.navnet.messages.PositionTimeMessage;
 import dk.dma.navnet.messages.TextMessageReader;
 import dk.dma.navnet.messages.TextMessageWriter;
 
@@ -29,7 +30,8 @@ import dk.dma.navnet.messages.TextMessageWriter;
  * 
  * @author Kasper Nielsen
  */
-public class PositionReportMessage extends ConnectionMessage {
+// Not sure this needs to be a connection message
+public class PositionReportMessage extends ConnectionMessage implements PositionTimeMessage {
 
     private final PositionTime positionTime;
 

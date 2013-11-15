@@ -23,15 +23,78 @@
 
     <dependency>
       <groupId>dk.dma.network</groupId>
-      <artifactId>dma-network-common</artifactId>
+      <artifactId>dma-network-messages</artifactId>
       <version>${project.version}</version>
     </dependency>
-
+    <dependency>
+      <groupId>dk.dma.3rdparty</groupId>
+      <artifactId>jsr166e</artifactId>
+      <version>${dependencies.jsr166e.version}</version>
+    </dependency>
     <dependency>
       <groupId>org.eclipse.jetty.websocket</groupId>
       <artifactId>javax-websocket-client-impl</artifactId>
       <version>${dependencies.jetty.version}</version>
     </dependency>
-  </dependencies>
+    <dependency>
+      <groupId>dk.dma.enav</groupId>
+      <artifactId>enav-common</artifactId>
+      <version>0.1-SNAPSHOT</version>
+    </dependency>
+    <dependency>
+      <groupId>dk.dma.enav</groupId>
+      <artifactId>enav-communication</artifactId>
+      <version>0.2-SNAPSHOT</version>
+    </dependency>
+    <dependency>
+      <groupId>dk.dma.commons</groupId>
+      <artifactId>dma-commons-app</artifactId>
+      <version>0.1-SNAPSHOT</version>
+    </dependency>
 
+
+    <dependency>
+      <groupId>org.eclipse.jetty</groupId>
+      <artifactId>jetty-servlet</artifactId>
+      <version>${dependencies.jetty.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>dk.dma.web</groupId>
+      <artifactId>dma-web-rest</artifactId>
+      <version>0.1-SNAPSHOT</version>
+    </dependency>
+    <dependency>
+      <groupId>org.eclipse.jetty.websocket</groupId>
+      <artifactId>javax-websocket-server-impl</artifactId>
+      <version>${dependencies.jetty.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>org.slf4j</groupId>
+      <artifactId>slf4j-simple</artifactId>
+      <version>${dependencies.slf4j.version}</version>
+      <scope>test</scope>
+    </dependency>
+
+    <dependency>
+      <groupId>org.picocontainer</groupId>
+      <artifactId>picocontainer</artifactId>
+      <version>2.14.3</version>
+    </dependency>
+  </dependencies>
+  <build>
+    <plugins>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-jar-plugin</artifactId>
+        <version>2.2</version>
+        <executions>
+          <execution>
+            <goals>
+              <goal>test-jar</goal>
+            </goals>
+          </execution>
+        </executions>
+      </plugin>
+    </plugins>
+  </build>
 </project>

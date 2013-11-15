@@ -9,7 +9,7 @@
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
  * Lesser General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU General Public License
  * along with this library.  If not, see <http://www.gnu.org/licenses/>.
  */
@@ -24,6 +24,7 @@ import java.util.Iterator;
  */
 public class TextMessageWriter {
     public final StringBuilder sb = new StringBuilder();
+
     boolean notFirst;
 
     public TextMessageWriter() {
@@ -63,6 +64,13 @@ public class TextMessageWriter {
     }
 
     public TextMessageWriter writeDouble(double d) {
+        checkFirst();
+        // TODO quote string
+        sb.append(d);
+        return this;
+    }
+
+    public TextMessageWriter writeBoolean(boolean d) {
         checkFirst();
         // TODO quote string
         sb.append(d);

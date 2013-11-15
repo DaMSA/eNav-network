@@ -1,22 +1,22 @@
-/*
- * Copyright (c) 2008 Kasper Nielsen.
+/* Copyright (c) 2011 Danish Maritime Authority
  *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ * This library is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 3 of the License, or (at your option) any later version.
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ * This library is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ * Lesser General Public License for more details.
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * You should have received a copy of the GNU General Public License
+ * along with this library.  If not, see <http://www.gnu.org/licenses/>.
  */
 package dk.dma.navnet.client;
 
-import java.io.IOException;
-import java.util.concurrent.CopyOnWriteArrayList;
+import static java.util.Objects.requireNonNull;
+
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.ReentrantLock;
@@ -25,16 +25,13 @@ import org.picocontainer.DefaultPicoContainer;
 import org.picocontainer.PicoContainer;
 import org.picocontainer.behaviors.Caching;
 
-import dk.dma.commons.util.LongUtil;
-import dk.dma.enav.communication.ConnectionClosedException;
-import dk.dma.enav.communication.ConnectionListener;
-import dk.dma.enav.communication.MaritimeNetworkConnection;
-import dk.dma.enav.communication.MaritimeNetworkConnection.State;
-import dk.dma.enav.communication.MaritimeNetworkConnectionBuilder;
-import dk.dma.enav.util.function.Consumer;
+import dk.dma.enav.communication.MaritimeNetworkClientConfiguration;
+import dk.dma.enav.model.MaritimeId;
+import dk.dma.enav.model.geometry.PositionTime;
+import dk.dma.enav.util.function.Supplier;
 import dk.dma.navnet.client.broadcast.BroadcastManager;
-import dk.dma.navnet.client.connection.ClientConnection;
 import dk.dma.navnet.client.connection.ConnectionManager;
+import dk.dma.navnet.client.connection.ConnectionMessageBus;
 import dk.dma.navnet.client.service.ClientServiceManager;
 import dk.dma.navnet.client.service.PositionManager;
 import dk.dma.navnet.client.util.ThreadManager;
@@ -48,28 +45,31 @@ import dk.dma.navnet.client.util.ThreadManager;
 public class InternalClient extends ReentrantLock {
 
     /** The container is is normal running mode. (certain pre-start hooks may still be running. */
-    static final int S_RUNNING = 3;
-
-    /** The container has been shutdown, for example, by calling shutdown(). */
-    static final int S_SHUTDOWN = 4;
+    static final int S_RUNNING = 0;
 
     /** The container has been started either by a preStart() or by invoking a lazy-starting method. */
-    static final int S_STARTING = 2;
+    static final int S_STARTING = 1;
+
+    /** The container has been shutdown, for example, by calling shutdown(). */
+    static final int S_SHUTDOWN = 2;
 
     /** The container has been fully terminated. */
-    static final int S_TERMINATED = 5;
+    static final int S_TERMINATED = 3;
 
-    /** A latch used for waiting on state changes from the {@link #awaitState(Container.State, long, TimeUnit)} method. */
-    volatile CountDownLatch awaitStateLatch = new CountDownLatch(1);
+    /** The id of this client */
+    private final MaritimeId clientId;
 
-    /** A list of connection listeners. */
-    final CopyOnWriteArrayList<ConnectionListener> listeners = new CopyOnWriteArrayList<>();
+    /** PicoContainer instance. Got really tired of Guice, so replaced it with PicoContainer. */
+    private final DefaultPicoContainer picoContainer = new DefaultPicoContainer(new Caching());
 
-    /** PicoContainer */
-    final DefaultPicoContainer picoContainer;
+    /** Supplies the current position. */
+    private final Supplier<PositionTime> positionSupplier;
 
     /** The current state of the client. Only set while holding lock, can be read at any time. */
-    private volatile State state = State.DISCONNECTED;
+    private volatile int state = 0;
+
+    /** A latch that is released when the client has been terminated. */
+    private final CountDownLatch terminated = new CountDownLatch(1);
 
     /**
      * Creates a new instance of this class.
@@ -77,124 +77,91 @@ public class InternalClient extends ReentrantLock {
      * @param builder
      *            the configuration
      */
-    public InternalClient(MaritimeNetworkConnectionBuilder builder) {
-        // Got really tired of Guice, so replaced it with PicoContainer
-        picoContainer = new DefaultPicoContainer(new Caching());
+    private InternalClient(MaritimeNetworkClientConfiguration builder) {
         picoContainer.addComponent(builder);
         picoContainer.addComponent(this);
-        picoContainer.addComponent(ClientConnection.class);
-        picoContainer.addComponent(ClientInfo.class);
         picoContainer.addComponent(PositionManager.class);
         picoContainer.addComponent(BroadcastManager.class);
         picoContainer.addComponent(ClientServiceManager.class);
+        picoContainer.addComponent(ConnectionMessageBus.class);
         picoContainer.addComponent(ThreadManager.class);
         picoContainer.addComponent(ConnectionManager.class);
 
-        listeners.addAll(builder.getListeners());
+        clientId = requireNonNull(builder.getId());
+        positionSupplier = requireNonNull(builder.getPositionSupplier());
     }
 
-    /** {@inheritDoc} */
-    public boolean awaitState(MaritimeNetworkConnection.State state, long timeout, TimeUnit unit)
-            throws InterruptedException {
-        if (state == State.DISCONNECTED) {
-            return true; // always at least initialized
-        }
-        long deadline = LongUtil.saturatedAdd(System.nanoTime(), unit.toNanos(timeout));
-        CountDownLatch latch;
-        while ((latch = awaitStateLatch) != null && state != getState() && getState() != State.TERMINATED) {
-            if (state.isEnded() && (state == State.CONNECTED || state == State.CONNECTING)) {
-                break;
-            }
-            // makes sure we do not have lost updates by checking awaitStateLatch==latch
-            if (awaitStateLatch == latch && !latch.await(deadline - System.nanoTime(), TimeUnit.NANOSECONDS)) {
-                return false;
-            }
-        }
-        return true;
+    public boolean awaitTermination(long timeout, TimeUnit unit) throws InterruptedException {
+        return terminated.await(timeout, unit);
     }
 
-    void close() {
+    public void close() {
         lock();
         try {
-            if (state == State.CLOSED || state == State.TERMINATED) {
-                return;
-            }
-            setStateWhileHolderLock(state, State.CLOSED);
+            if (state < S_SHUTDOWN) {
+                state = S_SHUTDOWN;
+                Runnable r = new Runnable() {
 
-            picoContainer.getComponent(ConnectionManager.class).disconnect();
-            // Do it in another thread
-            // Close if trying to connect
-            try {
-                picoContainer.stop();
-                picoContainer.getComponent(ClientConnection.class).closeNormally();
-            } finally {
-                setStateWhileHolderLock(state, State.TERMINATED);
-            }
-        } finally {
-            unlock();
-        }
-    }
-
-    void connect() {
-        lock();
-        try {
-            State state = this.state;
-            if (state == State.CONNECTED || state == State.CONNECTING) {
-                return; // we are either already connected, or already trying to
-            } else if (state == State.CLOSED || state == State.TERMINATED) {
-                throw new ConnectionClosedException("The connection has already been closed via connection.close()");
-            }
-
-            setStateWhileHolderLock(state, state = State.CONNECTING);
-            try {
-                picoContainer.getComponent(ClientConnection.class).connect(10, TimeUnit.SECONDS);
-            } catch (IOException e) {
-                // TODO Auto-generated catch block
-                e.printStackTrace();
-            }
-
-            if (state == State.CONNECTING) {
-                setStateWhileHolderLock(state, State.CONNECTED);
-                forEachListener(new Consumer<ConnectionListener>() {
-                    public void accept(ConnectionListener t) {
-                        t.connected();
+                    public void run() {
+                        close0();
                     }
-                });
-
-                picoContainer.start();
-            } else {
-                throw new RuntimeException("Could not connect " + state);
+                };
+                new Thread(r).start();
             }
         } finally {
             unlock();
         }
     }
 
-    public void finalize() {
+    void close0() {
+        lock();
+        try {
+            if (state == S_SHUTDOWN) {
+                try {
+                    picoContainer.stop();
+                } finally {
+                    state = S_TERMINATED;
+                    terminated.countDown();
+                }
+            }
+        } finally {
+            unlock();
+        }
+    }
+
+    protected void finalize() {
         close();
     }
 
-    void forEachListener(Consumer<ConnectionListener> c) {
-        for (ConnectionListener l : listeners) {
-            c.accept(l);
-        }
+    /**
+     * Returns the maritime id of the client.
+     * 
+     * @return the maritime id of the client
+     */
+    public MaritimeId getLocalId() {
+        return clientId;
     }
 
-    MaritimeNetworkConnection.State getState() {
-        return state;
+    public boolean isClosed() {
+        return state >= S_SHUTDOWN;
     }
 
-    void setStateWhileHolderLock(State currentState, State newState) {
-        this.state = newState;
-        if (currentState != newState) {
-            CountDownLatch prev = awaitStateLatch;
-            awaitStateLatch = state == State.TERMINATED ? null : new CountDownLatch(1);
-            prev.countDown();
-        }
-        // TODO update of listeners should be synchronous in some way
+    public boolean isTerminated() {
+        return state == S_TERMINATED;
     }
 
-    static PicoContainer create(MaritimeNetworkConnectionBuilder builder) {
-        return new InternalClient(builder).picoContainer;
+    /**
+     * Reads and returns the current position.
+     * 
+     * @return the current position
+     */
+    public PositionTime readCurrentPosition() {
+        return positionSupplier.get();
+    }
+
+    static PicoContainer create(MaritimeNetworkClientConfiguration builder) {
+        InternalClient client = new InternalClient(builder);
+        client.picoContainer.start();
+        return client.picoContainer;
     }
 }

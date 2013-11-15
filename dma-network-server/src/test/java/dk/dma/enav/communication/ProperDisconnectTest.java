@@ -9,7 +9,7 @@
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
  * Lesser General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU General Public License
  * along with this library.  If not, see <http://www.gnu.org/licenses/>.
  */
@@ -20,7 +20,7 @@ import java.util.concurrent.TimeUnit;
 import org.junit.Ignore;
 import org.junit.Test;
 
-import test.util.TestService;
+import test.util.TesstService;
 import dk.dma.enav.communication.service.InvocationCallback;
 
 /**
@@ -36,7 +36,7 @@ public class ProperDisconnectTest extends AbstractNetworkTest {
     @Test
     @Ignore
     public void randomKilling() throws Exception {
-        MaritimeNetworkConnection c1 = newClient(ID1);
+        MaritimeNetworkClient c1 = newClient(ID1);
         // c1.serviceRegister(TestService.TEST_INIT,
         // new InvocationCallback<TestService.TestInit, TestService.TestReply>() {
         // public void process(TestService.TestInit l, Context<TestService.TestReply> context) {
@@ -45,15 +45,14 @@ public class ProperDisconnectTest extends AbstractNetworkTest {
         // }).awaitRegistered(1, TimeUnit.SECONDS);
 
         // pt.killFirstConnection();
-        c1.serviceRegister(TestService.TEST_INIT,
-                new InvocationCallback<TestService.TestInit, TestService.TestReply>() {
-                    public void process(TestService.TestInit l, Context<TestService.TestReply> context) {
+        c1.serviceRegister(TesstService.TEST_INIT,
+                new InvocationCallback<TesstService.TestInit, TesstService.TestReply>() {
+                    public void process(TesstService.TestInit l, Context<TesstService.TestReply> context) {
                         context.complete(l.reply());
                     }
                 }).awaitRegistered(1, TimeUnit.SECONDS);
 
         for (;;) {
-            System.out.println(c1.getState());
             Thread.sleep(50);
         }
     }

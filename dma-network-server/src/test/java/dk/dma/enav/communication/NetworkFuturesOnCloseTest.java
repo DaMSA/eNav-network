@@ -9,7 +9,7 @@
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
  * Lesser General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU General Public License
  * along with this library.  If not, see <http://www.gnu.org/licenses/>.
  */
@@ -38,9 +38,9 @@ public class NetworkFuturesOnCloseTest extends AbstractNetworkTest {
 
     @Test
     public void serviceFind() throws Exception {
-        MaritimeNetworkConnection pc1 = newClient(ID1);
+        MaritimeNetworkClient pc1 = newClient(ID1);
 
-        ConnectionFuture<ServiceEndpoint<GetName, Reply>> f = pc1.serviceFind(HelloService.GET_NAME).nearest();
+        ConnectionFuture<ServiceEndpoint<GetName, Reply>> f = pc1.serviceLocate(HelloService.GET_NAME).nearest();
         ConnectionFuture<ServiceEndpoint<GetName, Reply>> f2 = f.timeout(4, TimeUnit.SECONDS);
 
         pc1.close();
@@ -62,10 +62,10 @@ public class NetworkFuturesOnCloseTest extends AbstractNetworkTest {
 
     @Test
     public void serviceInvoke() throws Exception {
-        MaritimeNetworkConnection pc1 = newClient(ID1);
+        MaritimeNetworkClient pc1 = newClient(ID1);
         newClient(ID2);
 
-        ConnectionFuture<ServiceEndpoint<GetName, Reply>> f = pc1.serviceFind(HelloService.GET_NAME).nearest();
+        ConnectionFuture<ServiceEndpoint<GetName, Reply>> f = pc1.serviceLocate(HelloService.GET_NAME).nearest();
         pc1.close();
         try {
             f.get();

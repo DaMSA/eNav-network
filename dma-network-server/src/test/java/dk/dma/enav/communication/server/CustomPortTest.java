@@ -9,7 +9,7 @@
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
  * Lesser General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU General Public License
  * along with this library.  If not, see <http://www.gnu.org/licenses/>.
  */
@@ -19,10 +19,11 @@ import java.util.concurrent.TimeUnit;
 
 import org.junit.Test;
 
-import test.stubs.HelloWorld;
-import dk.dma.enav.communication.MaritimeNetworkConnectionBuilder;
-import dk.dma.enav.communication.MaritimeNetworkConnection;
-import dk.dma.navnet.server.EmbeddableCloudServer;
+import dk.dma.enav.communication.MaritimeNetworkClient;
+import dk.dma.enav.communication.MaritimeNetworkClientConfiguration;
+import dk.dma.navnet.client.broadcast.stubs.HelloWorld;
+import dk.dma.navnet.server.InternalServer;
+import dk.dma.navnet.server.ServerConfiguration;
 
 /**
  * Tests that we can run both the server and the client on a custom port.
@@ -33,12 +34,14 @@ public class CustomPortTest {
 
     @Test
     public void testNonDefaultPort() throws Exception {
-        EmbeddableCloudServer server = new EmbeddableCloudServer(12445);
+        ServerConfiguration sc = new ServerConfiguration();
+        sc.setServerPort(12445);
+        InternalServer server = new InternalServer(sc);
         server.start();
-        MaritimeNetworkConnectionBuilder b = MaritimeNetworkConnectionBuilder.create("mmsi://1234");
+        MaritimeNetworkClientConfiguration b = MaritimeNetworkClientConfiguration.create("mmsi://1234");
         b.setHost("localhost:12445");
         System.out.println("a");
-        try (MaritimeNetworkConnection c = b.build()) {
+        try (MaritimeNetworkClient c = b.build()) {
             System.out.println("b");
             c.broadcast(new HelloWorld());
         }

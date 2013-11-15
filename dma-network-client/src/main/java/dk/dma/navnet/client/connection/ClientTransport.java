@@ -9,7 +9,7 @@
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
  * Lesser General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU General Public License
  * along with this library.  If not, see <http://www.gnu.org/licenses/>.
  */
@@ -17,79 +17,109 @@ package dk.dma.navnet.client.connection;
 
 import static java.util.Objects.requireNonNull;
 
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.TimeUnit;
-
 import javax.websocket.ClientEndpoint;
+import javax.websocket.CloseReason;
+import javax.websocket.CloseReason.CloseCode;
+import javax.websocket.OnClose;
+import javax.websocket.OnMessage;
+import javax.websocket.OnOpen;
+import javax.websocket.Session;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import dk.dma.enav.communication.ClosingCode;
-import dk.dma.enav.model.geometry.PositionTime;
-import dk.dma.enav.util.function.Supplier;
-import dk.dma.navnet.client.ClientInfo;
 import dk.dma.navnet.messages.ConnectionMessage;
 import dk.dma.navnet.messages.TransportMessage;
-import dk.dma.navnet.messages.auxiliary.ConnectedMessage;
-import dk.dma.navnet.messages.auxiliary.HelloMessage;
-import dk.dma.navnet.messages.auxiliary.WelcomeMessage;
-import dk.dma.navnet.protocol.Transport;
 
 /**
- * The client implementation of a transport
+ * The client implementation of a transport. Every time the client connects to a server a new transport is created.
+ * Unlike {@link ClientConnection} which will persist over multiple connects, and provide smooth reconnect.
  * 
  * @author Kasper Nielsen
  */
 @ClientEndpoint
-public class ClientTransport extends Transport {
+public final class ClientTransport {
 
-    private final ClientInfo clientInfo;
+    /** The logger. */
+    private static final Logger LOG = LoggerFactory.getLogger(ClientTransport.class);
 
-    /** A latch that is released when the client receives a ConnectedMessage from the server. */
-    private final CountDownLatch fullyConnected = new CountDownLatch(1);
+    /** The connection that is using the transport. */
+    private final ClientConnection connection;
 
-    private final long reconnectId;
+    /** The websocket session. */
+    volatile Session session = null;
 
-    private final Supplier<PositionTime> positionSupplier;
+    /** non-null while connecting. */
+    ClientConnectFuture connectFuture;
 
-    ClientTransport(ClientInfo clientInfo, Supplier<PositionTime> positionSupplier) {
-        this(clientInfo, positionSupplier, -1);
-    }
-
-    ClientTransport(ClientInfo clientInfo, Supplier<PositionTime> positionSupplier, long reconnectId) {
-        this.clientInfo = requireNonNull(clientInfo);
-        this.reconnectId = reconnectId;
-        this.positionSupplier = positionSupplier;
-    }
-
-    boolean awaitFullyConnected(long timeout, TimeUnit unit) throws InterruptedException {
-        return fullyConnected.await(timeout, unit);
+    ClientTransport(ClientConnectFuture connectFuture, ClientConnection connection) {
+        this.connectFuture = requireNonNull(connectFuture);
+        this.connection = requireNonNull(connection);
     }
 
     /** {@inheritDoc} */
-    @Override
-    public void onTransportClose(ClosingCode reason) {
-        System.out.println("CLOSED XXXXXXXXXXXX " + reason.getId());
-        ClientConnection cc = (ClientConnection) getConnection();
-        if (cc != null) {
-            cc.disconnectOops(reason);
+    void doClose(final ClosingCode reason) {
+        Session session = this.session;
+        if (session != null) {
+            CloseReason cr = new CloseReason(new CloseCode() {
+                public int getCode() {
+                    return reason.getId();
+                }
+            }, reason.getMessage());
+
+            try {
+                session.close(cr);
+            } catch (Exception e) {
+                LOG.error("Failed to close connection", e);
+            }
         }
     }
 
     /** {@inheritDoc} */
-    @Override
-    public void onTransportMessage(TransportMessage message) {
-        if (message instanceof WelcomeMessage) {
-            // WelcomeMessage m = (WelcomeMessage) message; we do not care about the contents atm
-            PositionTime pt = positionSupplier.get();
-            doSendTransportMessage(new HelloMessage(clientInfo.getLocalId(), "enavClient/1.0", "", reconnectId,
-                    pt.getLatitude(), pt.getLongitude()));
-        } else if (message instanceof ConnectedMessage) {
-            ConnectedMessage m = (ConnectedMessage) message;
-            ((ClientConnection) getConnection()).connectionId = m.getConnectionId();
-            fullyConnected.countDown();
+    @OnClose
+    public void onClose(CloseReason closeReason) {
+        session = null;
+        ClosingCode reason = ClosingCode.create(closeReason.getCloseCode().getCode(), closeReason.getReasonPhrase());
+        connection.transportDisconnected(this, reason);
+    }
+
+    @OnOpen
+    public void onOpen(Session session) {
+        this.session = session; // wait on the server to send a hello message
+    }
+
+    @OnMessage
+    public void onTextMessage(String textMessage) {
+        TransportMessage msg;
+        System.out.println("Received: " + textMessage);
+        try {
+            msg = TransportMessage.parseMessage(textMessage);
+        } catch (Exception e) {
+            e.printStackTrace();
+            LOG.error("Failed to parse incoming message", e);
+            doClose(ClosingCode.WRONG_MESSAGE.withMessage(e.getMessage()));
+            return;
+        }
+        if (connectFuture != null) {
+            connectFuture.onMessage(msg);
+        } else if (msg instanceof ConnectionMessage) {
+            ConnectionMessage m = (ConnectionMessage) msg;
+            connection.messageReceive(this, m);
         } else {
-            ConnectionMessage cm = (ConnectionMessage) message;
-            getConnection().onConnectionMessage(cm);
-            // super.onTransportMessage(message);
+            String err = "Unknown messageType " + msg.getClass().getSimpleName();
+            LOG.error(err);
+            doClose(ClosingCode.WRONG_MESSAGE.withMessage(err));
+        }
+    }
+
+    void sendText(String text) {
+        Session session = this.session;
+        if (session != null) {
+            if (text.length() < 1000) {
+                System.out.println("Sending " + text);
+            }
+            session.getAsyncRemote().sendText(text);
         }
     }
 }

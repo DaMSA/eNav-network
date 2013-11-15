@@ -9,7 +9,7 @@
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
  * Lesser General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU General Public License
  * along with this library.  If not, see <http://www.gnu.org/licenses/>.
  */
@@ -37,8 +37,8 @@ import dk.dma.enav.communication.service.spi.ServiceInitiationPoint;
 import dk.dma.enav.communication.service.spi.ServiceMessage;
 import dk.dma.enav.model.MaritimeId;
 import dk.dma.enav.util.function.Consumer;
-import dk.dma.navnet.client.ClientInfo;
-import dk.dma.navnet.client.connection.ClientConnection;
+import dk.dma.navnet.client.InternalClient;
+import dk.dma.navnet.client.connection.ConnectionMessageBus;
 import dk.dma.navnet.client.util.DefaultConnectionFuture;
 import dk.dma.navnet.client.util.ThreadManager;
 import dk.dma.navnet.messages.c2c.service.InvokeService;
@@ -58,14 +58,14 @@ public class ClientServiceManager implements Startable {
     static final Logger LOG = LoggerFactory.getLogger(ClientServiceManager.class);
 
     /** The network */
-    final ClientInfo clientInfo;
+    final InternalClient clientInfo;
 
-    final ClientConnection connection;
+    final ConnectionMessageBus connection;
 
     final ConcurrentHashMap<String, DefaultConnectionFuture<?>> invokers = new ConcurrentHashMap<>();
 
     /** A map of subscribers. ChannelName -> List of listeners. */
-    final ConcurrentHashMap<String, Registration> listeners = new ConcurrentHashMap<>();
+    final ConcurrentHashMap<String, Registration> serviceRegistrations = new ConcurrentHashMap<>();
 
     final ThreadManager threadManager;
 
@@ -75,7 +75,7 @@ public class ClientServiceManager implements Startable {
      * @param network
      *            the network
      */
-    public ClientServiceManager(ClientConnection connection, ThreadManager threadManager, ClientInfo clientInfo) {
+    public ClientServiceManager(ConnectionMessageBus connection, ThreadManager threadManager, InternalClient clientInfo) {
         this.clientInfo = clientInfo;
         this.connection = requireNonNull(connection);
         this.threadManager = threadManager;
@@ -105,7 +105,7 @@ public class ClientServiceManager implements Startable {
     void receiveInvokeService(final InvokeService m) {
         // System.out.println("Invoking service");
         // System.out.println("FFF " + m);
-        Registration s = listeners.get(m.getServiceType());
+        Registration s = serviceRegistrations.get(m.getServiceType());
         if (s != null) {
             InvocationCallback<Object, Object> sc = (InvocationCallback<Object, Object>) s.c;
             Object o = null;
@@ -141,7 +141,8 @@ public class ClientServiceManager implements Startable {
 
             });
         } else {
-            System.err.println("Could not find service " + m.getServiceType() + " from " + listeners.keySet());
+            System.err.println("Could not find service " + m.getServiceType() + " from "
+                    + serviceRegistrations.keySet());
         }
     }
 
@@ -179,7 +180,7 @@ public class ClientServiceManager implements Startable {
         requireNonNull(sip, "ServiceInitiationPoint is null");
         requireNonNull(callback, "callback is null");
         final Registration reg = new Registration(sip, callback);
-        if (listeners.putIfAbsent(sip.getName(), reg) != null) {
+        if (serviceRegistrations.putIfAbsent(sip.getName(), reg) != null) {
             throw new IllegalArgumentException(
                     "A service of the specified type has already been registered. Can only register one at a time");
         }

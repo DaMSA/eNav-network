@@ -9,7 +9,7 @@
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
  * Lesser General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU General Public License
  * along with this library.  If not, see <http://www.gnu.org/licenses/>.
  */
@@ -26,7 +26,7 @@ import dk.dma.navnet.messages.TextMessageWriter;
  * 
  * @author Kasper Nielsen
  */
-public abstract class ServerRequestMessage<T> extends ConnectionMessage {
+public abstract class ServerRequestMessage<T extends ServerResponseMessage> extends ConnectionMessage {
 
     long replyTo;
 
@@ -42,8 +42,9 @@ public abstract class ServerRequestMessage<T> extends ConnectionMessage {
         super(messageType);
     }
 
-    public void setReplyTo(long replyTo) {
+    public ServerRequestMessage<T> setReplyTo(long replyTo) {
         this.replyTo = replyTo;
+        return this;
     }
 
     public long getReplyTo() {

@@ -9,7 +9,7 @@
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
  * Lesser General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU General Public License
  * along with this library.  If not, see <http://www.gnu.org/licenses/>.
  */
@@ -20,7 +20,6 @@ import javax.ws.rs.Path;
 
 import dk.dma.commons.util.JSONObject;
 import dk.dma.commons.web.rest.AbstractResource;
-import dk.dma.navnet.server.EmbeddableCloudServer;
 
 /**
  * Resources that query AisStore.
@@ -38,8 +37,9 @@ public class ConnectionResource extends AbstractResource {
     @GET
     @Path("/numberOfConnections")
     public JSONObject getNumberOfConnections() {
-        EmbeddableCloudServer s = get(EmbeddableCloudServer.class);
-        return JSONObject.single("numberOfConnections", s.getNumberOfConnections());
+        return null;
+        // InternalServer s = get(InternalServer.class);
+        // return JSONObject.single("numberOfConnections", s.getNumberOfConnections());
     }
 
     // Get connections + position + type

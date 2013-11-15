@@ -9,128 +9,183 @@
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
  * Lesser General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU General Public License
  * along with this library.  If not, see <http://www.gnu.org/licenses/>.
  */
 package dk.dma.navnet.client.connection;
 
-import static java.util.Objects.requireNonNull;
+import java.util.concurrent.locks.ReentrantLock;
 
-import java.io.IOException;
-import java.io.InterruptedIOException;
-import java.net.ConnectException;
-import java.util.ArrayList;
-import java.util.concurrent.TimeUnit;
+import jsr166e.ForkJoinPool;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import dk.dma.enav.communication.ClosingCode;
-import dk.dma.enav.communication.MaritimeNetworkConnectionBuilder;
-import dk.dma.enav.util.function.Consumer;
-import dk.dma.navnet.client.ClientInfo;
-import dk.dma.navnet.client.broadcast.BroadcastManager;
-import dk.dma.navnet.client.util.DefaultConnectionFuture;
-import dk.dma.navnet.client.util.ThreadManager;
 import dk.dma.navnet.messages.ConnectionMessage;
-import dk.dma.navnet.messages.s2c.service.FindServiceResult;
-import dk.dma.navnet.messages.s2c.service.RegisterServiceResult;
+import dk.dma.navnet.messages.util.ResumingClientQueue;
+import dk.dma.navnet.messages.util.ResumingClientQueue.OutstandingMessage;
 
 /**
  * 
  * @author Kasper Nielsen
  */
-public class ClientConnection extends AbstractClientConnection {
+class ClientConnection {
 
-    BroadcastManager broadcaster;
+    /** The logger. */
+    static final Logger LOG = LoggerFactory.getLogger(ClientConnection.class);
 
     volatile String connectionId;
 
-    private ArrayList<MessageConsumer> list = new ArrayList<>();
+    final ConnectionManager connectionManager;
 
-    /** Factory for creating new transports. */
-    final TransportClientFactory transportFactory;
+    final ReentrantLock retrieveLock = new ReentrantLock();
 
-    public ClientConnection(ClientInfo clientInfo, ThreadManager threadManager, MaritimeNetworkConnectionBuilder b) {
-        super("fff", threadManager);
-        this.transportFactory = TransportClientFactory.createClient(b.getHost());
-        super.setTransport(new ClientTransport(clientInfo, b.getPositionSupplier()));
+    final ReentrantLock sendLock = new ReentrantLock();
+
+    final ResumingClientQueue rq = new ResumingClientQueue();
+
+    /* State managed objects */
+    private volatile ClientTransport transport;
+
+    private volatile ClientConnectFuture connectingFuture;
+
+    private volatile ClientDisconnectFuture disconnectingFuture;
+
+    public ClientConnection(ConnectionManager connectionManager) {
+        this.connectionManager = connectionManager;
     }
 
-    public void connect(long timeout, TimeUnit unit) throws IOException {
+    boolean isConnected() {
+        connectionManager.lock.lock();
         try {
-            transportFactory.connect(getTransport(), timeout, unit);
-            if (!((ClientTransport) getTransport()).awaitFullyConnected(timeout, unit)) {
-                throw new ConnectException("Timedout while connecting to ");
-            }
-        } catch (IOException e) {
-            threadManager.stop();
-            throw e;
-        } catch (InterruptedException e) {
-            throw new InterruptedIOException();
+            return transport != null && disconnectingFuture == null;
+        } finally {
+            connectionManager.lock.unlock();
         }
     }
 
-    void disconnectOops(ClosingCode cr) {
-        if (cr.getId() == 1000) {
-            // cm.close();
-        } else {
-            // Try to reconnect
+    void connect() {
+        connectionManager.lock.lock();
+        try {
+            if (transport == null && connectingFuture == null) {
+                LOG.info("Trying to connect");
+                connectingFuture = new ClientConnectFuture(this, -1);
+                ForkJoinPool.commonPool().submit(connectingFuture);
+            }
+        } finally {
+            connectionManager.lock.unlock();
         }
-
     }
 
     /**
-     * @return the connectionId
+     * Invoked when we have successfully connected to the server.
+     * 
+     * @param transport
      */
-    // Tjah ved ikke lige hvad forskellen er
-    public String getConnectionId2() {
-        return connectionId;
-    }
-
-    /** {@inheritDoc} */
-    public final void handleMessage(ConnectionMessage m) {
-        for (MessageConsumer c : list) {
-            if (c.type.isAssignableFrom(m.getClass())) {
-                c.c.accept(m);
+    void connected(ClientConnectFuture future, ClientTransport transport) {
+        connectionManager.lock.lock();
+        try {
+            if (future == connectingFuture) {
+                this.connectingFuture = null;
+                this.transport = transport;
+                connectionManager.stateChange.signalAll();
             }
-        }
-        // System.err.println("Received an unknown message " + m.getReceivedRawMesage());
-    }
-
-    /** {@inheritDoc} */
-    @SuppressWarnings("unchecked")
-    @Override
-    protected final void handleMessageReply(ConnectionMessage m, DefaultConnectionFuture<?> f) {
-        if (m instanceof RegisterServiceResult) {
-            serviceRegisteredAck((RegisterServiceResult) m, (DefaultConnectionFuture<RegisterServiceResult>) f);
-        } else if (m instanceof FindServiceResult) {
-            serviceFindAck((FindServiceResult) m, (DefaultConnectionFuture<FindServiceResult>) f);
-        } else {
-            // unknownMessage(m);
+        } finally {
+            connectionManager.lock.unlock();
         }
     }
 
-    /** {@inheritDoc} */
-    protected void serviceFindAck(FindServiceResult a, DefaultConnectionFuture<FindServiceResult> f) {
-        f.complete(a);
-    }
-
-    /** {@inheritDoc} */
-    protected void serviceRegisteredAck(RegisterServiceResult a, DefaultConnectionFuture<RegisterServiceResult> f) {
-        f.complete(a);
-    }
-
-    @SuppressWarnings("unchecked")
-    public <T extends ConnectionMessage> void subscribe(Class<T> type, Consumer<? super T> c) {
-        list.add(new MessageConsumer(type, (Consumer<ConnectionMessage>) c));
-    }
-
-    static class MessageConsumer {
-        final Consumer<ConnectionMessage> c;
-        final Class<?> type;
-
-        MessageConsumer(Class<?> type, Consumer<ConnectionMessage> c) {
-            this.type = requireNonNull(type);
-            this.c = requireNonNull(c);
+    void disconnect() {
+        connectionManager.lock.lock();
+        try {
+            if (transport != null) {
+                LOG.info("Trying to disconnect");
+                disconnectingFuture = new ClientDisconnectFuture(this, transport);
+                ForkJoinPool.commonPool().submit(disconnectingFuture);
+            } else if (connectingFuture != null) {
+                LOG.info("Trying to disconnect");
+                // We are in the process of connecting, just cancel the connect
+                connectingFuture.cancelConnectUnderLock();
+            }
+            connectionManager.stateChange.signalAll();
+        } finally {
+            connectionManager.lock.unlock();
         }
+    }
+
+    void disconnected(ClientDisconnectFuture future) {
+        connectionManager.lock.lock();
+        try {
+            if (future == disconnectingFuture && connectingFuture == null && transport == null) {
+                this.disconnectingFuture = null;
+            }
+        } finally {
+            connectionManager.lock.unlock();
+        }
+    }
+
+    /**
+     * Invoked whenever we want to send a message
+     * 
+     * @param message
+     *            the message to send
+     */
+    ResumingClientQueue.OutstandingMessage messageSend(ConnectionMessage message) {
+        sendLock.lock();
+        try {
+            OutstandingMessage m = rq.write(message);
+            if (transport != null) {
+                transport.sendText(m.msg);
+            }
+            return m;
+        } finally {
+            sendLock.unlock();
+        }
+    }
+
+    void messageReceive(ClientTransport transport, ConnectionMessage m) {
+        retrieveLock.lock();
+        try {
+            rq.messageIn(m);
+            connectionManager.hub.onMsg(m);
+        } finally {
+            retrieveLock.unlock();
+        }
+    }
+
+    void transportDisconnected(ClientTransport transport, ClosingCode cr) {
+        connectionManager.lock.lock();
+        try {
+            if (cr.getId() == 1000) {
+                connectionManager.connection = null;
+            } else if (cr.getId() == ClosingCode.DUPLICATE_CONNECT.getId()) {
+                System.out.println("Dublicate connect detected, will not reconnect");
+                connectionManager.state = ConnectionManager.State.SHOULD_STAY_DISCONNECTED;
+                this.transport = null;
+            } else {
+                System.out.println(cr.getMessage());
+                System.out.println("OOPS, lets reconnect");
+            }
+            connectionManager.stateChange.signalAll();
+        } finally {
+            connectionManager.lock.unlock();
+        }
+
+        // if (cr.getId() == 1000) {
+        // connectionManager.connection = null;
+        //
+        //
+        // } else {
+        //
+        // connectionManager.lock.lock();
+        // try {
+        //
+        // if ()
+        // } finally {
+        // connectionManager.lock.unlock();
+        // }
+        // }
     }
 }

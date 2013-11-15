@@ -9,7 +9,7 @@
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
  * Lesser General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU General Public License
  * along with this library.  If not, see <http://www.gnu.org/licenses/>.
  */
@@ -29,7 +29,7 @@ import test.stubs.HelloService.GetName;
 import test.stubs.HelloService.Reply;
 import dk.dma.enav.communication.AbstractNetworkTest;
 import dk.dma.enav.communication.ConnectionFuture;
-import dk.dma.enav.communication.MaritimeNetworkConnection;
+import dk.dma.enav.communication.MaritimeNetworkClient;
 import dk.dma.enav.util.function.BiConsumer;
 
 /**
@@ -40,11 +40,12 @@ public class ServiceTest extends AbstractNetworkTest {
 
     @Test
     public void oneClient() throws Exception {
-        MaritimeNetworkConnection c1 = newClient(ID1);
+        MaritimeNetworkClient c1 = newClient(ID1);
         c1.serviceRegister(HelloService.GET_NAME, HelloService.create("foo123")).awaitRegistered(4, TimeUnit.SECONDS);
 
-        MaritimeNetworkConnection c2 = newClient(ID6);
-        ServiceEndpoint<GetName, Reply> end = c2.serviceFind(HelloService.GET_NAME).nearest().get(6, TimeUnit.SECONDS);
+        MaritimeNetworkClient c2 = newClient(ID6);
+        ServiceEndpoint<GetName, Reply> end = c2.serviceLocate(HelloService.GET_NAME).nearest()
+                .get(6, TimeUnit.SECONDS);
         assertEquals(ID1, end.getId());
         ConnectionFuture<Reply> f = end.invoke(new HelloService.GetName());
         assertEquals("foo123", f.get(4, TimeUnit.SECONDS).getName());
@@ -52,11 +53,11 @@ public class ServiceTest extends AbstractNetworkTest {
 
     @Test
     public void manyClients() throws Exception {
-        MaritimeNetworkConnection c1 = newClient(ID1);
+        MaritimeNetworkClient c1 = newClient(ID1);
         c1.serviceRegister(HelloService.GET_NAME, HelloService.create("foo123")).awaitRegistered(4, TimeUnit.SECONDS);
 
-        for (MaritimeNetworkConnection c : newClients(20)) {
-            ServiceEndpoint<GetName, Reply> end = c.serviceFind(HelloService.GET_NAME).nearest()
+        for (MaritimeNetworkClient c : newClients(20)) {
+            ServiceEndpoint<GetName, Reply> end = c.serviceLocate(HelloService.GET_NAME).nearest()
                     .get(6, TimeUnit.SECONDS);
             assertEquals(ID1, end.getId());
             ConnectionFuture<Reply> f = end.invoke(new HelloService.GetName());
@@ -66,11 +67,12 @@ public class ServiceTest extends AbstractNetworkTest {
 
     @Test
     public void oneClientHandle() throws Exception {
-        MaritimeNetworkConnection c1 = newClient(ID1);
+        MaritimeNetworkClient c1 = newClient(ID1);
         c1.serviceRegister(HelloService.GET_NAME, HelloService.create("foo123")).awaitRegistered(4, TimeUnit.SECONDS);
 
-        MaritimeNetworkConnection c2 = newClient(ID6);
-        ServiceEndpoint<GetName, Reply> end = c2.serviceFind(HelloService.GET_NAME).nearest().get(6, TimeUnit.SECONDS);
+        MaritimeNetworkClient c2 = newClient(ID6);
+        ServiceEndpoint<GetName, Reply> end = c2.serviceLocate(HelloService.GET_NAME).nearest()
+                .get(6, TimeUnit.SECONDS);
         assertEquals(ID1, end.getId());
         ConnectionFuture<Reply> f = end.invoke(new HelloService.GetName());
         final CountDownLatch cdl = new CountDownLatch(1);
