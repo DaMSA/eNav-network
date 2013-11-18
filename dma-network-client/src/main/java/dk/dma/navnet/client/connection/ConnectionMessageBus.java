@@ -114,6 +114,7 @@ public class ConnectionMessageBus {
         // we need to send the messages in the same order as they are numbered for now
         synchronized (ai) {
             long id = ai.incrementAndGet();
+
             DefaultConnectionFuture<T> f = threadManager.create();
             acks.put(id, f);
             m.setReplyTo(id);

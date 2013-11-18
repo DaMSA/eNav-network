@@ -18,8 +18,8 @@ package dk.dma.navnet.client;
 import static java.util.Objects.requireNonNull;
 
 import java.io.IOException;
+import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.SynchronousQueue;
 import java.util.concurrent.TimeUnit;
 
 import javax.websocket.CloseReason;
@@ -41,7 +41,7 @@ import dk.dma.navnet.messages.auxiliary.WelcomeMessage;
 public class TestClientEndpoint {
     int connectIdCount;
 
-    public BlockingQueue<TransportMessage> m = new SynchronousQueue<>();
+    public BlockingQueue<TransportMessage> m = new ArrayBlockingQueue<>(1000);
 
     boolean queueEnabled = true;
 
@@ -54,8 +54,9 @@ public class TestClientEndpoint {
     @OnMessage
     public final void messageReceived(String msg) throws InterruptedException, IOException {
         TransportMessage tm = TransportMessage.parseMessage(msg);
-        // System.out.println("GOT " + tm);
+        System.out.println("GOT1 " + msg);
         m.put(tm);
+        System.out.println("GOT2 " + msg);
     }
 
     @OnOpen

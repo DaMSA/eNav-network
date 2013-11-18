@@ -31,7 +31,7 @@ import dk.dma.navnet.messages.util.ResumingClientQueue.OutstandingMessage;
  * 
  * @author Kasper Nielsen
  */
-class ClientConnection {
+public class ClientConnection {
 
     /** The logger. */
     static final Logger LOG = LoggerFactory.getLogger(ClientConnection.class);
@@ -48,6 +48,13 @@ class ClientConnection {
 
     /* State managed objects */
     private volatile ClientTransport transport;
+
+    /**
+     * @return the transport
+     */
+    public ClientTransport getTransport() {
+        return transport;
+    }
 
     private volatile ClientConnectFuture connectingFuture;
 
@@ -135,10 +142,15 @@ class ClientConnection {
     ResumingClientQueue.OutstandingMessage messageSend(ConnectionMessage message) {
         sendLock.lock();
         try {
+
             OutstandingMessage m = rq.write(message);
             if (transport != null) {
+                System.out.println("Sending " + m.msg);
                 transport.sendText(m.msg);
+            } else {
+                System.out.println("Not sending " + m.msg);
             }
+
             return m;
         } finally {
             sendLock.unlock();
