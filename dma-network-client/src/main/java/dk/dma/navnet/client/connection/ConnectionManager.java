@@ -129,7 +129,7 @@ public class ConnectionManager implements MaritimeNetworkConnection, Startable {
                 throw new IllegalStateException("The client has been shutdown");
             }
             if (connection == null) {
-                connection = new ClientConnection(this);
+                connection = ClientConnection.create(this);
             }
             if (state == State.SHOULD_STAY_DISCONNECTED) {
                 this.state = State.SHOULD_STAY_CONNECTED;
@@ -179,7 +179,7 @@ public class ConnectionManager implements MaritimeNetworkConnection, Startable {
                 switch (this.state) {
                 case SHOULD_STAY_CONNECTED:
                     if (connection == null) {
-                        connection = new ClientConnection(this);
+                        connection = ClientConnection.create(this);
                     }
                     if (!isConnected()) {
                         connection.connect();

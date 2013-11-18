@@ -20,7 +20,6 @@ import static org.junit.Assert.assertTrue;
 
 import java.util.concurrent.TimeUnit;
 
-import org.junit.Ignore;
 import org.junit.Test;
 
 import dk.dma.enav.communication.MaritimeNetworkClient;
@@ -37,7 +36,6 @@ import dk.dma.navnet.messages.c2c.broadcast.BroadcastSend;
 public class ConnectTest extends AbstractClientConnectionTest {
 
     @Test
-    @Ignore
     public void connectTest() throws Exception {
         MaritimeNetworkClient c = create();
         t.m.take();
@@ -56,19 +54,11 @@ public class ConnectTest extends AbstractClientConnectionTest {
 
         c.broadcast(new HelloWorld("foo1"));// enqueue before we have actually connected.
         Thread.sleep(50);
-        System.out.println("A");
         t.send(new ConnectedMessage("ABC", 0));
-        System.out.println("B");
         c.broadcast(new HelloWorld("foo2"));
-        System.out.println("C");
         assertTrue(c.connection().awaitConnected(10, TimeUnit.SECONDS));
-        System.out.println("D");
         assertTrue(c.connection().isConnected());
-        System.out.println("E");
         assertEquals("foo1", t.take(BroadcastSend.class).tryRead(HelloWorld.class).getMessage());
-        System.out.println("F");
         assertEquals("foo2", t.take(BroadcastSend.class).tryRead(HelloWorld.class).getMessage());
-        System.out.println("G");
     }
-
 }

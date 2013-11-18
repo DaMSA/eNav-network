@@ -18,7 +18,6 @@ package dk.dma.navnet.client.connection;
 import static java.util.Objects.requireNonNull;
 
 import java.io.IOException;
-import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
@@ -34,7 +33,6 @@ import dk.dma.navnet.messages.TransportMessage;
 import dk.dma.navnet.messages.auxiliary.ConnectedMessage;
 import dk.dma.navnet.messages.auxiliary.HelloMessage;
 import dk.dma.navnet.messages.auxiliary.WelcomeMessage;
-import dk.dma.navnet.messages.util.ResumingClientQueue.OutstandingMessage;
 
 /**
  * This class takes of connecting and handshaking with a remote server.
@@ -111,16 +109,16 @@ class ClientConnectFuture implements Runnable {
             if (m instanceof ConnectedMessage) {
                 ConnectedMessage cm = (ConnectedMessage) m;
                 connection.connectionId = cm.getConnectionId();
-                if (cm.getLastReceivedMessageId() >= 0) {
-                    List<OutstandingMessage> os = connection.rq.reConnected(cm);
-
-                    for (OutstandingMessage o : os) {
-                        transport.sendText(o.msg);
-                    }
-                    // Okay lets send the outstanding message
-                }
+                // if (cm.getLastReceivedMessageId() >= 0) {
+                // List<OutstandingMessage> os = connection.rq.reConnected(cm);
+                //
+                // for (OutstandingMessage o : os) {
+                // transport.sendText(o.msg);
+                // }
+                // // Okay lets send the outstanding message
+                // }
                 connection.connected(this, transport);
-
+                connection.worker.onConnect(cm.getLastReceivedMessageId(), cm.getLastReceivedMessageId() > 0);
                 // We need to retransmit messages
                 transport.connectFuture = null; // make sure we do not get any more messages
             } else {

@@ -113,7 +113,7 @@ public final class ClientTransport {
         }
     }
 
-    void sendText(String text) {
+    public void sendText(String text) {
         Session session = this.session;
         if (session != null) {
             if (text.length() < 1000) {

@@ -23,9 +23,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import dk.dma.enav.communication.ClosingCode;
+import dk.dma.navnet.client.worker.OutstandingMessage;
+import dk.dma.navnet.client.worker.Worker;
 import dk.dma.navnet.messages.ConnectionMessage;
 import dk.dma.navnet.messages.util.ResumingClientQueue;
-import dk.dma.navnet.messages.util.ResumingClientQueue.OutstandingMessage;
 
 /**
  * 
@@ -36,41 +37,27 @@ public class ClientConnection {
     /** The logger. */
     static final Logger LOG = LoggerFactory.getLogger(ClientConnection.class);
 
+    private volatile ClientConnectFuture connectingFuture;
+
     volatile String connectionId;
 
     final ConnectionManager connectionManager;
 
+    private volatile ClientDisconnectFuture disconnectingFuture;
+
     final ReentrantLock retrieveLock = new ReentrantLock();
 
-    final ReentrantLock sendLock = new ReentrantLock();
-
     final ResumingClientQueue rq = new ResumingClientQueue();
+
+    final ReentrantLock sendLock = new ReentrantLock();
 
     /* State managed objects */
     private volatile ClientTransport transport;
 
-    /**
-     * @return the transport
-     */
-    public ClientTransport getTransport() {
-        return transport;
-    }
+    final Worker worker = new Worker(this);
 
-    private volatile ClientConnectFuture connectingFuture;
-
-    private volatile ClientDisconnectFuture disconnectingFuture;
-
-    public ClientConnection(ConnectionManager connectionManager) {
+    private ClientConnection(ConnectionManager connectionManager) {
         this.connectionManager = connectionManager;
-    }
-
-    boolean isConnected() {
-        connectionManager.lock.lock();
-        try {
-            return transport != null && disconnectingFuture == null;
-        } finally {
-            connectionManager.lock.unlock();
-        }
     }
 
     void connect() {
@@ -104,6 +91,12 @@ public class ClientConnection {
         }
     }
 
+    static ClientConnection create(ConnectionManager cm) {
+        ClientConnection cc = new ClientConnection(cm);
+        new Thread(cc.worker).start();
+        return cc;
+    }
+
     void disconnect() {
         connectionManager.lock.lock();
         try {
@@ -134,37 +127,58 @@ public class ClientConnection {
     }
 
     /**
-     * Invoked whenever we want to send a message
-     * 
-     * @param message
-     *            the message to send
+     * @return the transport
      */
-    ResumingClientQueue.OutstandingMessage messageSend(ConnectionMessage message) {
-        sendLock.lock();
+    public ClientTransport getTransport() {
+        return transport;
+    }
+
+    boolean isConnected() {
+        connectionManager.lock.lock();
         try {
-
-            OutstandingMessage m = rq.write(message);
-            if (transport != null) {
-                System.out.println("Sending " + m.msg);
-                transport.sendText(m.msg);
-            } else {
-                System.out.println("Not sending " + m.msg);
-            }
-
-            return m;
+            return transport != null && disconnectingFuture == null;
         } finally {
-            sendLock.unlock();
+            connectionManager.lock.unlock();
         }
     }
 
     void messageReceive(ClientTransport transport, ConnectionMessage m) {
         retrieveLock.lock();
         try {
-            rq.messageIn(m);
-            connectionManager.hub.onMsg(m);
+            worker.messageReceived(m);
         } finally {
             retrieveLock.unlock();
         }
+    }
+
+    public ConnectionMessageBus getBus() {
+        return connectionManager.hub;
+    }
+
+    /**
+     * Invoked whenever we want to send a message
+     * 
+     * @param message
+     *            the message to send
+     */
+    OutstandingMessage messageSend(ConnectionMessage message) {
+        return worker.messageSend(message);
+        //
+        // sendLock.lock();
+        // try {
+        //
+        // OutstandingMessage m = rq.write(message);
+        // if (transport != null) {
+        // System.out.println("Sending " + m.msg);
+        // transport.sendText(m.msg);
+        // } else {
+        // System.out.println("Not sending " + m.msg);
+        // }
+        //
+        // return m;
+        // } finally {
+        // sendLock.unlock();
+        // }
     }
 
     void transportDisconnected(ClientTransport transport, ClosingCode cr) {
@@ -172,6 +186,7 @@ public class ClientConnection {
         try {
             if (cr.getId() == 1000) {
                 connectionManager.connection = null;
+                worker.shutdown();
             } else if (cr.getId() == ClosingCode.DUPLICATE_CONNECT.getId()) {
                 System.out.println("Dublicate connect detected, will not reconnect");
                 connectionManager.state = ConnectionManager.State.SHOULD_STAY_DISCONNECTED;
@@ -184,20 +199,5 @@ public class ClientConnection {
         } finally {
             connectionManager.lock.unlock();
         }
-
-        // if (cr.getId() == 1000) {
-        // connectionManager.connection = null;
-        //
-        //
-        // } else {
-        //
-        // connectionManager.lock.lock();
-        // try {
-        //
-        // if ()
-        // } finally {
-        // connectionManager.lock.unlock();
-        // }
-        // }
     }
 }

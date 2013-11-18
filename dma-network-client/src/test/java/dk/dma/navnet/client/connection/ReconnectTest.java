@@ -90,6 +90,7 @@ public class ReconnectTest extends AbstractClientConnectionTest {
         t.send(bm);
         assertTrue(cdl1.await(1, TimeUnit.SECONDS));
 
+        Thread.sleep(1000);
         c.broadcast(new HelloWorld("hello"));
         BroadcastSend m = t.take(BroadcastSend.class);
         assertEquals(1L, m.getMessageId());

@@ -24,12 +24,12 @@ import java.util.concurrent.atomic.AtomicInteger;
 import dk.dma.enav.util.function.Consumer;
 import dk.dma.navnet.client.util.DefaultConnectionFuture;
 import dk.dma.navnet.client.util.ThreadManager;
+import dk.dma.navnet.client.worker.OutstandingMessage;
 import dk.dma.navnet.messages.ConnectionMessage;
 import dk.dma.navnet.messages.s2c.ServerRequestMessage;
 import dk.dma.navnet.messages.s2c.ServerResponseMessage;
 import dk.dma.navnet.messages.s2c.service.FindServiceResult;
 import dk.dma.navnet.messages.s2c.service.RegisterServiceResult;
-import dk.dma.navnet.messages.util.ResumingClientQueue.OutstandingMessage;
 
 /**
  * 
@@ -76,7 +76,7 @@ public class ConnectionMessageBus {
         }
     }
 
-    void onMsg(ConnectionMessage m) {
+    public void onMsg(ConnectionMessage m) {
         if (m instanceof ServerResponseMessage) {
             ServerResponseMessage am = (ServerResponseMessage) m;
             DefaultConnectionFuture<?> f = acks.remove(am.getMessageAck());

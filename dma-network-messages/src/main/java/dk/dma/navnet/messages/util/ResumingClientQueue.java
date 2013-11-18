@@ -55,6 +55,7 @@ public class ResumingClientQueue {
     public List<OutstandingMessage> reConnected(ConnectedMessage m) {
         // System.out.println(unacked2.size());
         ackUpToIncluding(m.getLastReceivedMessageId());
+        System.out.println("RECCONECTED WITH " + unacked);
         return new ArrayList<>(unacked);
     }
 
