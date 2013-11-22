@@ -13,12 +13,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package dk.dma.navnet.client.worker;
+package dk.dma.navnet.server.connection;
 
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.locks.ReentrantLock;
 
-import dk.dma.navnet.client.connection.ClientConnection;
 import dk.dma.navnet.messages.ConnectionMessage;
 
 /**
@@ -37,15 +36,16 @@ public class Worker implements Runnable {
 
     private volatile boolean isShutdown;
 
-    final ClientConnection connection;
+    final ServerConnection connection;
 
     final WorkerInner wi = new WorkerInner(this);
 
-    public Worker(ClientConnection connection) {
+    public Worker(ServerConnection connection) {
         this.connection = connection;
     }
 
     public OutstandingMessage messageSend(ConnectionMessage message) {
+        System.out.println("Prep to send1 " + message.toJSON());
         sendLock.lock();
         try {
             if (isShutdown) {
@@ -59,12 +59,16 @@ public class Worker implements Runnable {
         }
     }
 
-    public void onConnect(long id, boolean isReconnected) {
+    public long getLatestReceivedId() {
+        return wi.getLatestReceivedMessageId();
+    }
+
+    public long onConnect(ServerTransport transport, long id, boolean isReconnected) {
         sendLock.lock();
         receiveLock.lock();
         workLock.lock();
         try {
-            wi.onConnect(id, isReconnected);
+            return wi.onConnect(transport, id, isReconnected);
         } finally {
             workLock.unlock();
             receiveLock.unlock();
@@ -86,6 +90,7 @@ public class Worker implements Runnable {
     /** {@inheritDoc} */
     @Override
     public void run() {
+        // System.out.println("STAARAIORHAOIRHAOIRHIOAHRRH_____________");
         boolean sleepLong = true;
         while (!isShutdown) {
             Object o = null;

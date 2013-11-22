@@ -27,8 +27,8 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 
-import dk.dma.enav.communication.MaritimeNetworkClient;
-import dk.dma.enav.communication.MaritimeNetworkClientConfiguration;
+import dk.dma.enav.maritimecloud.MaritimeCloudClient;
+import dk.dma.enav.maritimecloud.MaritimeCloudClientConfiguration;
 import dk.dma.enav.model.MaritimeId;
 import dk.dma.navnet.messages.auxiliary.ConnectedMessage;
 
@@ -54,11 +54,11 @@ public class AbstractClientConnectionTest {
 
     int clientPort;
 
-    MaritimeNetworkClientConfiguration conf;
+    MaritimeCloudClientConfiguration conf;
 
     TestWebSocketServer ws;
 
-    MaritimeNetworkClient client;
+    MaritimeCloudClient client;
 
     @Before
     public void before() {
@@ -66,18 +66,18 @@ public class AbstractClientConnectionTest {
         ws = new TestWebSocketServer(clientPort);
         ws.start();
         t = ws.addEndpoint(new TestClientEndpoint());
-        conf = MaritimeNetworkClientConfiguration.create(ID1);
+        conf = MaritimeCloudClientConfiguration.create(ID1);
         conf.setHost("localhost:" + clientPort);
         conf.setKeepAlive(1, TimeUnit.HOURS);
     }
 
-    protected MaritimeNetworkClient create() {
-        MaritimeNetworkClient c = conf.build();
+    protected MaritimeCloudClient create() {
+        MaritimeCloudClient c = conf.build();
         return client = c;
     }
 
-    protected MaritimeNetworkClient createConnect() throws InterruptedException {
-        MaritimeNetworkClient c = conf.build();
+    protected MaritimeCloudClient createAndConnect() throws InterruptedException {
+        MaritimeCloudClient c = conf.build();
         t.m.take();
         t.send(new ConnectedMessage("ABC", 0));
         assertTrue(c.connection().awaitConnected(1, TimeUnit.SECONDS));
@@ -113,5 +113,4 @@ public class AbstractClientConnectionTest {
     protected static String persistAndEscape(Object o) {
         return escape(persist(o));
     }
-
 }

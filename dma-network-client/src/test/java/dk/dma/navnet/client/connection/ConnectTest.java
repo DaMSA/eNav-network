@@ -22,7 +22,7 @@ import java.util.concurrent.TimeUnit;
 
 import org.junit.Test;
 
-import dk.dma.enav.communication.MaritimeNetworkClient;
+import dk.dma.enav.maritimecloud.MaritimeCloudClient;
 import dk.dma.navnet.client.AbstractClientConnectionTest;
 import dk.dma.navnet.client.broadcast.stubs.HelloWorld;
 import dk.dma.navnet.messages.auxiliary.ConnectedMessage;
@@ -37,7 +37,7 @@ public class ConnectTest extends AbstractClientConnectionTest {
 
     @Test
     public void connectTest() throws Exception {
-        MaritimeNetworkClient c = create();
+        MaritimeCloudClient c = create();
         t.m.take();
         t.send(new ConnectedMessage("ABC", 0));
         assertTrue(c.connection().awaitConnected(1, TimeUnit.SECONDS));
@@ -49,7 +49,7 @@ public class ConnectTest extends AbstractClientConnectionTest {
      */
     @Test
     public void connectedSlow() throws Exception {
-        MaritimeNetworkClient c = create();
+        MaritimeCloudClient c = create();
         t.m.take();
 
         c.broadcast(new HelloWorld("foo1"));// enqueue before we have actually connected.

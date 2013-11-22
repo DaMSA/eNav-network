@@ -22,25 +22,24 @@ import java.util.concurrent.CopyOnWriteArraySet;
 
 import jsr166e.ConcurrentHashMapV8;
 
-import org.picocontainer.Startable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.MapMaker;
 
-import dk.dma.enav.communication.MaritimeNetworkClientConfiguration;
-import dk.dma.enav.communication.broadcast.BroadcastFuture;
-import dk.dma.enav.communication.broadcast.BroadcastListener;
-import dk.dma.enav.communication.broadcast.BroadcastMessage;
-import dk.dma.enav.communication.broadcast.BroadcastMessageHeader;
-import dk.dma.enav.communication.broadcast.BroadcastOptions;
-import dk.dma.enav.communication.broadcast.BroadcastSubscription;
+import dk.dma.enav.maritimecloud.MaritimeCloudClient;
+import dk.dma.enav.maritimecloud.broadcast.BroadcastFuture;
+import dk.dma.enav.maritimecloud.broadcast.BroadcastListener;
+import dk.dma.enav.maritimecloud.broadcast.BroadcastMessage;
+import dk.dma.enav.maritimecloud.broadcast.BroadcastMessageHeader;
+import dk.dma.enav.maritimecloud.broadcast.BroadcastOptions;
+import dk.dma.enav.maritimecloud.broadcast.BroadcastSubscription;
 import dk.dma.enav.model.MaritimeId;
 import dk.dma.enav.model.geometry.PositionTime;
 import dk.dma.enav.util.function.BiConsumer;
-import dk.dma.enav.util.function.Consumer;
-import dk.dma.navnet.client.InternalClient;
+import dk.dma.navnet.client.ClientContainer;
 import dk.dma.navnet.client.connection.ConnectionMessageBus;
+import dk.dma.navnet.client.connection.OnMessage;
 import dk.dma.navnet.client.service.PositionManager;
 import dk.dma.navnet.client.util.DefaultConnectionFuture;
 import dk.dma.navnet.client.util.ThreadManager;
@@ -54,10 +53,14 @@ import dk.dma.navnet.messages.c2c.broadcast.BroadcastSendAck;
  * 
  * @author Kasper Nielsen
  */
-public class BroadcastManager implements Startable {
+public class BroadcastManager {
 
     /** The logger. */
     private static final Logger LOG = LoggerFactory.getLogger(BroadcastManager.class);
+
+    private final ConcurrentMap<Long, DefaultBroadcastFuture> broadcasts = new MapMaker().weakValues().makeMap();
+
+    private final ClientContainer client;
 
     /** The network */
     private final ConnectionMessageBus connection;
@@ -70,25 +73,18 @@ public class BroadcastManager implements Startable {
     /** Thread manager takes care of asynchronous processing. */
     private final ThreadManager threadManager;
 
-    private final InternalClient client;
-
-    private final BroadcastOptions defaultOptions;
-
-    private final ConcurrentMap<Long, DefaultBroadcastFuture> broadcasts = new MapMaker().weakValues().makeMap();
-
     /**
      * Creates a new instance of this class.
      * 
      * @param network
      *            the network
      */
-    public BroadcastManager(PositionManager positionManager, ThreadManager threadManager, InternalClient client,
-            ConnectionMessageBus connection, MaritimeNetworkClientConfiguration configuration) {
+    public BroadcastManager(PositionManager positionManager, ThreadManager threadManager, ClientContainer client,
+            ConnectionMessageBus connection) {
         this.connection = requireNonNull(connection);
         this.positionManager = requireNonNull(positionManager);
         this.threadManager = requireNonNull(threadManager);
         this.client = requireNonNull(client);
-        this.defaultOptions = configuration.getDefaultBroadcastOptions().immutable();
     }
 
     /**
@@ -99,10 +95,17 @@ public class BroadcastManager implements Startable {
      * @param listener
      *            the callback listener
      * @return a subscription
+     * @see MaritimeCloudClient#broadcastListen(Class, BroadcastListener)
      */
     public <T extends BroadcastMessage> BroadcastSubscription listenFor(Class<T> messageType,
             BroadcastListener<T> listener) {
-        BroadcastMessageSubscription sub = new BroadcastMessageSubscription(this, getChannelName(messageType), listener);
+        requireNonNull(messageType, "messageType is null");
+        requireNonNull(listener, "listener is null");
+
+        String channelName = messageType.getCanonicalName();
+
+        BroadcastMessageSubscription sub = new BroadcastMessageSubscription(this, channelName, listener);
+
         listeners.computeIfAbsent(messageType.getCanonicalName(),
                 new ConcurrentHashMapV8.Fun<String, CopyOnWriteArraySet<BroadcastMessageSubscription>>() {
                     public CopyOnWriteArraySet<BroadcastMessageSubscription> apply(String t) {
@@ -112,18 +115,20 @@ public class BroadcastManager implements Startable {
         return sub;
     }
 
-    void onBroadcastAck(BroadcastAck ack) {
+
+    @OnMessage
+    public void onBroadcastAck(BroadcastAck ack) {
         DefaultBroadcastFuture f = broadcasts.get(ack.getBroadcastId());
         if (f != null) {
             final PositionTime pt = ack.getPositionTime();
             final MaritimeId mid = ack.getId();
-            f.onMessage(new BroadcastMessage.Ack() {
-                public PositionTime getPosition() {
-                    return pt;
-                }
-
+            f.onAckMessage(new BroadcastMessage.Ack() {
                 public MaritimeId getId() {
                     return mid;
+                }
+
+                public PositionTime getPosition() {
+                    return pt;
                 }
             });
         }
@@ -135,7 +140,8 @@ public class BroadcastManager implements Startable {
      * @param broadcast
      *            the broadcast that was received
      */
-    void onBroadcastMessage(BroadcastDeliver broadcast) {
+    @OnMessage
+    public void onBroadcastMessage(BroadcastDeliver broadcast) {
         CopyOnWriteArraySet<BroadcastMessageSubscription> set = listeners.get(broadcast.getChannel());
         if (set != null && !set.isEmpty()) {
             BroadcastMessage bm = null;
@@ -153,31 +159,24 @@ public class BroadcastManager implements Startable {
             for (final BroadcastMessageSubscription s : set) {
                 threadManager.execute(new Runnable() {
                     public void run() {
-                        s.deliver(bp, bmm);
+                        s.deliver(bp, bmm); // deliver() handles any exception
                     }
                 });
             }
         }
     }
 
-    /**
-     * Sends a broadcast.
-     * 
-     * @param broadcast
-     *            the broadcast to send
-     */
-    public BroadcastFuture sendBroadcastMessage(BroadcastMessage broadcast) {
-        return sendBroadcastMessage(broadcast, defaultOptions);
-    }
-
     public BroadcastFuture sendBroadcastMessage(BroadcastMessage broadcast, BroadcastOptions options) {
         requireNonNull(broadcast, "broadcast is null");
         requireNonNull(options, "options is null");
-        options = options.immutable();
+        options = options.immutable(); // we make the options immutable just in case
+
+        // create the message we will send to the server
         BroadcastSend b = BroadcastSend.create(client.getLocalId(), positionManager.getPositionTime(), broadcast,
                 options);
 
         DefaultConnectionFuture<BroadcastSendAck> response = connection.sendMessage(b);
+
 
         final DefaultBroadcastFuture dbf = new DefaultBroadcastFuture(threadManager, options);
         broadcasts.put(b.getReplyTo(), dbf);
@@ -194,29 +193,4 @@ public class BroadcastManager implements Startable {
         });
         return dbf;
     }
-
-    /** Translates a class to a channel name. */
-    private static String getChannelName(Class<?> c) {
-        return c.getCanonicalName();
-    }
-
-    /** {@inheritDoc} */
-    @Override
-    public void start() {
-        connection.subscribe(BroadcastDeliver.class, new Consumer<BroadcastDeliver>() {
-            public void accept(BroadcastDeliver t) {
-                onBroadcastMessage(t);
-            }
-        });
-
-        connection.subscribe(BroadcastAck.class, new Consumer<BroadcastAck>() {
-            public void accept(BroadcastAck t) {
-                onBroadcastAck(t);
-            }
-        });
-    }
-
-    /** {@inheritDoc} */
-    @Override
-    public void stop() {}
 }

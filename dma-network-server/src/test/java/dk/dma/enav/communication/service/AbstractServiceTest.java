@@ -19,7 +19,7 @@ import java.util.concurrent.TimeUnit;
 
 import test.stubs.HelloService;
 import dk.dma.enav.communication.AbstractNetworkTest;
-import dk.dma.enav.communication.MaritimeNetworkClient;
+import dk.dma.enav.maritimecloud.MaritimeCloudClient;
 
 /**
  * 
@@ -27,7 +27,7 @@ import dk.dma.enav.communication.MaritimeNetworkClient;
  */
 public abstract class AbstractServiceTest extends AbstractNetworkTest {
 
-    public MaritimeNetworkClient registerService(MaritimeNetworkClient pnc, String reply) throws Exception {
+    public MaritimeCloudClient registerService(MaritimeCloudClient pnc, String reply) throws Exception {
         pnc.serviceRegister(HelloService.GET_NAME, HelloService.create(reply)).awaitRegistered(5, TimeUnit.SECONDS);
         return pnc;
     }

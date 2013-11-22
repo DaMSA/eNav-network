@@ -32,6 +32,8 @@ import org.junit.After;
 import org.junit.Before;
 
 import test.util.ProxyTester;
+import dk.dma.enav.maritimecloud.MaritimeCloudClient;
+import dk.dma.enav.maritimecloud.MaritimeCloudClientConfiguration;
 import dk.dma.enav.model.MaritimeId;
 import dk.dma.enav.model.geometry.PositionTime;
 import dk.dma.enav.util.function.Supplier;
@@ -58,7 +60,7 @@ public abstract class AbstractNetworkTest {
 
     int clientPort;
 
-    protected final ConcurrentHashMap<MaritimeId, MaritimeNetworkClient> clients = new ConcurrentHashMap<>();
+    protected final ConcurrentHashMap<MaritimeId, MaritimeCloudClient> clients = new ConcurrentHashMap<>();
 
     ExecutorService es = Executors.newCachedThreadPool();
 
@@ -78,13 +80,13 @@ public abstract class AbstractNetworkTest {
         this.useProxy = useProxy;
     }
 
-    protected MaritimeNetworkClientConfiguration newBuilder(MaritimeId id) {
-        MaritimeNetworkClientConfiguration b = MaritimeNetworkClientConfiguration.create(id);
+    protected MaritimeCloudClientConfiguration newBuilder(MaritimeId id) {
+        MaritimeCloudClientConfiguration b = MaritimeCloudClientConfiguration.create(id);
         b.setHost("localhost:" + clientPort);
         return b;
     }
 
-    protected MaritimeNetworkClient newClient() throws Exception {
+    protected MaritimeCloudClient newClient() throws Exception {
         for (;;) {
             MaritimeId id = MaritimeId.create("mmsi://" + ThreadLocalRandom.current().nextInt(1000));
             if (!clients.containsKey(id)) {
@@ -93,7 +95,7 @@ public abstract class AbstractNetworkTest {
         }
     }
 
-    protected MaritimeNetworkClient newClient(double lat, double lon) throws Exception {
+    protected MaritimeCloudClient newClient(double lat, double lon) throws Exception {
         for (;;) {
             MaritimeId id = MaritimeId.create("mmsi://" + ThreadLocalRandom.current().nextInt(1000));
             if (!clients.containsKey(id)) {
@@ -102,53 +104,53 @@ public abstract class AbstractNetworkTest {
         }
     }
 
-    protected MaritimeNetworkClient newClient(MaritimeId id) throws Exception {
-        MaritimeNetworkClientConfiguration b = newBuilder(id);
+    protected MaritimeCloudClient newClient(MaritimeId id) throws Exception {
+        MaritimeCloudClientConfiguration b = newBuilder(id);
         locs.put(id, new LocationSup());
-        MaritimeNetworkClient c = b.build();
+        MaritimeCloudClient c = b.build();
         clients.put(id, c);
         return c;
     }
 
-    protected MaritimeNetworkClient newClient(MaritimeId id, double lat, double lon) throws Exception {
-        MaritimeNetworkClientConfiguration b = newBuilder(id);
+    protected MaritimeCloudClient newClient(MaritimeId id, double lat, double lon) throws Exception {
+        MaritimeCloudClientConfiguration b = newBuilder(id);
         LocationSup ls = new LocationSup();
         b.setPositionSupplier(ls);
         locs.put(id, ls);
         setPosition(id, lat, lon);
-        MaritimeNetworkClient c = b.build();
+        MaritimeCloudClient c = b.build();
         clients.put(id, c);
         return c;
     }
 
-    protected MaritimeNetworkClient newClient(MaritimeNetworkClientConfiguration b) throws Exception {
+    protected MaritimeCloudClient newClient(MaritimeCloudClientConfiguration b) throws Exception {
         locs.put(b.getId(), new LocationSup());
-        MaritimeNetworkClient c = b.build();
+        MaritimeCloudClient c = b.build();
         clients.put(b.getId(), c);
         return c;
     }
 
-    protected Future<MaritimeNetworkClient> newClientAsync(final MaritimeId id) throws Exception {
-        final MaritimeNetworkClientConfiguration b = newBuilder(id);
+    protected Future<MaritimeCloudClient> newClientAsync(final MaritimeId id) throws Exception {
+        final MaritimeCloudClientConfiguration b = newBuilder(id);
         locs.put(id, new LocationSup());
-        return es.submit(new Callable<MaritimeNetworkClient>() {
+        return es.submit(new Callable<MaritimeCloudClient>() {
 
             @Override
-            public MaritimeNetworkClient call() throws Exception {
-                MaritimeNetworkClient c = b.build();
+            public MaritimeCloudClient call() throws Exception {
+                MaritimeCloudClient c = b.build();
                 clients.put(id, c);
                 return c;
             }
         });
     }
 
-    protected Set<MaritimeNetworkClient> newClients(int count) throws Exception {
-        HashSet<Future<MaritimeNetworkClient>> futures = new HashSet<>();
+    protected Set<MaritimeCloudClient> newClients(int count) throws Exception {
+        HashSet<Future<MaritimeCloudClient>> futures = new HashSet<>();
         for (int j = 0; j < count; j++) {
             futures.add(newClientAsync(MaritimeId.create("mmsi://1234" + j)));
         }
-        HashSet<MaritimeNetworkClient> result = new HashSet<>();
-        for (Future<MaritimeNetworkClient> f : futures) {
+        HashSet<MaritimeCloudClient> result = new HashSet<>();
+        for (Future<MaritimeCloudClient> f : futures) {
             result.add(f.get(3, TimeUnit.SECONDS));
         }
         return result;
@@ -160,7 +162,7 @@ public abstract class AbstractNetworkTest {
         return id;
     }
 
-    protected MaritimeNetworkClient setPosition(MaritimeNetworkClient pnc, double lat, double lon) {
+    protected MaritimeCloudClient setPosition(MaritimeCloudClient pnc, double lat, double lon) {
         locs.get(pnc.getClientId()).lat = lat;
         locs.get(pnc.getClientId()).lon = lon;
         return pnc;
@@ -184,14 +186,14 @@ public abstract class AbstractNetworkTest {
 
     @After
     public void teardown() throws InterruptedException {
-        for (final MaritimeNetworkClient c : clients.values()) {
+        for (final MaritimeCloudClient c : clients.values()) {
             es.execute(new Runnable() {
                 public void run() {
                     c.close();
                 }
             });
         }
-        for (MaritimeNetworkClient c : clients.values()) {
+        for (MaritimeCloudClient c : clients.values()) {
             assertTrue(c.awaitTermination(2, TimeUnit.SECONDS));
         }
 

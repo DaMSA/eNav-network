@@ -45,7 +45,7 @@ public class TesstEndpoint {
 
     Session session;
 
-    void close() throws IOException {
+    public void close() throws IOException {
         session.close(new CloseReason(CloseReason.CloseCodes.UNEXPECTED_CONDITION, "suckit"));
     }
 

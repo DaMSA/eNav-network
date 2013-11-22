@@ -39,30 +39,30 @@ import dk.dma.navnet.messages.auxiliary.WelcomeMessage;
  */
 @ServerEndpoint(value = "/")
 public class TestClientEndpoint {
-    int connectIdCount;
 
-    public BlockingQueue<TransportMessage> m = new ArrayBlockingQueue<>(1000);
-
-    boolean queueEnabled = true;
+    public BlockingQueue<TransportMessage> m = new ArrayBlockingQueue<>(10000);
 
     Session session;
 
-    void close() throws IOException {
-        session.close(new CloseReason(CloseReason.CloseCodes.UNEXPECTED_CONDITION, "suckit"));
+    public void close() throws IOException {
+        session.close(new CloseReason(CloseReason.CloseCodes.UNEXPECTED_CONDITION, "TestClientEndpoint.close()"));
     }
 
     @OnMessage
-    public final void messageReceived(String msg) throws InterruptedException, IOException {
+    public final void messageReceived(String msg, Session userSession) throws InterruptedException, IOException {
+        if (session != userSession) {
+            throw new Error();
+        }
         TransportMessage tm = TransportMessage.parseMessage(msg);
-        System.out.println("GOT1 " + msg);
         m.put(tm);
-        System.out.println("GOT2 " + msg);
     }
 
     @OnOpen
     public final void onWebsocketOpen(Session session) {
         this.session = session;
+        m.clear();
         send(new WelcomeMessage(1, new ServerId(123), "enavServer/1.0"));
+
     }
 
     protected <T extends TransportMessage> T poll(Class<T> c) {
@@ -76,10 +76,6 @@ public class TestClientEndpoint {
         } catch (IOException e) {
             throw new AssertionError(e);
         }
-    }
-
-    public void sendBroadcast() {
-
     }
 
     public <T extends BlockingQueue<TransportMessage>> T setQueue(T q) {

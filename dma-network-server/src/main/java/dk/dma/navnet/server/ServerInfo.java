@@ -18,27 +18,35 @@ package dk.dma.navnet.server;
 import static java.util.Objects.requireNonNull;
 import jsr166e.LongAdder;
 import dk.dma.enav.util.function.Consumer;
-import dk.dma.navnet.server.connection.ServerConnection;
+import dk.dma.navnet.server.target.Target;
 import dk.dma.navnet.server.target.TargetManager;
 
 /**
+ * Provides information about the status of the maritime cloud
  * 
  * @author Kasper Nielsen
  */
 public class ServerInfo {
 
-    final TargetManager tm;
+    /** The target manager. */
+    private final TargetManager targetManager;
 
     public ServerInfo(TargetManager tm) {
-        this.tm = requireNonNull(tm);
+        this.targetManager = requireNonNull(tm);
     }
 
-
+    /**
+     * Returns the current number of connections to the cloud.
+     * 
+     * @return the current number of connections to the cloud
+     */
     public int getConnectionCount() {
         final LongAdder i = new LongAdder();
-        tm.forEachConnection(new Consumer<ServerConnection>() {
-            public void accept(ServerConnection t) {
-                i.increment();
+        targetManager.forEachTarget(new Consumer<Target>() {
+            public void accept(Target t) {
+                if (t.isConnected()) {
+                    i.increment();
+                }
             }
         });
         return i.intValue();

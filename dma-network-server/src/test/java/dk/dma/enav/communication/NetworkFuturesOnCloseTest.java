@@ -26,7 +26,10 @@ import org.junit.Test;
 import test.stubs.HelloService;
 import test.stubs.HelloService.GetName;
 import test.stubs.HelloService.Reply;
-import dk.dma.enav.communication.service.ServiceEndpoint;
+import dk.dma.enav.maritimecloud.ConnectionClosedException;
+import dk.dma.enav.maritimecloud.ConnectionFuture;
+import dk.dma.enav.maritimecloud.MaritimeCloudClient;
+import dk.dma.enav.maritimecloud.service.ServiceEndpoint;
 
 /**
  * Tests
@@ -38,7 +41,7 @@ public class NetworkFuturesOnCloseTest extends AbstractNetworkTest {
 
     @Test
     public void serviceFind() throws Exception {
-        MaritimeNetworkClient pc1 = newClient(ID1);
+        MaritimeCloudClient pc1 = newClient(ID1);
 
         ConnectionFuture<ServiceEndpoint<GetName, Reply>> f = pc1.serviceLocate(HelloService.GET_NAME).nearest();
         ConnectionFuture<ServiceEndpoint<GetName, Reply>> f2 = f.timeout(4, TimeUnit.SECONDS);
@@ -62,7 +65,7 @@ public class NetworkFuturesOnCloseTest extends AbstractNetworkTest {
 
     @Test
     public void serviceInvoke() throws Exception {
-        MaritimeNetworkClient pc1 = newClient(ID1);
+        MaritimeCloudClient pc1 = newClient(ID1);
         newClient(ID2);
 
         ConnectionFuture<ServiceEndpoint<GetName, Reply>> f = pc1.serviceLocate(HelloService.GET_NAME).nearest();

@@ -22,13 +22,13 @@ import java.util.concurrent.atomic.AtomicLong;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import dk.dma.enav.communication.broadcast.BroadcastListener;
-import dk.dma.enav.communication.broadcast.BroadcastMessage;
-import dk.dma.enav.communication.broadcast.BroadcastMessageHeader;
-import dk.dma.enav.communication.broadcast.BroadcastSubscription;
+import dk.dma.enav.maritimecloud.broadcast.BroadcastListener;
+import dk.dma.enav.maritimecloud.broadcast.BroadcastMessage;
+import dk.dma.enav.maritimecloud.broadcast.BroadcastMessageHeader;
+import dk.dma.enav.maritimecloud.broadcast.BroadcastSubscription;
 
 /**
- * The default implementation of BroadcastSubscription.
+ * The default implementation of {@link BroadcastSubscription}.
  * 
  * @author Kasper Nielsen
  */
@@ -64,9 +64,9 @@ class BroadcastMessageSubscription implements BroadcastSubscription {
 
     // invoked in another thread so never throw anything
     @SuppressWarnings({ "unchecked", "rawtypes" })
-    void deliver(BroadcastMessageHeader properties, BroadcastMessage message) {
+    void deliver(BroadcastMessageHeader broadcastHeader, BroadcastMessage message) {
         try {
-            ((BroadcastListener) listener).onMessage(properties, message);
+            ((BroadcastListener) listener).onMessage(broadcastHeader, message);
             count.incrementAndGet();
         } catch (Exception e) {
             LOG.error("Exception while handling an incoming broadcast message of type " + message.getClass(), e);

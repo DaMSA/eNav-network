@@ -19,43 +19,45 @@ import java.util.concurrent.TimeUnit;
 
 import org.picocontainer.PicoContainer;
 
-import dk.dma.enav.communication.ConnectionFuture;
-import dk.dma.enav.communication.MaritimeNetworkClient;
-import dk.dma.enav.communication.MaritimeNetworkClientConfiguration;
-import dk.dma.enav.communication.MaritimeNetworkConnection;
-import dk.dma.enav.communication.broadcast.BroadcastFuture;
-import dk.dma.enav.communication.broadcast.BroadcastListener;
-import dk.dma.enav.communication.broadcast.BroadcastMessage;
-import dk.dma.enav.communication.broadcast.BroadcastOptions;
-import dk.dma.enav.communication.broadcast.BroadcastSubscription;
-import dk.dma.enav.communication.service.InvocationCallback;
-import dk.dma.enav.communication.service.ServiceLocator;
-import dk.dma.enav.communication.service.ServiceRegistration;
-import dk.dma.enav.communication.service.spi.ServiceInitiationPoint;
-import dk.dma.enav.communication.service.spi.ServiceMessage;
+import dk.dma.enav.maritimecloud.ConnectionFuture;
+import dk.dma.enav.maritimecloud.MaritimeCloudClient;
+import dk.dma.enav.maritimecloud.MaritimeCloudClientConfiguration;
+import dk.dma.enav.maritimecloud.MaritimeCloudConnection;
+import dk.dma.enav.maritimecloud.broadcast.BroadcastFuture;
+import dk.dma.enav.maritimecloud.broadcast.BroadcastListener;
+import dk.dma.enav.maritimecloud.broadcast.BroadcastMessage;
+import dk.dma.enav.maritimecloud.broadcast.BroadcastOptions;
+import dk.dma.enav.maritimecloud.broadcast.BroadcastSubscription;
+import dk.dma.enav.maritimecloud.service.ServiceLocator;
+import dk.dma.enav.maritimecloud.service.invocation.InvocationCallback;
+import dk.dma.enav.maritimecloud.service.registration.ServiceRegistration;
+import dk.dma.enav.maritimecloud.service.spi.ServiceInitiationPoint;
+import dk.dma.enav.maritimecloud.service.spi.ServiceMessage;
 import dk.dma.enav.model.MaritimeId;
 import dk.dma.navnet.client.broadcast.BroadcastManager;
 import dk.dma.navnet.client.service.ClientServiceManager;
 
 /**
- * An implementation of {@link MaritimeNetworkClient} using WebSockets and JSON. This class delegates all work to other
+ * An implementation of {@link MaritimeCloudClient} using WebSockets and JSON. This class delegates all work to other
  * services.
  * 
  * @author Kasper Nielsen
  */
-public class DefaultMaritimeNetworkClient implements MaritimeNetworkClient {
+public class DefaultMaritimeCloudClient implements MaritimeCloudClient {
 
     /** Responsible for listening and sending broadcasts. */
     private final BroadcastManager broadcaster;
 
     /** Manages registration of services. */
-    private final MaritimeNetworkConnection connection;
+    private final MaritimeCloudConnection connection;
 
     /** The internal client. */
-    private final InternalClient internalClient;
+    private final ClientContainer internalClient;
 
     /** Manages registration of services. */
     private final ClientServiceManager services;
+
+    private final BroadcastOptions broadcastDefaultOptions;
 
     /**
      * Creates a new instance of this class.
@@ -63,12 +65,13 @@ public class DefaultMaritimeNetworkClient implements MaritimeNetworkClient {
      * @param builder
      *            the configuration of the connection
      */
-    public DefaultMaritimeNetworkClient(MaritimeNetworkClientConfiguration builder) {
-        PicoContainer pc = InternalClient.create(builder);
+    public DefaultMaritimeCloudClient(MaritimeCloudClientConfiguration configuration) {
+        PicoContainer pc = ClientContainer.create(configuration);
         broadcaster = pc.getComponent(BroadcastManager.class);
-        connection = pc.getComponent(MaritimeNetworkConnection.class);
-        internalClient = pc.getComponent(InternalClient.class);
+        connection = pc.getComponent(MaritimeCloudConnection.class);
+        internalClient = pc.getComponent(ClientContainer.class);
         services = pc.getComponent(ClientServiceManager.class);
+        broadcastDefaultOptions = configuration.getDefaultBroadcastOptions().immutable();
     }
 
     /** {@inheritDoc} */
@@ -80,7 +83,7 @@ public class DefaultMaritimeNetworkClient implements MaritimeNetworkClient {
     /** {@inheritDoc} */
     @Override
     public BroadcastFuture broadcast(BroadcastMessage message) {
-        return broadcaster.sendBroadcastMessage(message);
+        return broadcast(message, broadcastDefaultOptions);
     }
 
     /** {@inheritDoc} */
@@ -104,7 +107,7 @@ public class DefaultMaritimeNetworkClient implements MaritimeNetworkClient {
 
     /** {@inheritDoc} */
     @Override
-    public MaritimeNetworkConnection connection() {
+    public MaritimeCloudConnection connection() {
         return connection;
     }
 

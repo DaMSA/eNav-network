@@ -13,13 +13,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package dk.dma.navnet.client.worker;
+package dk.dma.navnet.server.connection;
 
 import static java.util.Objects.requireNonNull;
 
 import java.util.LinkedList;
 
-import dk.dma.navnet.client.connection.ClientTransport;
 import dk.dma.navnet.messages.ConnectionMessage;
 
 /**
@@ -40,16 +39,39 @@ public class WorkerInner {
 
     long latestAck = 0;
 
-    long nextSendId;
+    long nextSendId = 1;
 
     long latestReceivedMessageId;
+
+    /**
+     * @return the latestReceivedMessageId
+     */
+    public long getLatestReceivedMessageId() {
+        return latestReceivedMessageId;
+    }
 
     WorkerInner(Worker worker) {
         this.worker = requireNonNull(worker);
     }
 
-    public void onConnect(long id, boolean isReconnected) {
+    ServerTransport transport;
+
+    public long onConnect(ServerTransport transport, long id, boolean isReconnected) {
+        while (!written.isEmpty()) {
+            OutstandingMessage om = written.pollLast();
+            if (om.id > id) {
+                System.out.println("Resending message with id: " + om.id);
+                unwritten.addFirst(om);
+            }
+        }
+        if (isReconnected) {
+            nextSendId = id + 1;
+            if (!unwritten.isEmpty()) {}
+        }
+        System.out.println("======== NextSendId=" + nextSendId + " " + id);
+        this.transport = transport;
         while (processNext()) {}
+        return latestReceivedMessageId;
     }
 
     public void fromQueue(Object o) {
@@ -92,31 +114,33 @@ public class WorkerInner {
         System.out.println("GOT MSG with " + cm.getLatestReceivedId() + " " + cm.toJSON());
         latestReceivedMessageId = cm.getMessageId();
         latestAck = cm.getLatestReceivedId();
-        worker.connection.getBus().onMsg(cm);
+        worker.connection.bus.onMessage(worker.connection, cm);
         for (;;) {
             OutstandingMessage m = written.peek();
             if (m == null || m.id > latestAck) {
                 return;
             }
-            m.acked().complete(null);
+            m.protocolAcked().complete(null);
             written.poll();
         }
     }
 
     private void processWritten() {
-        ClientTransport transport = worker.connection.getTransport();
-        if (transport != null) {
+        System.out.println("Prep to send");
+        ServerTransport transport = worker.connection.transport;
+        if (transport != null && transport == this.transport) {
             OutstandingMessage om = unwritten.poll();
             ConnectionMessage cm = om.cm;
-            om.id = ++nextSendId;
+            om.id = nextSendId++;
             cm.setMessageId(om.id);
             cm.setLatestReceivedId(latestReceivedMessageId);
             String message = cm.toJSON();
             written.add(om);
+            // System.out.println("Adding " + om.id + " to written");
             transport.sendText(message);
         } else {
             try {
-                Thread.sleep(50);
+                Thread.sleep(10);
             } catch (InterruptedException ignore) {}
         }
     }

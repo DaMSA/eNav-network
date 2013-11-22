@@ -33,6 +33,8 @@ import java.util.concurrent.TimeUnit;
 import org.junit.Ignore;
 import org.junit.Test;
 
+import dk.dma.enav.maritimecloud.MaritimeCloudClient;
+
 /**
  * Tests that if multiple clients connect with the same id connects. Only one is connected at the same time
  * 
@@ -47,10 +49,10 @@ public class SameIDConnectTest extends AbstractNetworkTest {
      */
     @Test
     public void twoConnect() throws Exception {
-        MaritimeNetworkClient pc1 = newClient(ID1);
+        MaritimeCloudClient pc1 = newClient(ID1);
         pc1.connection().awaitConnected(1, TimeUnit.SECONDS);
 
-        MaritimeNetworkClient pc2 = newClient(ID1);
+        MaritimeCloudClient pc2 = newClient(ID1);
         pc2.connection().awaitConnected(1, TimeUnit.SECONDS);
 
         // pc1 should be disconnected now
@@ -64,18 +66,18 @@ public class SameIDConnectTest extends AbstractNetworkTest {
     @Ignore
     public void manyConnect() throws Exception {
         ExecutorService e = Executors.newFixedThreadPool(10);
-        final Set<Future<MaritimeNetworkClient>> s = Collections
-                .newSetFromMap(new ConcurrentHashMap<Future<MaritimeNetworkClient>, Boolean>());
+        final Set<Future<MaritimeCloudClient>> s = Collections
+                .newSetFromMap(new ConcurrentHashMap<Future<MaritimeCloudClient>, Boolean>());
         for (int i = 0; i < 100; i++) {
-            s.add(e.submit(new Callable<MaritimeNetworkClient>() {
-                public MaritimeNetworkClient call() throws Exception {
+            s.add(e.submit(new Callable<MaritimeCloudClient>() {
+                public MaritimeCloudClient call() throws Exception {
                     return newClient(ID1);
                 }
             }));
         }
 
-        Set<MaritimeNetworkClient> con = new HashSet<>();
-        for (Future<MaritimeNetworkClient> f : s) {
+        Set<MaritimeCloudClient> con = new HashSet<>();
+        for (Future<MaritimeCloudClient> f : s) {
             try {
                 con.add(f.get());
             } catch (ExecutionException ignore) {}
@@ -83,7 +85,7 @@ public class SameIDConnectTest extends AbstractNetworkTest {
         for (int i = 0; i < 100; i++) {
             if (si.info().getConnectionCount() == 1) {
                 int connectCount = 0;
-                for (MaritimeNetworkClient pc : con) {
+                for (MaritimeCloudClient pc : con) {
                     if (pc.connection().isConnected()) {
                         connectCount++;
                     }

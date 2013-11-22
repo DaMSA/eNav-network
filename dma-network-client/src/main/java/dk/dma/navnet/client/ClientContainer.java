@@ -24,8 +24,9 @@ import java.util.concurrent.locks.ReentrantLock;
 import org.picocontainer.DefaultPicoContainer;
 import org.picocontainer.PicoContainer;
 import org.picocontainer.behaviors.Caching;
+import org.picocontainer.containers.ImmutablePicoContainer;
 
-import dk.dma.enav.communication.MaritimeNetworkClientConfiguration;
+import dk.dma.enav.maritimecloud.MaritimeCloudClientConfiguration;
 import dk.dma.enav.model.MaritimeId;
 import dk.dma.enav.model.geometry.PositionTime;
 import dk.dma.enav.util.function.Supplier;
@@ -42,16 +43,16 @@ import dk.dma.navnet.client.util.ThreadManager;
  * @author Kasper Nielsen
  */
 @SuppressWarnings("serial")
-public class InternalClient extends ReentrantLock {
+public class ClientContainer extends ReentrantLock {
 
     /** The container is is normal running mode. (certain pre-start hooks may still be running. */
     static final int S_RUNNING = 0;
 
-    /** The container has been started either by a preStart() or by invoking a lazy-starting method. */
-    static final int S_STARTING = 1;
-
     /** The container has been shutdown, for example, by calling shutdown(). */
     static final int S_SHUTDOWN = 2;
+
+    /** The container has been started either by a preStart() or by invoking a lazy-starting method. */
+    static final int S_STARTING = 1;
 
     /** The container has been fully terminated. */
     static final int S_TERMINATED = 3;
@@ -77,7 +78,10 @@ public class InternalClient extends ReentrantLock {
      * @param builder
      *            the configuration
      */
-    private InternalClient(MaritimeNetworkClientConfiguration builder) {
+    ClientContainer(MaritimeCloudClientConfiguration builder) {
+        clientId = requireNonNull(builder.getId());
+        positionSupplier = requireNonNull(builder.getPositionSupplier());
+
         picoContainer.addComponent(builder);
         picoContainer.addComponent(this);
         picoContainer.addComponent(PositionManager.class);
@@ -87,8 +91,7 @@ public class InternalClient extends ReentrantLock {
         picoContainer.addComponent(ThreadManager.class);
         picoContainer.addComponent(ConnectionManager.class);
 
-        clientId = requireNonNull(builder.getId());
-        positionSupplier = requireNonNull(builder.getPositionSupplier());
+        picoContainer.addComponent(new ImmutablePicoContainer(picoContainer));
     }
 
     public boolean awaitTermination(long timeout, TimeUnit unit) throws InterruptedException {
@@ -142,6 +145,13 @@ public class InternalClient extends ReentrantLock {
         return clientId;
     }
 
+    /**
+     * @return the picoContainer
+     */
+    public PicoContainer getPicoContainer() {
+        return picoContainer;
+    }
+
     public boolean isClosed() {
         return state >= S_SHUTDOWN;
     }
@@ -159,8 +169,8 @@ public class InternalClient extends ReentrantLock {
         return positionSupplier.get();
     }
 
-    static PicoContainer create(MaritimeNetworkClientConfiguration builder) {
-        InternalClient client = new InternalClient(builder);
+    static PicoContainer create(MaritimeCloudClientConfiguration builder) {
+        ClientContainer client = new ClientContainer(builder);
         client.picoContainer.start();
         return client.picoContainer;
     }

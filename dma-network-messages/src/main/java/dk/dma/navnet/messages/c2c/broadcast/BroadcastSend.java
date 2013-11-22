@@ -21,8 +21,8 @@ import java.io.IOException;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-import dk.dma.enav.communication.broadcast.BroadcastMessage;
-import dk.dma.enav.communication.broadcast.BroadcastOptions;
+import dk.dma.enav.maritimecloud.broadcast.BroadcastMessage;
+import dk.dma.enav.maritimecloud.broadcast.BroadcastOptions;
 import dk.dma.enav.model.MaritimeId;
 import dk.dma.enav.model.geometry.PositionTime;
 import dk.dma.navnet.messages.MessageType;

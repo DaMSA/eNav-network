@@ -22,6 +22,8 @@ import java.util.concurrent.TimeUnit;
 
 import org.junit.Test;
 
+import dk.dma.enav.maritimecloud.MaritimeCloudClient;
+
 /**
  * 
  * @author Kasper Nielsen
@@ -30,7 +32,7 @@ public class ConnectionTest extends AbstractNetworkTest {
 
     @Test
     public void singleClient() throws Exception {
-        MaritimeNetworkClient c = newClient(ID1);
+        MaritimeCloudClient c = newClient(ID1);
         assertTrue(c.connection().awaitConnected(10, TimeUnit.SECONDS));
         assertEquals(1, si.info().getConnectionCount());
         // c.close();
@@ -40,7 +42,7 @@ public class ConnectionTest extends AbstractNetworkTest {
 
     @Test
     public void manyClients() throws Exception {
-        for (MaritimeNetworkClient c : newClients(20)) {
+        for (MaritimeCloudClient c : newClients(20)) {
             c.connection().awaitConnected(10, TimeUnit.SECONDS);
         }
         assertEquals(20, si.info().getConnectionCount());
@@ -48,8 +50,8 @@ public class ConnectionTest extends AbstractNetworkTest {
 
     @Test
     public void singleClientClose() throws Exception {
-        MaritimeNetworkClient pc1;
-        try (MaritimeNetworkClient pc = newClient(ID1)) {
+        MaritimeCloudClient pc1;
+        try (MaritimeCloudClient pc = newClient(ID1)) {
             pc1 = pc;
             assertTrue(pc1.connection().awaitConnected(10, TimeUnit.SECONDS));
             assertEquals(1, si.info().getConnectionCount());

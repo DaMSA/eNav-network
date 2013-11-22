@@ -28,8 +28,9 @@ import test.stubs.HelloService;
 import test.stubs.HelloService.GetName;
 import test.stubs.HelloService.Reply;
 import dk.dma.enav.communication.AbstractNetworkTest;
-import dk.dma.enav.communication.ConnectionFuture;
-import dk.dma.enav.communication.MaritimeNetworkClient;
+import dk.dma.enav.maritimecloud.ConnectionFuture;
+import dk.dma.enav.maritimecloud.MaritimeCloudClient;
+import dk.dma.enav.maritimecloud.service.ServiceEndpoint;
 import dk.dma.enav.util.function.BiConsumer;
 
 /**
@@ -40,10 +41,10 @@ public class ServiceTest extends AbstractNetworkTest {
 
     @Test
     public void oneClient() throws Exception {
-        MaritimeNetworkClient c1 = newClient(ID1);
+        MaritimeCloudClient c1 = newClient(ID1);
         c1.serviceRegister(HelloService.GET_NAME, HelloService.create("foo123")).awaitRegistered(4, TimeUnit.SECONDS);
 
-        MaritimeNetworkClient c2 = newClient(ID6);
+        MaritimeCloudClient c2 = newClient(ID6);
         ServiceEndpoint<GetName, Reply> end = c2.serviceLocate(HelloService.GET_NAME).nearest()
                 .get(6, TimeUnit.SECONDS);
         assertEquals(ID1, end.getId());
@@ -53,10 +54,10 @@ public class ServiceTest extends AbstractNetworkTest {
 
     @Test
     public void manyClients() throws Exception {
-        MaritimeNetworkClient c1 = newClient(ID1);
+        MaritimeCloudClient c1 = newClient(ID1);
         c1.serviceRegister(HelloService.GET_NAME, HelloService.create("foo123")).awaitRegistered(4, TimeUnit.SECONDS);
 
-        for (MaritimeNetworkClient c : newClients(20)) {
+        for (MaritimeCloudClient c : newClients(20)) {
             ServiceEndpoint<GetName, Reply> end = c.serviceLocate(HelloService.GET_NAME).nearest()
                     .get(6, TimeUnit.SECONDS);
             assertEquals(ID1, end.getId());
@@ -67,10 +68,10 @@ public class ServiceTest extends AbstractNetworkTest {
 
     @Test
     public void oneClientHandle() throws Exception {
-        MaritimeNetworkClient c1 = newClient(ID1);
+        MaritimeCloudClient c1 = newClient(ID1);
         c1.serviceRegister(HelloService.GET_NAME, HelloService.create("foo123")).awaitRegistered(4, TimeUnit.SECONDS);
 
-        MaritimeNetworkClient c2 = newClient(ID6);
+        MaritimeCloudClient c2 = newClient(ID6);
         ServiceEndpoint<GetName, Reply> end = c2.serviceLocate(HelloService.GET_NAME).nearest()
                 .get(6, TimeUnit.SECONDS);
         assertEquals(ID1, end.getId());

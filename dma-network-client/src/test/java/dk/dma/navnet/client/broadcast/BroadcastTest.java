@@ -24,10 +24,10 @@ import java.util.concurrent.TimeUnit;
 import org.junit.Ignore;
 import org.junit.Test;
 
-import dk.dma.enav.communication.MaritimeNetworkClient;
-import dk.dma.enav.communication.broadcast.BroadcastListener;
-import dk.dma.enav.communication.broadcast.BroadcastMessage;
-import dk.dma.enav.communication.broadcast.BroadcastMessageHeader;
+import dk.dma.enav.maritimecloud.MaritimeCloudClient;
+import dk.dma.enav.maritimecloud.broadcast.BroadcastListener;
+import dk.dma.enav.maritimecloud.broadcast.BroadcastMessage;
+import dk.dma.enav.maritimecloud.broadcast.BroadcastMessageHeader;
 import dk.dma.enav.model.geometry.PositionTime;
 import dk.dma.navnet.client.AbstractClientConnectionTest;
 import dk.dma.navnet.client.broadcast.stubs.HelloWorld;
@@ -43,7 +43,7 @@ public class BroadcastTest extends AbstractClientConnectionTest {
 
     @Test
     public void broadcast() throws Exception {
-        MaritimeNetworkClient c = createConnect();
+        MaritimeCloudClient c = createAndConnect();
 
         c.broadcast(new HelloWorld("hello"));
 
@@ -54,7 +54,7 @@ public class BroadcastTest extends AbstractClientConnectionTest {
 
     @Test
     public void broadcastListen() throws Exception {
-        MaritimeNetworkClient c = createConnect();
+        MaritimeCloudClient c = createAndConnect();
 
         final CountDownLatch cdl = new CountDownLatch(1);
         c.broadcastListen(HelloWorld.class, new BroadcastListener<HelloWorld>() {
@@ -84,7 +84,7 @@ public class BroadcastTest extends AbstractClientConnectionTest {
     // Subtype does not work, probably never will
     // Its OOD and
     public void broadcastListenSubType() throws Exception {
-        MaritimeNetworkClient c = createConnect();
+        MaritimeCloudClient c = createAndConnect();
 
         final CountDownLatch cdl = new CountDownLatch(2);
         c.broadcastListen(BroadcastMessage.class, new BroadcastListener<BroadcastMessage>() {

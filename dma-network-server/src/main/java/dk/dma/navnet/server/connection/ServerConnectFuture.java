@@ -20,7 +20,7 @@ import static java.util.Objects.requireNonNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import dk.dma.enav.communication.ClosingCode;
+import dk.dma.enav.maritimecloud.ClosingCode;
 import dk.dma.enav.model.geometry.PositionTime;
 import dk.dma.navnet.messages.TransportMessage;
 import dk.dma.navnet.messages.auxiliary.ConnectedMessage;
@@ -32,7 +32,7 @@ import dk.dma.navnet.server.target.TargetManager;
  * 
  * @author Kasper Nielsen
  */
-public class ServerConnectFuture {
+class ServerConnectFuture {
 
     /** The logger. */
     private static final Logger LOG = LoggerFactory.getLogger(ServerConnectFuture.class);
@@ -42,14 +42,52 @@ public class ServerConnectFuture {
     /**
      * @param serverTransport
      */
-    public ServerConnectFuture(ServerTransport serverTransport) {
+    ServerConnectFuture(ServerTransport serverTransport) {
         this.serverTransport = requireNonNull(serverTransport);
     }
 
-    /**
-     * 
-     */
-    public void helloSend() {}
+
+    public void onMessage(HelloMessage hm) {
+        System.out.println("HELLLO " + hm.getLastReceivedMessageId());
+
+        TargetManager tm = serverTransport.cm.targetManager;
+        Target target = tm.getTarget(hm.getClientId());
+
+        // make sure we only have one connection attempt for a target at a time
+        target.fullyLock();
+        try {
+            ServerConnection connection = target.getConnection();
+            boolean isReconnect = connection != null;
+
+            if (isReconnect) {
+                ServerTransport st = connection.transport;
+                if (st != null) {
+                    connection.transport = null;
+                    st.doClose(ClosingCode.DUPLICATE_CONNECT);
+                }
+                target.setLatestPosition(PositionTime.create(hm.getLat(), hm.getLon(), System.currentTimeMillis()));
+            } else {
+                connection = new ServerConnection(target, serverTransport.server);
+                target.setLatestPosition(PositionTime.create(hm.getLat(), hm.getLon(), System.currentTimeMillis()));
+                target.setConnection(connection);
+            }
+            connection.transport = serverTransport;
+
+            long id = connection.worker.getLatestReceivedId();
+
+            if (isReconnect) {
+
+            } else {
+                new Thread(connection.worker).start();
+            }
+            serverTransport.sendText(new ConnectedMessage(connection.id, id).toJSON());
+            serverTransport.connection = connection;
+            serverTransport.connectFuture = null;
+            connection.worker.onConnect(serverTransport, hm.getLastReceivedMessageId(), isReconnect);
+        } finally {
+            target.fullyUnlock();
+        }
+    }
 
     /**
      * @param msg
@@ -57,43 +95,11 @@ public class ServerConnectFuture {
     public void onMessage(TransportMessage m) {
         if (m instanceof HelloMessage) {
             HelloMessage hm = (HelloMessage) m;
-            TargetManager tm = serverTransport.cm.targetManager;
-            Target target = tm.getTarget(hm.getClientId());
-            target.fullyLock();
-            try {
-                ServerConnection connection = target.getConnection();
-                if (connection == null) {
-                    connection = new ServerConnection(target, serverTransport.server);
-                    connection.transport = serverTransport;
-                } else {
-                    ServerTransport st = connection.transport;
-                    if (st != null) {
-                        connection.transport = null;
-                        st.doClose(ClosingCode.DUPLICATE_CONNECT);
-                    }
-                }
-                serverTransport.sendText(new ConnectedMessage(connection.getConnectionId(), 0).toJSON());
-                serverTransport.connection = connection;
-                serverTransport.connectFuture = null;
-                target.setLatestPosition(PositionTime.create(hm.getLat(), hm.getLon(), System.currentTimeMillis()));
-                target.setConnection(connection);
-                // see if we already have a connection
-
-            } finally {
-                target.fullyUnlock();
-            }
-
-            // InternalClient client = connection.connectionManager.client;
-            // PositionTime pt = client.readCurrentPosition();
-            // transport.sendText(new HelloMessage(client.getLocalId(), "enavClient/1.0", "", reconnectId, pt
-            // .getLatitude(), pt.getLongitude()).toJSON());
-            // receivedHelloMessage = true;
+            onMessage(hm);
         } else {
             String err = "Expected a welcome message, but was: " + m.getClass().getSimpleName();
             LOG.error(err);
             // transport.doClose(ClosingCode.WRONG_MESSAGE.withMessage(err));
         }
-
-
     }
 }

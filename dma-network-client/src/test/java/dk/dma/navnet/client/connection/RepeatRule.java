@@ -1,4 +1,5 @@
 package dk.dma.navnet.client.connection;
+
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
@@ -14,13 +15,13 @@ public class RepeatRule implements TestRule {
         public abstract int times();
     }
 
-    private static class RepeatStatement extends Statement {
+    static class RepeatStatement extends Statement {
 
         private final int times;
 
         private final Statement statement;
 
-        private RepeatStatement(int times, Statement statement) {
+        RepeatStatement(int times, Statement statement) {
             this.times = times;
             this.statement = statement;
         }

@@ -19,7 +19,7 @@ import static org.junit.Assert.assertEquals;
 
 import org.junit.Test;
 
-import dk.dma.enav.communication.broadcast.BroadcastOptions;
+import dk.dma.enav.maritimecloud.broadcast.BroadcastOptions;
 import dk.dma.enav.model.geometry.PositionTime;
 import dk.dma.navnet.client.broadcast.stubs.HelloWorld;
 import dk.dma.navnet.messages.auxiliary.PositionReportMessage;

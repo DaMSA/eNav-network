@@ -15,7 +15,7 @@
  */
 package dk.dma.navnet.client.broadcast.stubs;
 
-import dk.dma.enav.communication.broadcast.BroadcastMessage;
+import dk.dma.enav.maritimecloud.broadcast.BroadcastMessage;
 
 /**
  * 

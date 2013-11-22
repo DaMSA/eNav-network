@@ -17,6 +17,8 @@ package dk.dma.navnet.server.connection;
 
 import static java.util.Objects.requireNonNull;
 
+import java.util.concurrent.locks.ReentrantLock;
+
 import javax.websocket.CloseReason;
 import javax.websocket.CloseReason.CloseCode;
 import javax.websocket.OnClose;
@@ -28,7 +30,7 @@ import javax.websocket.server.ServerEndpoint;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import dk.dma.enav.communication.ClosingCode;
+import dk.dma.enav.maritimecloud.ClosingCode;
 import dk.dma.enav.model.shore.ServerId;
 import dk.dma.navnet.messages.ConnectionMessage;
 import dk.dma.navnet.messages.TransportMessage;
@@ -45,93 +47,138 @@ public class ServerTransport {
     /** The logger. */
     static final Logger LOG = LoggerFactory.getLogger(ServerTransport.class);
 
+    final ConnectionManager cm;
+
+    /** Whether or not we have received the first hello message from the client. */
+    ServerConnectFuture connectFuture = new ServerConnectFuture(this);
+
     /** The connection this transport is attached to, or null, if it is not attached to one. */
     volatile ServerConnection connection;
+
+    private final ReentrantLock readLock = new ReentrantLock();
+
+    final InternalServer server;
 
     /** The websocket session. */
     private volatile Session session = null;
 
-    /** Whether or not we have received the first hello message from the client. */
-    ServerConnectFuture connectFuture;
+    private final ReentrantLock writeLock = new ReentrantLock();
 
-    final ConnectionManager cm;
-
-    final InternalServer server;
-
-    public ServerTransport(InternalServer server) {
+    ServerTransport(InternalServer server) {
         this.cm = requireNonNull(server.getService(ConnectionManager.class));
         this.server = requireNonNull(server);
     }
 
     /** {@inheritDoc} */
     void doClose(final ClosingCode reason) {
-        Session session = this.session;
-        if (session != null) {
-            CloseReason cr = new CloseReason(new CloseCode() {
-                public int getCode() {
-                    return reason.getId();
-                }
-            }, reason.getMessage());
+        fullyLock();
+        try {
+            Session session = this.session;
+            if (session != null) {
+                CloseReason cr = new CloseReason(new CloseCode() {
+                    public int getCode() {
+                        return reason.getId();
+                    }
+                }, reason.getMessage());
 
-            try {
-                session.close(cr);
-            } catch (Exception e) {
-                LOG.error("Failed to close connection", e);
+                try {
+                    session.close(cr);
+                } catch (Exception e) {
+                    LOG.error("Failed to close connection", e);
+                }
             }
+        } finally {
+            fullyUnlock();
         }
+    }
+
+    /**
+     * Locks to prevent both puts and takes.
+     */
+    void fullyLock() {
+        writeLock.lock();
+        readLock.lock();
+    }
+
+    /**
+     * Unlocks to allow both puts and takes.
+     */
+    void fullyUnlock() {
+        readLock.unlock();
+        writeLock.unlock();
     }
 
     /** {@inheritDoc} */
     @OnClose
     public void onClose(CloseReason closeReason) {
-        session = null;
-        ClosingCode reason = ClosingCode.create(closeReason.getCloseCode().getCode(), closeReason.getReasonPhrase());
-        connection.transportDisconnected(this, reason);
-    }
-
-    @OnMessage
-    public void onTextMessage(String textMessage) {
-        TransportMessage msg;
-        System.out.println("Received: " + textMessage);
+        fullyLock();
         try {
-            msg = TransportMessage.parseMessage(textMessage);
-        } catch (Exception e) {
-            e.printStackTrace();
-            LOG.error("Failed to parse incoming message", e);
-            doClose(ClosingCode.WRONG_MESSAGE.withMessage(e.getMessage()));
-            return;
-        }
-        if (connectFuture != null) {
-            connectFuture.onMessage(msg);
-        } else if (msg instanceof ConnectionMessage) {
-            ConnectionMessage m = (ConnectionMessage) msg;
-            connection.messageReceive(this, m);
-        } else {
-            String err = "Unknown messageType " + msg.getClass().getSimpleName();
-            LOG.error(err);
-            doClose(ClosingCode.WRONG_MESSAGE.withMessage(err));
-        }
-    }
-
-    void sendText(String text) {
-        Session session = this.session;
-        if (session != null) {
-            if (text.length() < 1000) {
-                System.out.println("Sending " + text);
+            session = null;
+            ClosingCode reason = ClosingCode
+                    .create(closeReason.getCloseCode().getCode(), closeReason.getReasonPhrase());
+            if (connection != null) {
+                connection.transportDisconnected(this, reason);
             }
-            session.getAsyncRemote().sendText(text);
+        } finally {
+            fullyUnlock();
         }
+
     }
 
     @OnOpen
     public void onOpen(Session session) {
-        this.session = session; // wait on the server to send a hello message
-        System.out.println("Hello " + cm);
-
-        // send a Welcome message to the client as the first thing
-        ServerId id = cm.server.getServerId();
-        connectFuture = new ServerConnectFuture(this);
-        sendText(new WelcomeMessage(1, id, "enavServer/1.0").toJSON());
+        fullyLock();
+        try {
+            this.session = session;
+            // send a Welcome message to the client as the first thing
+            ServerId id = cm.server.getServerId();
+            sendText(new WelcomeMessage(1, id, "enavServer/1.0").toJSON());
+        } finally {
+            fullyUnlock();
+        }
     }
 
+    @OnMessage
+    public void onTextMessage(String textMessage) {
+        readLock.lock();
+        try {
+            TransportMessage msg;
+            System.out.println("Received: " + textMessage);
+            try {
+                msg = TransportMessage.parseMessage(textMessage);
+            } catch (Exception e) {
+                e.printStackTrace();
+                LOG.error("Failed to parse incoming message", e);
+                doClose(ClosingCode.WRONG_MESSAGE.withMessage(e.getMessage()));
+                return;
+            }
+            if (connectFuture != null) {
+                connectFuture.onMessage(msg);
+            } else if (msg instanceof ConnectionMessage) {
+                ConnectionMessage m = (ConnectionMessage) msg;
+                connection.messageReceive(this, m);
+            } else {
+                String err = "Unknown messageType " + msg.getClass().getSimpleName();
+                LOG.error(err);
+                doClose(ClosingCode.WRONG_MESSAGE.withMessage(err));
+            }
+        } finally {
+            readLock.unlock();
+        }
+    }
+
+    public void sendText(String text) {
+        writeLock.lock();
+        try {
+            Session session = this.session;
+            if (session != null) {
+                if (text.length() < 1000) {
+                    System.out.println("Sending " + text);
+                }
+                session.getAsyncRemote().sendText(text);
+            }
+        } finally {
+            writeLock.unlock();
+        }
+    }
 }

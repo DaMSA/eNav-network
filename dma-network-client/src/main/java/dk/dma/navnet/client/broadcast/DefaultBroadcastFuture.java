@@ -22,10 +22,13 @@ import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.locks.ReentrantLock;
 
-import dk.dma.enav.communication.ConnectionFuture;
-import dk.dma.enav.communication.broadcast.BroadcastFuture;
-import dk.dma.enav.communication.broadcast.BroadcastMessage.Ack;
-import dk.dma.enav.communication.broadcast.BroadcastOptions;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import dk.dma.enav.maritimecloud.ConnectionFuture;
+import dk.dma.enav.maritimecloud.broadcast.BroadcastFuture;
+import dk.dma.enav.maritimecloud.broadcast.BroadcastOptions;
+import dk.dma.enav.maritimecloud.broadcast.BroadcastMessage.Ack;
 import dk.dma.enav.util.function.Consumer;
 import dk.dma.navnet.client.util.DefaultConnectionFuture;
 import dk.dma.navnet.client.util.ThreadManager;
@@ -37,6 +40,10 @@ import dk.dma.navnet.client.util.ThreadManager;
  */
 class DefaultBroadcastFuture implements BroadcastFuture {
 
+    /** The logger. */
+    private static final Logger LOG = LoggerFactory.getLogger(BroadcastManager.class);
+
+    /** A list of all ACKs we have received. */
     private final List<Ack> acks = new ArrayList<>();
 
     /** All registered consumers. */
@@ -45,13 +52,15 @@ class DefaultBroadcastFuture implements BroadcastFuture {
     /** The main lock. */
     private final ReentrantLock lock = new ReentrantLock();
 
+    /** The options for this broadcast. */
+    private final BroadcastOptions options;
+
+    /** A connection future used to determined if the broadcast message has been received on the server */
     final DefaultConnectionFuture<Void> receivedOnServer;
 
-    final BroadcastOptions options;
-
     DefaultBroadcastFuture(ThreadManager tm, BroadcastOptions options) {
-        receivedOnServer = new DefaultConnectionFuture<>(tm.getScheduler());
-        this.options = options;
+        this.receivedOnServer = tm.create();
+        this.options = requireNonNull(options);
     }
 
     /** {@inheritDoc} */
@@ -59,28 +68,36 @@ class DefaultBroadcastFuture implements BroadcastFuture {
     public void onAck(Consumer<? super Ack> consumer) {
         requireNonNull(consumer);
         if (!options.isReceiverAckEnabled()) {
-            throw new UnsupportedOperationException("Receiver ack is not enabled");
+            throw new UnsupportedOperationException("Receiver ack is not enabled, must be set in BroadcastOptions");
         }
         lock.lock();
         try {
             consumers.add(consumer);
             // We need to replay acks in case someone have already acked a messages.
             // before this method is called (big GC pause, for example)
-            for (Ack a : acks) {
-                consumer.accept(a);
+            for (Ack ack : acks) {
+                try {
+                    consumer.accept(ack);
+                } catch (Exception e) {
+                    LOG.error("Failed to process broadcast ack", e);
+                }
             }
         } finally {
             lock.unlock();
         }
     }
 
-    void onMessage(Ack ack) {
+    void onAckMessage(Ack ack) {
         requireNonNull(ack);
         lock.lock();
         try {
             acks.add(ack);
-            for (Consumer<? super Ack> c : consumers) {
-                c.accept(ack);
+            for (Consumer<? super Ack> consumer : consumers) {
+                try {
+                    consumer.accept(ack);
+                } catch (Exception e) {
+                    LOG.error("Failed to process broadcast ack", e);
+                }
             }
         } finally {
             lock.unlock();

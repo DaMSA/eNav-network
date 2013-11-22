@@ -21,16 +21,17 @@ import jsr166e.CompletableFuture.Action;
 
 import org.picocontainer.Startable;
 
-import dk.dma.enav.model.MaritimeId;
+import dk.dma.enav.maritimecloud.broadcast.BroadcastMessage;
 import dk.dma.enav.model.geometry.PositionTime;
+import dk.dma.enav.util.function.Consumer;
 import dk.dma.navnet.messages.c2c.broadcast.BroadcastAck;
 import dk.dma.navnet.messages.c2c.broadcast.BroadcastDeliver;
 import dk.dma.navnet.messages.c2c.broadcast.BroadcastSend;
 import dk.dma.navnet.messages.c2c.broadcast.BroadcastSendAck;
-import dk.dma.navnet.server.connection.RequestException;
-import dk.dma.navnet.server.connection.RequestProcessor;
 import dk.dma.navnet.server.connection.ServerConnection;
-import dk.dma.navnet.server.connection.ServerMessageBus;
+import dk.dma.navnet.server.requests.RequestException;
+import dk.dma.navnet.server.requests.RequestProcessor;
+import dk.dma.navnet.server.requests.ServerMessageBus;
 import dk.dma.navnet.server.target.Target;
 import dk.dma.navnet.server.target.TargetManager;
 
@@ -48,39 +49,51 @@ public class BroadcastManager implements Startable {
         this.bus = requireNonNull(bus);
     }
 
-    BroadcastSendAck broadcast(final ServerConnection source, final BroadcastSend send) {
-        BroadcastDeliver bd = null;
+    BroadcastSendAck broadcast(final ServerConnection source, final BroadcastSend send) throws RequestException {
+        final BroadcastMessage bm;
         try {
-            bd = BroadcastDeliver.create(MaritimeId.create("mmsi://2"), send.getPositionTime(), send.tryRead());
+            bm = send.tryRead();
         } catch (Exception e) {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
+            throw new RequestException(e);
         }
-        PositionTime sourcePositionTime = send.getPositionTime();
-        for (Target t : tm) {
-            final ServerConnection connection = t.getConnection();
-            if (connection != null && source != connection) {
-                PositionTime latest = t.getLatestPosition();
-                if (latest != null) {
-                    double distance = sourcePositionTime.geodesicDistanceTo(latest);
-                    if (distance < send.getDistance()) {
-                        CompletableFuture<Void> f = bus.sendConnectionMessage(connection, bd);
-                        if (send.isReceiverAck()) {
-                            f.thenAccept(new Action<Void>() {
-                                public void accept(Void paramA) {
-                                    Target t = connection.getTarget();
-                                    BroadcastAck ba = new BroadcastAck(send.getReplyTo(), t.getId(), t
-                                            .getLatestPosition());
-                                    source.messageSend(ba);
-                                }
-                            });
+
+        final Target target = source.getTarget();
+        final PositionTime sourcePositionTime = send.getPositionTime();
+
+        tm.forEachTarget(new Consumer<Target>() {
+            @Override
+            public void accept(Target t) {
+                if (t != target && t.isConnected()) { // do not broadcast to self
+                    PositionTime latest = t.getLatestPosition();
+                    if (latest != null) {
+                        double distance = sourcePositionTime.geodesicDistanceTo(latest);
+                        if (distance < send.getDistance()) {
+                            BroadcastDeliver bd = BroadcastDeliver.create(send.getId(), send.getPositionTime(), bm);
+                            final ServerConnection connection = t.getConnection();
+                            CompletableFuture<Void> f = connection.messageSend(bd).protocolAcked();
+                            if (send.isReceiverAck()) {
+                                f.thenAccept(new Action<Void>() {
+                                    public void accept(Void paramA) {
+                                        Target t = connection.getTarget();
+                                        BroadcastAck ba = new BroadcastAck(send.getReplyTo(), t.getId(), t
+                                                .getLatestPosition());
+                                        source.messageSend(ba);
+                                    }
+                                });
+                            }
                         }
                     }
                 }
             }
-        }
+        });
+
         return send.createReply();
     }
+
+    void broadCastTo(BroadcastSend bs, Target target, BroadcastDeliver bd) {
+
+    }
+
 
     /** {@inheritDoc} */
     @Override

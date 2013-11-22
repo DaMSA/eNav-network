@@ -15,13 +15,38 @@
  */
 package dk.dma.navnet.server.connection;
 
-import dk.dma.navnet.messages.s2c.ServerRequestMessage;
-import dk.dma.navnet.messages.s2c.ServerResponseMessage;
+import jsr166e.CompletableFuture;
+import dk.dma.navnet.messages.ConnectionMessage;
 
 /**
  * 
  * @author Kasper Nielsen
  */
-public interface RequestProcessor<S extends ServerRequestMessage<T>, T extends ServerResponseMessage> {
-    T process(ServerConnection connection, S message) throws RequestException;
+public class OutstandingMessage {
+
+    private final CompletableFuture<Void> acked = new CompletableFuture<>();
+
+    volatile boolean isSent;
+
+    final ConnectionMessage cm;
+
+    long id;
+
+    OutstandingMessage(ConnectionMessage cm) {
+        this.cm = cm;
+    }
+
+    /**
+     * A future that can be used to find out if a message has been received on the remote side. Via an ack for the
+     * message id.
+     * 
+     * @return
+     */
+    public CompletableFuture<Void> protocolAcked() {
+        return acked;
+    }
+
+    public boolean isSent() {
+        return isSent;
+    }
 }

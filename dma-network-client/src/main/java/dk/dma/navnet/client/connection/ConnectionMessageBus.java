@@ -17,14 +17,17 @@ package dk.dma.navnet.client.connection;
 
 import static java.util.Objects.requireNonNull;
 
+import java.lang.reflect.Method;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import org.picocontainer.PicoContainer;
+import org.picocontainer.Startable;
+
 import dk.dma.enav.util.function.Consumer;
 import dk.dma.navnet.client.util.DefaultConnectionFuture;
 import dk.dma.navnet.client.util.ThreadManager;
-import dk.dma.navnet.client.worker.OutstandingMessage;
 import dk.dma.navnet.messages.ConnectionMessage;
 import dk.dma.navnet.messages.s2c.ServerRequestMessage;
 import dk.dma.navnet.messages.s2c.ServerResponseMessage;
@@ -35,7 +38,7 @@ import dk.dma.navnet.messages.s2c.service.RegisterServiceResult;
  * 
  * @author Kasper Nielsen
  */
-public class ConnectionMessageBus {
+public class ConnectionMessageBus implements Startable {
 
     /** Consumers of messages. */
     final CopyOnWriteArraySet<MessageConsumer> consumers = new CopyOnWriteArraySet<>();
@@ -50,8 +53,12 @@ public class ConnectionMessageBus {
 
     final AtomicInteger ai = new AtomicInteger();
 
-    public ConnectionMessageBus(ConnectionManager cm, ThreadManager threadManager) {
+    final PicoContainer container;
+
+    public ConnectionMessageBus(PicoContainer container, ConnectionManager cm, ThreadManager threadManager) {
         this.cm = cm;
+        this.container = container;
+
         cm.hub = this;
         this.threadManager = threadManager;
     }
@@ -134,7 +141,7 @@ public class ConnectionMessageBus {
     }
 
     @SuppressWarnings("unchecked")
-    public <T extends ConnectionMessage> void subscribe(Class<T> type, Consumer<? super T> c) {
+    <T extends ConnectionMessage> void subscribe(Class<T> type, Consumer<? super T> c) {
         consumers.add(new MessageConsumer(type, (Consumer<ConnectionMessage>) c));
     }
 
@@ -149,4 +156,34 @@ public class ConnectionMessageBus {
             this.c = requireNonNull(c);
         }
     }
+
+    /** {@inheritDoc} */
+    @SuppressWarnings("unchecked")
+    @Override
+    public void start() {
+        for (final Object o : container.getComponents()) {
+            for (final Method m : o.getClass().getMethods()) {
+                if (m.isAnnotationPresent(OnMessage.class)) {
+                    @SuppressWarnings("rawtypes")
+                    Class messageType = m.getParameterTypes()[0];
+                    subscribe(messageType, new Consumer<Object>() {
+                        public void accept(Object t) {
+                            try {
+                                m.invoke(o, t);
+                            } catch (ReflectiveOperationException e) {
+                                throw new RuntimeException(e);
+                            }
+                        }
+                    });
+                    System.out.println(m.getName());
+                }
+            }
+        }
+
+    }
+
+
+    /** {@inheritDoc} */
+    @Override
+    public void stop() {}
 }

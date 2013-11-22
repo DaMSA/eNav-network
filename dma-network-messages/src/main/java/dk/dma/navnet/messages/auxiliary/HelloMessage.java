@@ -42,6 +42,15 @@ public class HelloMessage extends TransportMessage {
 
     private final String reconnectId;
 
+    private final long lastReceivedMessageId;
+
+    /**
+     * @return the lastReceivedMessageId
+     */
+    public long getLastReceivedMessageId() {
+        return lastReceivedMessageId;
+    }
+
     /**
      * @param messageType
      */
@@ -53,10 +62,11 @@ public class HelloMessage extends TransportMessage {
         this.reconnectId = reconnectId;
         this.lat = lat;
         this.lon = lon;
+        this.lastReceivedMessageId = lastReceivedMessageId;
     }
 
     public HelloMessage(TextMessageReader pr) throws IOException {
-        this(MaritimeId.create(pr.takeString()), pr.takeString(), pr.takeString(), 123, pr.takeDouble(), pr
+        this(MaritimeId.create(pr.takeString()), pr.takeString(), pr.takeString(), pr.takeLong(), pr.takeDouble(), pr
                 .takeDouble());
     }
 
@@ -101,6 +111,7 @@ public class HelloMessage extends TransportMessage {
         w.writeString(clientId.toString());
         w.writeString(clientInfo);
         w.writeString(reconnectId);
+        w.writeLong(lastReceivedMessageId);
         w.writeDouble(lat);
         w.writeDouble(lon);
     }

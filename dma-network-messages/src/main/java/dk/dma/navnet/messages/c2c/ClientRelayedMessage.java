@@ -17,6 +17,7 @@ package dk.dma.navnet.messages.c2c;
 
 import java.io.IOException;
 
+import dk.dma.enav.model.MaritimeId;
 import dk.dma.navnet.messages.ConnectionMessage;
 import dk.dma.navnet.messages.MessageType;
 import dk.dma.navnet.messages.TextMessageReader;
@@ -57,6 +58,10 @@ public abstract class ClientRelayedMessage extends ConnectionMessage {
      */
     public String getSource() {
         return source;
+    }
+
+    public MaritimeId getSourceId() {
+        return MaritimeId.create(getSource());
     }
 
     public void setDestination(String destination) {

@@ -28,7 +28,8 @@ import org.junit.Test;
 import test.stubs.HelloService;
 import test.stubs.HelloService.GetName;
 import test.stubs.HelloService.Reply;
-import dk.dma.enav.communication.MaritimeNetworkClient;
+import dk.dma.enav.maritimecloud.MaritimeCloudClient;
+import dk.dma.enav.maritimecloud.service.ServiceEndpoint;
 import dk.dma.enav.model.geometry.CoordinateSystem;
 import dk.dma.enav.model.geometry.Position;
 
@@ -45,16 +46,16 @@ public class ServiceFindTest extends AbstractServiceTest {
      */
     @Test
     public void findNearest() throws Exception {
-        MaritimeNetworkClient s = registerService(newClient(), "foo123");
-        MaritimeNetworkClient c = newClient();
+        MaritimeCloudClient s = registerService(newClient(), "foo123");
+        MaritimeCloudClient c = newClient();
         ServiceEndpoint<GetName, Reply> end = c.serviceLocate(HelloService.GET_NAME).nearest().get(6, TimeUnit.SECONDS);
         assertEquals(s.getClientId(), end.getId());
     }
 
     @Test
     public void findNearestOutOf2() throws Exception {
-        MaritimeNetworkClient s1 = registerService(newClient(1, 1), "A");
-        MaritimeNetworkClient s2 = registerService(newClient(5, 5), "B");
+        MaritimeCloudClient s1 = registerService(newClient(1, 1), "A");
+        MaritimeCloudClient s2 = registerService(newClient(5, 5), "B");
         ServiceEndpoint<GetName, Reply> e;
 
         e = newClient(2, 2).serviceLocate(HelloService.GET_NAME).nearest().get(6, TimeUnit.SECONDS);
@@ -69,7 +70,7 @@ public class ServiceFindTest extends AbstractServiceTest {
 
     @Test
     public void findNearestOfMany() throws Exception {
-        Map<Integer, MaritimeNetworkClient> m = new HashMap<>();
+        Map<Integer, MaritimeCloudClient> m = new HashMap<>();
         for (int i = 0; i < 10; i++) {
             m.put(i, registerService(newClient(i, i), "A" + i));
         }
@@ -94,7 +95,7 @@ public class ServiceFindTest extends AbstractServiceTest {
      */
     @Test
     public void cannotFindSelf() throws Exception {
-        MaritimeNetworkClient s = registerService(newClient(), "foo123");
+        MaritimeCloudClient s = registerService(newClient(), "foo123");
         assertNull(s.serviceLocate(HelloService.GET_NAME).nearest().get(6, TimeUnit.SECONDS));
     }
 
@@ -109,7 +110,7 @@ public class ServiceFindTest extends AbstractServiceTest {
 
     @Test
     public void findWithMaxDistance() throws Exception {
-        Map<Integer, MaritimeNetworkClient> m = new HashMap<>();
+        Map<Integer, MaritimeCloudClient> m = new HashMap<>();
         for (int i = 0; i < 10; i++) {
             m.put(i, registerService(newClient(i, i), "A" + i));
         }

@@ -18,11 +18,11 @@ package dk.dma.navnet.messages;
 import static java.util.Objects.requireNonNull;
 
 import java.io.IOException;
+import java.util.Objects;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
-import com.google.common.base.Objects;
 
 /**
  * A text only message.
@@ -59,7 +59,7 @@ public abstract class TransportMessage {
     }
 
     public boolean equals(Object other) {
-        return other instanceof TransportMessage && Objects.equal(rawMessage, ((TransportMessage) other).rawMessage);
+        return other instanceof TransportMessage && Objects.equals(rawMessage, ((TransportMessage) other).rawMessage);
     }
 
     public int hashCode() {

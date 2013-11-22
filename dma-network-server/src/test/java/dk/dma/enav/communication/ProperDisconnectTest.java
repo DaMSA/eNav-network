@@ -21,7 +21,8 @@ import org.junit.Ignore;
 import org.junit.Test;
 
 import test.util.TesstService;
-import dk.dma.enav.communication.service.InvocationCallback;
+import dk.dma.enav.maritimecloud.MaritimeCloudClient;
+import dk.dma.enav.maritimecloud.service.invocation.InvocationCallback;
 
 /**
  * 
@@ -36,15 +37,15 @@ public class ProperDisconnectTest extends AbstractNetworkTest {
     @Test
     @Ignore
     public void randomKilling() throws Exception {
-        MaritimeNetworkClient c1 = newClient(ID1);
-        // c1.serviceRegister(TestService.TEST_INIT,
-        // new InvocationCallback<TestService.TestInit, TestService.TestReply>() {
-        // public void process(TestService.TestInit l, Context<TestService.TestReply> context) {
-        // context.complete(l.reply());
-        // }
-        // }).awaitRegistered(1, TimeUnit.SECONDS);
-
-        // pt.killFirstConnection();
+        MaritimeCloudClient c1 = newClient(ID1);
+        // // c1.serviceRegister(TestService.TEST_INIT,
+        // // new InvocationCallback<TestService.TestInit, TestService.TestReply>() {
+        // // public void process(TestService.TestInit l, Context<TestService.TestReply> context) {
+        // // context.complete(l.reply());
+        // // }
+        // // }).awaitRegistered(1, TimeUnit.SECONDS);
+        //
+        // // pt.killFirstConnection();
         c1.serviceRegister(TesstService.TEST_INIT,
                 new InvocationCallback<TesstService.TestInit, TesstService.TestReply>() {
                     public void process(TesstService.TestInit l, Context<TesstService.TestReply> context) {

@@ -25,7 +25,9 @@ import java.util.concurrent.TimeUnit;
 import org.junit.Test;
 
 import dk.dma.enav.communication.AbstractNetworkTest;
-import dk.dma.enav.communication.MaritimeNetworkClient;
+import dk.dma.enav.maritimecloud.MaritimeCloudClient;
+import dk.dma.enav.maritimecloud.broadcast.BroadcastListener;
+import dk.dma.enav.maritimecloud.broadcast.BroadcastMessageHeader;
 import dk.dma.navnet.client.broadcast.stubs.BroadcastTestMessage;
 
 /**
@@ -36,8 +38,8 @@ public class BroadcastTest extends AbstractNetworkTest {
 
     @Test
     public void oneBroadcast() throws Exception {
-        MaritimeNetworkClient c1 = newClient(ID1);
-        MaritimeNetworkClient c2 = newClient(ID6);
+        MaritimeCloudClient c1 = newClient(ID1);
+        MaritimeCloudClient c2 = newClient(ID6);
         final CountDownLatch cdl = new CountDownLatch(1);
         c2.broadcastListen(BroadcastTestMessage.class, new BroadcastListener<BroadcastTestMessage>() {
             public void onMessage(BroadcastMessageHeader props, BroadcastTestMessage t) {
@@ -52,10 +54,10 @@ public class BroadcastTest extends AbstractNetworkTest {
 
     @Test
     public void multipleReceivers() throws Exception {
-        MaritimeNetworkClient c1 = newClient(ID1);
+        MaritimeCloudClient c1 = newClient(ID1);
         final CountDownLatch cdl = new CountDownLatch(10);
 
-        for (MaritimeNetworkClient mnc : newClients(10)) {
+        for (MaritimeCloudClient mnc : newClients(10)) {
             mnc.broadcastListen(BroadcastTestMessage.class, new BroadcastListener<BroadcastTestMessage>() {
                 public void onMessage(BroadcastMessageHeader props, BroadcastTestMessage t) {
                     assertEquals("fooo", t.getName());
@@ -70,8 +72,8 @@ public class BroadcastTest extends AbstractNetworkTest {
 
     @Test
     public void receiveNotSelf() throws Exception {
-        MaritimeNetworkClient c1 = newClient(ID1);
-        MaritimeNetworkClient c2 = newClient(ID6);
+        MaritimeCloudClient c1 = newClient(ID1);
+        MaritimeCloudClient c2 = newClient(ID6);
         final CountDownLatch cdl1 = new CountDownLatch(1);
         final CountDownLatch cdl2 = new CountDownLatch(1);
         c1.broadcastListen(BroadcastTestMessage.class, new BroadcastListener<BroadcastTestMessage>() {

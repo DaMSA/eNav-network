@@ -24,11 +24,13 @@ import java.util.concurrent.TimeUnit;
 import org.junit.Ignore;
 import org.junit.Test;
 
+import dk.dma.enav.maritimecloud.ClosingCode;
+import dk.dma.enav.maritimecloud.MaritimeCloudConnection;
+
 /**
  * 
  * @author Kasper Nielsen
  */
-@Ignore
 public class ConnectionStateListenerTest extends AbstractNetworkTest {
 
     @Test
@@ -58,8 +60,8 @@ public class ConnectionStateListenerTest extends AbstractNetworkTest {
         assertTrue(cdl.await(1, TimeUnit.SECONDS));
     }
 
-    @Ignore
     @Test
+    @Ignore
     public void closed() throws Exception {
         final CountDownLatch cdl = new CountDownLatch(1);
         newClient(newBuilder(ID1).addListener(new AbstractConnectionTestListener() {
@@ -71,7 +73,7 @@ public class ConnectionStateListenerTest extends AbstractNetworkTest {
         assertTrue(cdl.await(1, TimeUnit.SECONDS));
     }
 
-    static class AbstractConnectionTestListener extends MaritimeNetworkConnection.Listener {
+    static class AbstractConnectionTestListener extends MaritimeCloudConnection.Listener {
 
     }
 }

@@ -13,21 +13,34 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package dk.dma.navnet.server;
+package dk.dma.navnet.client.connection;
+
+import jsr166e.CompletableFuture;
+import dk.dma.navnet.messages.ConnectionMessage;
 
 /**
  * 
  * @author Kasper Nielsen
  */
-public class Test {
+public class OutstandingMessage {
 
-    public static void main(String[] args) {
-        ServerConfiguration c = new ServerConfiguration();
+    private final CompletableFuture<?> acked = new CompletableFuture<>();
 
+    volatile boolean isSent;
 
-        InternalServer is = new InternalServer(c);
+    final ConnectionMessage cm;
 
-        is.start();
+    long id;
 
+    OutstandingMessage(ConnectionMessage cm) {
+        this.cm = cm;
+    }
+
+    public CompletableFuture<?> acked() {
+        return acked;
+    }
+
+    public boolean isSent() {
+        return isSent;
     }
 }

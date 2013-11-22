@@ -20,7 +20,7 @@ import static java.util.Objects.requireNonNull;
 import java.util.concurrent.Callable;
 
 import jsr166e.CompletableFuture;
-import dk.dma.enav.communication.ClosingCode;
+import dk.dma.enav.maritimecloud.ClosingCode;
 
 /**
  * 

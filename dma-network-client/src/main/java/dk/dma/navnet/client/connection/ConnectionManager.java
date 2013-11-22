@@ -31,21 +31,21 @@ import org.picocontainer.Startable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import dk.dma.enav.communication.MaritimeNetworkClientConfiguration;
-import dk.dma.enav.communication.MaritimeNetworkConnection;
-import dk.dma.navnet.client.InternalClient;
+import dk.dma.enav.maritimecloud.MaritimeCloudClientConfiguration;
+import dk.dma.enav.maritimecloud.MaritimeCloudConnection;
+import dk.dma.navnet.client.ClientContainer;
 import dk.dma.navnet.client.util.ThreadManager;
 
 /**
  * 
  * @author Kasper Nielsen
  */
-public class ConnectionManager implements MaritimeNetworkConnection, Startable {
+public class ConnectionManager implements MaritimeCloudConnection, Startable {
 
     /** The logger. */
     static final Logger LOG = LoggerFactory.getLogger(ConnectionManager.class);
 
-    final InternalClient client;
+    final ClientContainer client;
 
     volatile ClientConnection connection;
 
@@ -55,7 +55,7 @@ public class ConnectionManager implements MaritimeNetworkConnection, Startable {
     ConnectionMessageBus hub;
 
     /** Listeners for updates to the connection status. */
-    final CopyOnWriteArraySet<MaritimeNetworkConnection.Listener> listeners = new CopyOnWriteArraySet<>();
+    final CopyOnWriteArraySet<MaritimeCloudConnection.Listener> listeners = new CopyOnWriteArraySet<>();
 
     /** The main lock of the connection manager. */
     final ReentrantLock lock = new ReentrantLock();
@@ -71,10 +71,10 @@ public class ConnectionManager implements MaritimeNetworkConnection, Startable {
     /** The URI to connect to. Is constant. */
     final URI uri;
 
-    public ConnectionManager(InternalClient client, ThreadManager threadManager, MaritimeNetworkClientConfiguration b) {
+    public ConnectionManager(ClientContainer client, ThreadManager threadManager, MaritimeCloudClientConfiguration b) {
         this.client = client;
         this.threadManager = threadManager;
-        for (MaritimeNetworkConnection.Listener listener : b.getListeners()) {
+        for (MaritimeCloudConnection.Listener listener : b.getListeners()) {
             addListener(listener);
         }
         try {
@@ -86,7 +86,7 @@ public class ConnectionManager implements MaritimeNetworkConnection, Startable {
 
     /** {@inheritDoc} */
     @Override
-    public final void addListener(MaritimeNetworkConnection.Listener listener) {
+    public final void addListener(MaritimeCloudConnection.Listener listener) {
         listeners.add(requireNonNull(listener));
     }
 

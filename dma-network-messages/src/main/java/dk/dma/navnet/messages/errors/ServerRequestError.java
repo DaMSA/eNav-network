@@ -13,7 +13,7 @@
  * You should have received a copy of the GNU General Public License
  * along with this library.  If not, see <http://www.gnu.org/licenses/>.
  */
-package dk.dma.navnet.messages.c2c;
+package dk.dma.navnet.messages.errors;
 
 import dk.dma.navnet.messages.ConnectionMessage;
 import dk.dma.navnet.messages.MessageType;

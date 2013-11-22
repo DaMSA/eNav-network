@@ -24,10 +24,10 @@ import org.junit.Test;
 import test.stubs.HelloService;
 import test.stubs.HelloService.GetName;
 import test.stubs.HelloService.Reply;
-import dk.dma.enav.communication.ConnectionFuture;
-import dk.dma.enav.communication.MaritimeNetworkClient;
-import dk.dma.enav.communication.service.ServiceEndpoint;
-import dk.dma.enav.communication.service.ServiceRegistration;
+import dk.dma.enav.maritimecloud.ConnectionFuture;
+import dk.dma.enav.maritimecloud.MaritimeCloudClient;
+import dk.dma.enav.maritimecloud.service.ServiceEndpoint;
+import dk.dma.enav.maritimecloud.service.registration.ServiceRegistration;
 import dk.dma.enav.model.MaritimeId;
 import dk.dma.navnet.client.AbstractClientConnectionTest;
 import dk.dma.navnet.messages.c2c.service.InvokeService;
@@ -42,7 +42,7 @@ public class ServiceTest extends AbstractClientConnectionTest {
 
     @Test
     public void register() throws Exception {
-        MaritimeNetworkClient c = createConnect();
+        MaritimeCloudClient c = createAndConnect();
         ServiceRegistration sr = c.serviceRegister(HelloService.GET_NAME, HelloService.create("ok"));
 
         RegisterService rs = t.take(RegisterService.class);
@@ -54,8 +54,8 @@ public class ServiceTest extends AbstractClientConnectionTest {
 
         // c.serviceRegister(null, null)
         //
-        // MaritimeNetworkClient s = registerService(newClient(), "foo123");
-        // MaritimeNetworkClient c = newClient();
+        // MaritimeCloudClient s = registerService(newClient(), "foo123");
+        // MaritimeCloudClient c = newClient();
         // ServiceEndpoint<GetName, Reply> end = c.serviceLocate(HelloService.GET_NAME).nearest().get(6,
         // TimeUnit.SECONDS);
         // assertEquals(s.getClientId(), end.getId());
@@ -63,7 +63,7 @@ public class ServiceTest extends AbstractClientConnectionTest {
 
     @Test
     public void locate() throws Exception {
-        MaritimeNetworkClient c = createConnect();
+        MaritimeCloudClient c = createAndConnect();
         ConnectionFuture<ServiceEndpoint<GetName, Reply>> locator = c.serviceLocate(HelloService.GET_NAME).nearest();
 
         FindService rs = t.take(FindService.class);

@@ -24,10 +24,11 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
 import jsr166e.CompletableFuture;
-import dk.dma.enav.communication.ConnectionFuture;
+import dk.dma.enav.maritimecloud.ConnectionFuture;
 import dk.dma.enav.util.function.BiConsumer;
 
 /**
+ * The default implementation of ConnectionFuture.
  * 
  * @author Kasper Nielsen
  */
@@ -36,7 +37,7 @@ public class DefaultConnectionFuture<T> extends CompletableFuture<T> implements 
 
     final String requestId;
 
-    public DefaultConnectionFuture(ScheduledExecutorService ses) {
+    DefaultConnectionFuture(ScheduledExecutorService ses) {
         this.ses = ses;
         this.requestId = "fixme";
     }

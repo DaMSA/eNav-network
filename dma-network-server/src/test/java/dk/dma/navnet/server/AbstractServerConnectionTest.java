@@ -32,7 +32,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 
-import dk.dma.enav.communication.MaritimeNetworkClientConfiguration;
+import dk.dma.enav.maritimecloud.MaritimeCloudClientConfiguration;
 import dk.dma.enav.model.MaritimeId;
 import dk.dma.navnet.client.TestWebSocketServer;
 import dk.dma.navnet.messages.auxiliary.ConnectedMessage;
@@ -61,7 +61,7 @@ public abstract class AbstractServerConnectionTest {
 
     int clientPort;
 
-    MaritimeNetworkClientConfiguration conf;
+    MaritimeCloudClientConfiguration conf;
 
     InternalServer server;
 

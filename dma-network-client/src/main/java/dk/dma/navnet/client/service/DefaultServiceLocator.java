@@ -21,11 +21,11 @@ import java.util.ArrayList;
 import java.util.List;
 
 import jsr166e.CompletableFuture;
-import dk.dma.enav.communication.ConnectionFuture;
-import dk.dma.enav.communication.service.ServiceEndpoint;
-import dk.dma.enav.communication.service.ServiceLocator;
-import dk.dma.enav.communication.service.spi.ServiceInitiationPoint;
-import dk.dma.enav.communication.service.spi.ServiceMessage;
+import dk.dma.enav.maritimecloud.ConnectionFuture;
+import dk.dma.enav.maritimecloud.service.ServiceEndpoint;
+import dk.dma.enav.maritimecloud.service.ServiceLocator;
+import dk.dma.enav.maritimecloud.service.spi.ServiceInitiationPoint;
+import dk.dma.enav.maritimecloud.service.spi.ServiceMessage;
 import dk.dma.enav.model.MaritimeId;
 import dk.dma.navnet.client.util.DefaultConnectionFuture;
 import dk.dma.navnet.client.util.ThreadManager;
@@ -37,7 +37,7 @@ import dk.dma.navnet.messages.s2c.service.FindServiceResult;
  * 
  * @author Kasper Nielsen
  */
-class ServiceLocatorImpl<T, E extends ServiceMessage<T>> implements ServiceLocator<T, E> {
+class DefaultServiceLocator<T, E extends ServiceMessage<T>> implements ServiceLocator<T, E> {
 
     /** The distance in meters for where to look for the service. */
     final int distance;
@@ -48,7 +48,7 @@ class ServiceLocatorImpl<T, E extends ServiceMessage<T>> implements ServiceLocat
 
     final ThreadManager threadManager;
 
-    ServiceLocatorImpl(ThreadManager threadManager, ServiceInitiationPoint<E> sip, ClientServiceManager csm,
+    DefaultServiceLocator(ThreadManager threadManager, ServiceInitiationPoint<E> sip, ClientServiceManager csm,
             int distance) {
         this.csm = requireNonNull(csm);
         this.distance = distance;
@@ -62,7 +62,7 @@ class ServiceLocatorImpl<T, E extends ServiceMessage<T>> implements ServiceLocat
         if (meters <= 0 || meters >= 100_000_000) {
             throw new IllegalArgumentException("Meters must be greater >0 and <100.000.000");
         }
-        return new ServiceLocatorImpl<>(threadManager, sip, csm, meters);
+        return new DefaultServiceLocator<>(threadManager, sip, csm, meters);
     }
 
     /** {@inheritDoc} */
@@ -75,7 +75,7 @@ class ServiceLocatorImpl<T, E extends ServiceMessage<T>> implements ServiceLocat
             public void accept(FindServiceResult ack) {
                 String[] st = ack.getMax();
                 if (st.length > 0) {
-                    result.complete(new SI(MaritimeId.create(st[0]), sip));
+                    result.complete(new DefaultRemoteServiceEndpoint<>(csm, MaritimeId.create(st[0]), sip));
                 } else {
                     result.complete(null);
                     // result.completeExceptionally(new ServiceNotFoundException(""));
@@ -101,36 +101,12 @@ class ServiceLocatorImpl<T, E extends ServiceMessage<T>> implements ServiceLocat
                 List<ServiceEndpoint<E, T>> l = new ArrayList<>();
                 if (st.length > 0) {
                     for (String s : st) {
-                        l.add(new SI(MaritimeId.create(s), sip));
+                        l.add(new DefaultRemoteServiceEndpoint<>(csm, MaritimeId.create(s), sip));
                     }
                 }
                 result.complete(l);
             }
         });
         return result;
-    }
-
-    class SI implements ServiceEndpoint<E, T> {
-        final MaritimeId id;
-
-        final ServiceInitiationPoint<E> sip;
-
-        SI(MaritimeId id, ServiceInitiationPoint<E> sip) {
-            this.id = requireNonNull(id);
-            this.sip = requireNonNull(sip);
-        }
-
-        /** {@inheritDoc} */
-        @Override
-        public MaritimeId getId() {
-            return id;
-        }
-
-        /** {@inheritDoc} */
-        @SuppressWarnings({ "unchecked", "rawtypes" })
-        @Override
-        public ConnectionFuture<T> invoke(E message) {
-            return csm.invokeService(id, (ServiceMessage) message);
-        }
     }
 }

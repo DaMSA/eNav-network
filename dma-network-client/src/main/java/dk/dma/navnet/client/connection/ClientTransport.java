@@ -28,7 +28,7 @@ import javax.websocket.Session;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import dk.dma.enav.communication.ClosingCode;
+import dk.dma.enav.maritimecloud.ClosingCode;
 import dk.dma.navnet.messages.ConnectionMessage;
 import dk.dma.navnet.messages.TransportMessage;
 
@@ -117,7 +117,8 @@ public final class ClientTransport {
         Session session = this.session;
         if (session != null) {
             if (text.length() < 1000) {
-                System.out.println("Sending " + text);
+                System.out.println("Sending : " + text);
+                // System.out.println("Sending " + this + " " + text);
             }
             session.getAsyncRemote().sendText(text);
         }

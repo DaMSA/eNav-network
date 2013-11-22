@@ -19,26 +19,20 @@ import static java.util.Objects.requireNonNull;
 
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.TimeUnit;
 
 import jsr166e.CompletableFuture;
 
-import org.picocontainer.Startable;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-import dk.dma.enav.communication.service.InvocationCallback;
-import dk.dma.enav.communication.service.ServiceLocator;
-import dk.dma.enav.communication.service.ServiceRegistration;
-import dk.dma.enav.communication.service.spi.ServiceInitiationPoint;
-import dk.dma.enav.communication.service.spi.ServiceMessage;
+import dk.dma.enav.maritimecloud.service.ServiceLocator;
+import dk.dma.enav.maritimecloud.service.invocation.InvocationCallback;
+import dk.dma.enav.maritimecloud.service.registration.ServiceRegistration;
+import dk.dma.enav.maritimecloud.service.spi.ServiceInitiationPoint;
+import dk.dma.enav.maritimecloud.service.spi.ServiceMessage;
 import dk.dma.enav.model.MaritimeId;
-import dk.dma.enav.util.function.Consumer;
-import dk.dma.navnet.client.InternalClient;
+import dk.dma.navnet.client.ClientContainer;
 import dk.dma.navnet.client.connection.ConnectionMessageBus;
+import dk.dma.navnet.client.connection.OnMessage;
 import dk.dma.navnet.client.util.DefaultConnectionFuture;
 import dk.dma.navnet.client.util.ThreadManager;
 import dk.dma.navnet.messages.c2c.service.InvokeService;
@@ -49,25 +43,23 @@ import dk.dma.navnet.messages.s2c.service.RegisterService;
 import dk.dma.navnet.messages.s2c.service.RegisterServiceResult;
 
 /**
+ * Manages local and remote services.
  * 
  * @author Kasper Nielsen
  */
-public class ClientServiceManager implements Startable {
-
-    /** The logger. */
-    static final Logger LOG = LoggerFactory.getLogger(ClientServiceManager.class);
-
-    /** The network */
-    final InternalClient clientInfo;
+public class ClientServiceManager {
 
     final ConnectionMessageBus connection;
 
-    final ConcurrentHashMap<String, DefaultConnectionFuture<?>> invokers = new ConcurrentHashMap<>();
+    /** The client container. */
+    private final ClientContainer container;
+
+    private final ConcurrentHashMap<String, DefaultConnectionFuture<?>> invokers = new ConcurrentHashMap<>();
 
     /** A map of subscribers. ChannelName -> List of listeners. */
-    final ConcurrentHashMap<String, Registration> serviceRegistrations = new ConcurrentHashMap<>();
+    final ConcurrentHashMap<String, DefaultLocalServiceRegistration> localServices = new ConcurrentHashMap<>();
 
-    final ThreadManager threadManager;
+    private final ThreadManager threadManager;
 
     /**
      * Creates a new instance of this class.
@@ -75,10 +67,10 @@ public class ClientServiceManager implements Startable {
      * @param network
      *            the network
      */
-    public ClientServiceManager(ConnectionMessageBus connection, ThreadManager threadManager, InternalClient clientInfo) {
-        this.clientInfo = clientInfo;
+    public ClientServiceManager(ClientContainer container, ConnectionMessageBus connection, ThreadManager threadManager) {
+        this.container = requireNonNull(container);
         this.connection = requireNonNull(connection);
-        this.threadManager = threadManager;
+        this.threadManager = requireNonNull(threadManager);
     }
 
     /** {@inheritDoc} */
@@ -86,7 +78,7 @@ public class ClientServiceManager implements Startable {
         InvokeService is = new InvokeService(1, UUID.randomUUID().toString(), msg.getClass().getName(),
                 msg.messageName(), msg);
         is.setDestination(id.toString());
-        is.setSource(clientInfo.getLocalId().toString());
+        is.setSource(container.getLocalId().toString());
         final DefaultConnectionFuture<T> f = threadManager.create();
         DefaultConnectionFuture<InvokeServiceResult> fr = threadManager.create();
         invokers.put(is.getConversationId(), fr);
@@ -100,55 +92,21 @@ public class ClientServiceManager implements Startable {
         return f;
     }
 
-    /** {@inheritDoc} */
-    @SuppressWarnings({ "unchecked" })
-    void receiveInvokeService(final InvokeService m) {
-        // System.out.println("Invoking service");
-        // System.out.println("FFF " + m);
-        Registration s = serviceRegistrations.get(m.getServiceType());
+    @OnMessage
+    public void onInvokeService(InvokeService message) {
+        String type = message.getServiceType();
+        DefaultLocalServiceRegistration s = localServices.get(type);
         if (s != null) {
-            InvocationCallback<Object, Object> sc = (InvocationCallback<Object, Object>) s.c;
-            Object o = null;
-            try {
-                Class<?> mt = Class.forName(m.getServiceType());
-                ObjectMapper om = new ObjectMapper();
-                o = om.readValue(m.getMessage(), mt);
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-            sc.process(o, new InvocationCallback.Context<Object>() {
-                public void complete(Object result) {
-                    requireNonNull(result);
-                    // System.out.println("Completed");
-                    connection.sendConnectionMessage(m.createReply(result));
-                }
-
-                public void failWithIllegalAccess(String message) {
-                    throw new UnsupportedOperationException();
-                }
-
-                public void failWithIllegalInput(String message) {
-                    throw new UnsupportedOperationException();
-                }
-
-                public void failWithInternalError(String message) {
-                    throw new UnsupportedOperationException();
-                }
-
-                public MaritimeId getCaller() {
-                    return null;
-                }
-
-            });
+            s.invoke(message);
         } else {
-            System.err.println("Could not find service " + m.getServiceType() + " from "
-                    + serviceRegistrations.keySet());
+            System.err.println("Could not find service " + type + " from " + localServices.keySet());
         }
     }
 
     /** {@inheritDoc} */
     @SuppressWarnings({ "rawtypes", "unchecked" })
-    void receiveInvokeServiceAck(InvokeServiceResult m) {
+    @OnMessage
+    public void receiveInvokeServiceAck(InvokeServiceResult m) {
         DefaultConnectionFuture f = invokers.get(m.getUuid());
         if (f != null) {
             Object o = null;
@@ -167,7 +125,7 @@ public class ClientServiceManager implements Startable {
     }
 
     public <T, E extends ServiceMessage<T>> ServiceLocator<T, E> serviceFind(ServiceInitiationPoint<E> sip) {
-        return new ServiceLocatorImpl<>(threadManager, sip, this, 0);
+        return new DefaultServiceLocator<>(threadManager, sip, this, 0);
     }
 
     <T, E extends ServiceMessage<T>> DefaultConnectionFuture<FindServiceResult> serviceFindOne(FindService fs) {
@@ -179,8 +137,8 @@ public class ClientServiceManager implements Startable {
             InvocationCallback<E, T> callback) {
         requireNonNull(sip, "ServiceInitiationPoint is null");
         requireNonNull(callback, "callback is null");
-        final Registration reg = new Registration(sip, callback);
-        if (serviceRegistrations.putIfAbsent(sip.getName(), reg) != null) {
+        final DefaultLocalServiceRegistration reg = new DefaultLocalServiceRegistration(connection, sip, callback);
+        if (localServices.putIfAbsent(sip.getName(), reg) != null) {
             throw new IllegalArgumentException(
                     "A service of the specified type has already been registered. Can only register one at a time");
         }
@@ -193,60 +151,4 @@ public class ClientServiceManager implements Startable {
         });
         return reg;
     }
-
-    class Registration implements ServiceRegistration {
-        final InvocationCallback<?, ?> c;
-        final CountDownLatch replied = new CountDownLatch(1);
-
-        final ServiceInitiationPoint<?> sip;
-
-        Registration(ServiceInitiationPoint<?> sip, InvocationCallback<?, ?> c) {
-            this.sip = requireNonNull(sip);
-            this.c = requireNonNull(c);
-        }
-
-        /** {@inheritDoc} */
-        @Override
-        public boolean awaitRegistered(long timeout, TimeUnit unit) throws InterruptedException {
-            return replied.await(timeout, unit);
-        }
-
-        /** {@inheritDoc} */
-        @Override
-        public void cancel() {
-            throw new UnsupportedOperationException();
-        }
-
-        void completed() {
-
-        }
-
-        /** {@inheritDoc} */
-        @Override
-        public State getState() {
-            throw new UnsupportedOperationException();
-        }
-    }
-
-    /** {@inheritDoc} */
-    @Override
-    public void start() {
-        connection.subscribe(InvokeService.class, new Consumer<InvokeService>() {
-            @Override
-            public void accept(InvokeService t) {
-                receiveInvokeService(t);
-            }
-        });
-        connection.subscribe(InvokeServiceResult.class, new Consumer<InvokeServiceResult>() {
-            @Override
-            public void accept(InvokeServiceResult t) {
-                receiveInvokeServiceAck(t);
-            }
-        });
-    }
-
-    /** {@inheritDoc} */
-    @Override
-    public void stop() {}
-
 }

@@ -13,12 +13,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package dk.dma.navnet.server.connection;
+package dk.dma.navnet.messages.errors;
 
 /**
  * 
  * @author Kasper Nielsen
  */
-public class RequestException extends Exception {
+public enum ErrorCode {
 
+
+    UNVA
 }

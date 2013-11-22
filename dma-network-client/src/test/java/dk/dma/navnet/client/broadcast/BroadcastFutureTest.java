@@ -25,11 +25,11 @@ import java.util.concurrent.TimeUnit;
 
 import org.junit.Test;
 
-import dk.dma.enav.communication.MaritimeNetworkClient;
-import dk.dma.enav.communication.broadcast.BroadcastFuture;
-import dk.dma.enav.communication.broadcast.BroadcastMessage;
-import dk.dma.enav.communication.broadcast.BroadcastMessage.Ack;
-import dk.dma.enav.communication.broadcast.BroadcastOptions;
+import dk.dma.enav.maritimecloud.MaritimeCloudClient;
+import dk.dma.enav.maritimecloud.broadcast.BroadcastFuture;
+import dk.dma.enav.maritimecloud.broadcast.BroadcastMessage;
+import dk.dma.enav.maritimecloud.broadcast.BroadcastOptions;
+import dk.dma.enav.maritimecloud.broadcast.BroadcastMessage.Ack;
 import dk.dma.enav.model.geometry.PositionTime;
 import dk.dma.enav.util.function.Consumer;
 import dk.dma.navnet.client.AbstractClientConnectionTest;
@@ -39,8 +39,8 @@ import dk.dma.navnet.messages.c2c.broadcast.BroadcastSend;
 import dk.dma.navnet.messages.c2c.broadcast.BroadcastSendAck;
 
 /**
- * Tests the future returned by {@link MaritimeNetworkClient#broadcast(BroadcastMessage)} and
- * {@link MaritimeNetworkClient#broadcast(BroadcastMessage, BroadcastOptions)}.
+ * Tests the future returned by {@link MaritimeCloudClient#broadcast(BroadcastMessage)} and
+ * {@link MaritimeCloudClient#broadcast(BroadcastMessage, BroadcastOptions)}.
  * 
  * @author Kasper Nielsen
  */
@@ -48,7 +48,7 @@ public class BroadcastFutureTest extends AbstractClientConnectionTest {
 
     @Test
     public void broadcastServerAck() throws Exception {
-        MaritimeNetworkClient c = createConnect();
+        MaritimeCloudClient c = createAndConnect();
 
         BroadcastFuture bf = c.broadcast(new HelloWorld("hello"));
         BroadcastSend mb = t.take(BroadcastSend.class);
@@ -69,7 +69,7 @@ public class BroadcastFutureTest extends AbstractClientConnectionTest {
 
     @Test
     public void broadcastClientAcks() throws Exception {
-        MaritimeNetworkClient c = createConnect();
+        MaritimeCloudClient c = createAndConnect();
 
         BroadcastOptions options = new BroadcastOptions();
         options.setReceiverAckEnabled(true);

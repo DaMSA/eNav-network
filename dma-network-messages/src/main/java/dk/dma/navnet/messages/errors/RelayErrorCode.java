@@ -13,34 +13,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package dk.dma.navnet.client.worker;
-
-import jsr166e.CompletableFuture;
-import dk.dma.navnet.messages.ConnectionMessage;
+package dk.dma.navnet.messages.errors;
 
 /**
- * 
+ *
  * @author Kasper Nielsen
  */
-public class OutstandingMessage {
+public class RelayErrorCode {
 
-    private final CompletableFuture<?> acked = new CompletableFuture<>();
-
-    volatile boolean isSent;
-
-    final ConnectionMessage cm;
-
-    long id;
-
-    OutstandingMessage(ConnectionMessage cm) {
-        this.cm = cm;
-    }
-
-    public CompletableFuture<?> acked() {
-        return acked;
-    }
-
-    public boolean isSent() {
-        return isSent;
-    }
 }

@@ -30,7 +30,7 @@ import java.util.concurrent.TimeUnit;
 import org.picocontainer.Startable;
 
 import dk.dma.commons.util.concurrent.CustomConcurrentHashMap;
-import dk.dma.enav.communication.ConnectionClosedException;
+import dk.dma.enav.maritimecloud.ConnectionClosedException;
 
 /**
  * 
@@ -52,9 +52,9 @@ public class ThreadManager implements Startable {
 
     public <T> DefaultConnectionFuture<T> create() {
         DefaultConnectionFuture<T> t = new DefaultConnectionFuture<>(getScheduler());
+
         futures.add(t);
         return t;
-
     }
 
     public void execute(Runnable r) {

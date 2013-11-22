@@ -19,8 +19,8 @@ import java.util.concurrent.TimeUnit;
 
 import org.junit.Test;
 
-import dk.dma.enav.communication.MaritimeNetworkClient;
-import dk.dma.enav.communication.MaritimeNetworkClientConfiguration;
+import dk.dma.enav.maritimecloud.MaritimeCloudClient;
+import dk.dma.enav.maritimecloud.MaritimeCloudClientConfiguration;
 import dk.dma.navnet.client.broadcast.stubs.HelloWorld;
 import dk.dma.navnet.server.InternalServer;
 import dk.dma.navnet.server.ServerConfiguration;
@@ -38,10 +38,10 @@ public class CustomPortTest {
         sc.setServerPort(12445);
         InternalServer server = new InternalServer(sc);
         server.start();
-        MaritimeNetworkClientConfiguration b = MaritimeNetworkClientConfiguration.create("mmsi://1234");
+        MaritimeCloudClientConfiguration b = MaritimeCloudClientConfiguration.create("mmsi://1234");
         b.setHost("localhost:12445");
         System.out.println("a");
-        try (MaritimeNetworkClient c = b.build()) {
+        try (MaritimeCloudClient c = b.build()) {
             System.out.println("b");
             c.broadcast(new HelloWorld());
         }

@@ -33,12 +33,13 @@ import dk.dma.enav.model.geometry.CoordinateSystem;
 import dk.dma.enav.model.geometry.PositionTime;
 import dk.dma.enav.util.function.BiConsumer;
 import dk.dma.navnet.messages.s2c.service.FindService;
+import dk.dma.navnet.messages.s2c.service.FindServiceResult;
 import dk.dma.navnet.messages.s2c.service.RegisterService;
 import dk.dma.navnet.messages.s2c.service.RegisterServiceResult;
-import dk.dma.navnet.server.connection.RequestException;
-import dk.dma.navnet.server.connection.RequestProcessor;
 import dk.dma.navnet.server.connection.ServerConnection;
-import dk.dma.navnet.server.connection.ServerMessageBus;
+import dk.dma.navnet.server.requests.RequestException;
+import dk.dma.navnet.server.requests.RequestProcessor;
+import dk.dma.navnet.server.requests.ServerMessageBus;
 import dk.dma.navnet.server.target.Target;
 import dk.dma.navnet.server.target.TargetManager;
 
@@ -71,14 +72,15 @@ public class ServiceManager implements Startable {
             }
         });
 
-        bus.subscribe(FindService.class, new BiConsumer<ServerConnection, FindService>() {
-            public void accept(ServerConnection l, FindService r) {
-                List<Entry<Target, PositionTime>> findService = findService(l.getTarget(), r);
+        bus.subscribe(FindService.class, new RequestProcessor<FindService, FindServiceResult>() {
+            @Override
+            public FindServiceResult process(ServerConnection connection, FindService r) throws RequestException {
+                List<Entry<Target, PositionTime>> findService = findService(connection.getTarget(), r);
                 List<String> list = new ArrayList<>();
                 for (Entry<Target, PositionTime> e : findService) {
                     list.add(e.getKey().getId().toString());
                 }
-                l.messageSend(r.createReply(list.toArray(new String[list.size()])));
+                return r.createReply(list.toArray(new String[list.size()]));
             }
         });
     }

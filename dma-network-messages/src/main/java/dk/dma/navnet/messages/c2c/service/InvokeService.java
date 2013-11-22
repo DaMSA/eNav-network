@@ -17,6 +17,8 @@ package dk.dma.navnet.messages.c2c.service;
 
 import java.io.IOException;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+
 import dk.dma.navnet.messages.MessageType;
 import dk.dma.navnet.messages.TextMessageReader;
 import dk.dma.navnet.messages.TextMessageWriter;
@@ -89,6 +91,12 @@ public class InvokeService extends ClientRelayedMessage {
         isa.setDestination(getSource());
         isa.setSource(getDestination());
         return isa;
+    }
+
+    public Object parseMessage() throws Exception {
+        Class<?> mt = Class.forName(getServiceType());
+        ObjectMapper om = new ObjectMapper();
+        return om.readValue(getMessage(), mt);
     }
 
     /**

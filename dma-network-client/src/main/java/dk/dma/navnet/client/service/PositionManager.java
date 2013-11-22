@@ -23,7 +23,7 @@ import org.picocontainer.Startable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import dk.dma.enav.communication.MaritimeNetworkClientConfiguration;
+import dk.dma.enav.maritimecloud.MaritimeCloudClientConfiguration;
 import dk.dma.enav.model.geometry.PositionTime;
 import dk.dma.enav.util.function.Supplier;
 import dk.dma.navnet.client.connection.ConnectionMessageBus;
@@ -35,7 +35,7 @@ import dk.dma.navnet.messages.auxiliary.PositionReportMessage;
  * 
  * @author Kasper Nielsen
  */
-public class PositionManager implements Runnable, Startable {
+public class PositionManager implements Startable {
 
     /** The logger. */
     static final Logger LOG = LoggerFactory.getLogger(PositionManager.class);
@@ -58,7 +58,7 @@ public class PositionManager implements Runnable, Startable {
      * @param transport
      * @param positionSupplier
      */
-    public PositionManager(ConnectionMessageBus connection, MaritimeNetworkClientConfiguration builder,
+    public PositionManager(ConnectionMessageBus connection, MaritimeCloudClientConfiguration builder,
             ThreadManager threadManager) {
         this.connection = requireNonNull(connection);
         this.positionSupplier = requireNonNull(builder.getPositionSupplier());
@@ -67,8 +67,7 @@ public class PositionManager implements Runnable, Startable {
         latestTime = System.nanoTime();// -minimumSignalDuration;
     }
 
-    @Override
-    public void run() {
+    void sendSignal() {
         long now = System.nanoTime();
         // Only send a message if it is more MINIMUM_SIGNAL_DURATION time since the last signal
         if (now - latestTime < minimumSignalDuration) {
@@ -80,12 +79,11 @@ public class PositionManager implements Runnable, Startable {
             t = getPositionTime();
         } catch (Exception e) {
             LOG.error("Could not create a KeepAlive position", e);
+            return;
         }
 
-        if (t != null) {
-            latestTime = now;
-            connection.sendConnectionMessage(new PositionReportMessage(t));
-        }
+        latestTime = now;
+        connection.sendConnectionMessage(new PositionReportMessage(t));
     }
 
     public PositionTime getPositionTime() {
@@ -101,9 +99,11 @@ public class PositionManager implements Runnable, Startable {
     /** {@inheritDoc} */
     @Override
     public void start() {
-        // System.out.println("STARTING");
-        // Schedules regular position updates to the server
-        threadManager.scheduleAtFixedRate(this, 0, 1, TimeUnit.SECONDS);
+        threadManager.scheduleAtFixedRate(new Runnable() {
+            public void run() {
+                sendSignal();
+            }
+        }, 0, 1, TimeUnit.SECONDS);
     }
 
     /** {@inheritDoc} */

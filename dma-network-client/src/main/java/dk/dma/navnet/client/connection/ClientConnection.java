@@ -22,11 +22,8 @@ import jsr166e.ForkJoinPool;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import dk.dma.enav.communication.ClosingCode;
-import dk.dma.navnet.client.worker.OutstandingMessage;
-import dk.dma.navnet.client.worker.Worker;
+import dk.dma.enav.maritimecloud.ClosingCode;
 import dk.dma.navnet.messages.ConnectionMessage;
-import dk.dma.navnet.messages.util.ResumingClientQueue;
 
 /**
  * 
@@ -47,12 +44,10 @@ public class ClientConnection {
 
     final ReentrantLock retrieveLock = new ReentrantLock();
 
-    final ResumingClientQueue rq = new ResumingClientQueue();
-
     final ReentrantLock sendLock = new ReentrantLock();
 
     /* State managed objects */
-    private volatile ClientTransport transport;
+    volatile ClientTransport transport;
 
     final Worker worker = new Worker(this);
 
@@ -133,7 +128,7 @@ public class ClientConnection {
         return transport;
     }
 
-    boolean isConnected() {
+    public boolean isConnected() {
         connectionManager.lock.lock();
         try {
             return transport != null && disconnectingFuture == null;
@@ -184,16 +179,17 @@ public class ClientConnection {
     void transportDisconnected(ClientTransport transport, ClosingCode cr) {
         connectionManager.lock.lock();
         try {
+            this.transport = null;
             if (cr.getId() == 1000) {
                 connectionManager.connection = null;
                 worker.shutdown();
             } else if (cr.getId() == ClosingCode.DUPLICATE_CONNECT.getId()) {
                 System.out.println("Dublicate connect detected, will not reconnect");
                 connectionManager.state = ConnectionManager.State.SHOULD_STAY_DISCONNECTED;
-                this.transport = null;
             } else {
                 System.out.println(cr.getMessage());
                 System.out.println("OOPS, lets reconnect");
+                connectingFuture = null;// need to clear it if we are already connecting
             }
             connectionManager.stateChange.signalAll();
         } finally {
