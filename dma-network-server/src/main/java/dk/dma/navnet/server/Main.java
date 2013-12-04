@@ -30,7 +30,7 @@ import dk.dma.commons.app.AbstractCommandLineTool;
 public class Main extends AbstractCommandLineTool {
 
     @ParametersDelegate
-    ServerConfiguration configuration;
+    ServerConfiguration configuration = new ServerConfiguration();
 
     volatile InternalServer server;
 

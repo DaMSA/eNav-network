@@ -37,7 +37,7 @@ public class ServerConfiguration {
     @Parameter(names = "-port", description = "The port to listen on")
     int port = ServerConfiguration.DEFAULT_PORT;
 
-    @Parameter(names = "-port", description = "The webserver port for the administrative interface")
+    @Parameter(names = "-adminport", description = "The webserver port for the administrative interface")
     int webserverport = ServerConfiguration.DEFAULT_WEBSERVER_PORT;
 
     /**
