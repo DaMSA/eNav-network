@@ -163,7 +163,6 @@ public class ConnectionMessageBus implements Startable {
     }
 
     /** {@inheritDoc} */
-    @SuppressWarnings("unchecked")
     @Override
     public void start() {
         for (Object o : container.getComponents()) {
