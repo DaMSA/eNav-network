@@ -44,6 +44,7 @@ import dk.dma.navnet.client.broadcast.stubs.BroadcastTestMessage;
  * 
  * @author Kasper Nielsen
  */
+@Ignore
 public class ReconnectTest extends AbstractNetworkTest {
 
     public ReconnectTest() {

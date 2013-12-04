@@ -36,7 +36,6 @@ public class Worker implements Runnable {
 
     private volatile boolean isShutdown;
 
-
     final ClientConnection connection;
 
     final WorkerInner wi = new WorkerInner(this);

@@ -25,7 +25,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 import org.picocontainer.PicoContainer;
 import org.picocontainer.Startable;
 
-import dk.dma.enav.util.function.Consumer;
 import dk.dma.navnet.client.util.DefaultConnectionFuture;
 import dk.dma.navnet.client.util.ThreadManager;
 import dk.dma.navnet.messages.ConnectionMessage;
@@ -103,7 +102,7 @@ public class ConnectionMessageBus implements Startable {
             try {
                 for (MessageConsumer c : consumers) {
                     if (c.type.isAssignableFrom(m.getClass())) {
-                        c.c.accept(m);
+                        c.process(m);
                     }
                 }
             } catch (Exception e) {
@@ -140,20 +139,26 @@ public class ConnectionMessageBus implements Startable {
         f.complete(a);
     }
 
-    @SuppressWarnings("unchecked")
-    <T extends ConnectionMessage> void subscribe(Class<T> type, Consumer<? super T> c) {
-        consumers.add(new MessageConsumer(type, (Consumer<ConnectionMessage>) c));
-    }
-
     static class MessageConsumer {
 
-        final Consumer<ConnectionMessage> c;
+        final Method m;
 
         final Class<?> type;
 
-        MessageConsumer(Class<?> type, Consumer<ConnectionMessage> c) {
+        final Object o;
+
+        MessageConsumer(Class<?> type, Object o, Method m) {
             this.type = requireNonNull(type);
-            this.c = requireNonNull(c);
+            this.o = requireNonNull(o);
+            this.m = m;
+        }
+
+        void process(Object message) {
+            try {
+                m.invoke(o, message);
+            } catch (ReflectiveOperationException e) {
+                throw new RuntimeException(e);
+            }
         }
     }
 
@@ -161,25 +166,15 @@ public class ConnectionMessageBus implements Startable {
     @SuppressWarnings("unchecked")
     @Override
     public void start() {
-        for (final Object o : container.getComponents()) {
-            for (final Method m : o.getClass().getMethods()) {
+        for (Object o : container.getComponents()) {
+            for (Method m : o.getClass().getMethods()) {
                 if (m.isAnnotationPresent(OnMessage.class)) {
                     @SuppressWarnings("rawtypes")
                     Class messageType = m.getParameterTypes()[0];
-                    subscribe(messageType, new Consumer<Object>() {
-                        public void accept(Object t) {
-                            try {
-                                m.invoke(o, t);
-                            } catch (ReflectiveOperationException e) {
-                                throw new RuntimeException(e);
-                            }
-                        }
-                    });
-                    System.out.println(m.getName());
+                    consumers.add(new MessageConsumer(messageType, o, m));
                 }
             }
         }
-
     }
 
 

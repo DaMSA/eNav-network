@@ -50,10 +50,11 @@ public class WorkerInner {
     ClientTransport transport;
 
     public void onConnect(ClientTransport transport, long id, boolean isReconnected) {
+        LinkedList<Long> idsToResend = new LinkedList<>();
         while (!written.isEmpty()) {
             OutstandingMessage om = written.pollLast();
             if (om.id > id) {
-                System.out.println("Resending message with id: " + om.id);
+                idsToResend.addFirst(om.id);
                 unwritten.addFirst(om);
             }
         }
@@ -61,7 +62,9 @@ public class WorkerInner {
             nextSendId = id + 1;
             if (!unwritten.isEmpty()) {}
         }
-        System.out.println("======== NextSendId=" + nextSendId + " " + id);
+        if (idsToResend.size() > 0) {
+            System.out.println("Resending messages with id(s): " + idsToResend);
+        }
         this.transport = transport;
         while (processNext()) {}
     }
