@@ -34,7 +34,6 @@ import dk.dma.enav.maritimecloud.broadcast.BroadcastMessage;
 import dk.dma.enav.maritimecloud.broadcast.BroadcastMessageHeader;
 import dk.dma.enav.maritimecloud.broadcast.BroadcastOptions;
 import dk.dma.enav.maritimecloud.broadcast.BroadcastSubscription;
-import dk.dma.enav.model.MaritimeId;
 import dk.dma.enav.util.function.BiConsumer;
 import dk.dma.navnet.client.ClientContainer;
 import dk.dma.navnet.client.connection.ConnectionMessageBus;
@@ -57,11 +56,12 @@ public class BroadcastManager {
     /** The logger. */
     private static final Logger LOG = LoggerFactory.getLogger(BroadcastManager.class);
 
+    /** Broadcast that have been sent. Will be cleared out as the user drops a reference to them */
     private final ConcurrentMap<Long, DefaultOutstandingBroadcast> outstandingBroadcasts = new MapMaker().weakValues()
             .makeMap();
 
     /** The client */
-    private final MaritimeId clientId;
+    private final ClientContainer client;
 
     /** The network */
     private final ConnectionMessageBus connection;
@@ -86,7 +86,7 @@ public class BroadcastManager {
         this.connection = requireNonNull(connection);
         this.positionManager = requireNonNull(positionManager);
         this.threadManager = requireNonNull(threadManager);
-        this.clientId = requireNonNull(client.getLocalId());
+        this.client = requireNonNull(client);
     }
 
     /**
@@ -163,25 +163,28 @@ public class BroadcastManager {
     public BroadcastFuture sendBroadcastMessage(BroadcastMessage broadcast, BroadcastOptions options) {
         requireNonNull(broadcast, "broadcast is null");
         requireNonNull(options, "options is null");
-        options = options.immutable(); // Make the options immutable just in case
+        options = options.immutable(); // we make the options immutable just in case
 
         // create the message we will send to the server
-        BroadcastSend b = BroadcastSend.create(clientId, positionManager.getPositionTime(), broadcast, options);
-
-        final DefaultOutstandingBroadcast dob = new DefaultOutstandingBroadcast(threadManager, options);
-        outstandingBroadcasts.put(b.getReplyTo(), dob);
+        BroadcastSend b = BroadcastSend.create(client.getLocalId(), positionManager.getPositionTime(), broadcast,
+                options);
 
         DefaultConnectionFuture<BroadcastSendAck> response = connection.sendMessage(b);
+
+
+        final DefaultOutstandingBroadcast dbf = new DefaultOutstandingBroadcast(threadManager, options);
+        outstandingBroadcasts.put(b.getReplyTo(), dbf);
+
         response.handle(new BiConsumer<BroadcastSendAck, Throwable>() {
             public void accept(BroadcastSendAck ack, Throwable cause) {
                 if (ack != null) {
-                    dob.receivedOnServer.complete(null);
+                    dbf.receivedOnServer.complete(null);
                 } else {
-                    dob.receivedOnServer.completeExceptionally(cause);
+                    dbf.receivedOnServer.completeExceptionally(cause);
                     // remove from broadcasts??
                 }
             }
         });
-        return dob;
+        return dbf;
     }
 }

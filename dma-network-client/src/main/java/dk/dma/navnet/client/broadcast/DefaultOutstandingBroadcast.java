@@ -127,4 +127,7 @@ class DefaultOutstandingBroadcast implements BroadcastFuture {
     public ConnectionFuture<Void> receivedOnServer() {
         return receivedOnServer;
     }
+
+    /** {@inheritDoc} */
+    public void onFinish() {}
 }
