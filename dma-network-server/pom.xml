@@ -39,6 +39,13 @@
       <version>${project.version}</version>
       <scope>test</scope>
     </dependency>
+        <dependency>
+      <groupId>dk.dma.network</groupId>
+      <artifactId>dma-network-client</artifactId>
+      <version>${project.version}</version>
+      <type>test-jar</type>
+      <scope>test</scope>
+    </dependency>
     <dependency>
       <groupId>dk.dma.network</groupId>
       <artifactId>dma-network-messages</artifactId>
@@ -61,13 +68,7 @@
       <version>${dependencies.jetty.version}</version>
     </dependency>
     
-    <dependency>
-      <groupId>dk.dma.network</groupId>
-      <artifactId>dma-network-client</artifactId>
-      <version>${project.version}</version>
-      <type>test-jar</type>
-      <scope>test</scope>
-    </dependency>
+
 <dependency>
     <groupId>org.picocontainer</groupId>
     <artifactId>picocontainer</artifactId>

@@ -27,18 +27,22 @@ import org.slf4j.LoggerFactory;
 
 import dk.dma.enav.maritimecloud.ConnectionFuture;
 import dk.dma.enav.maritimecloud.broadcast.BroadcastFuture;
-import dk.dma.enav.maritimecloud.broadcast.BroadcastOptions;
+import dk.dma.enav.maritimecloud.broadcast.BroadcastMessage;
 import dk.dma.enav.maritimecloud.broadcast.BroadcastMessage.Ack;
+import dk.dma.enav.maritimecloud.broadcast.BroadcastOptions;
+import dk.dma.enav.model.MaritimeId;
+import dk.dma.enav.model.geometry.PositionTime;
 import dk.dma.enav.util.function.Consumer;
 import dk.dma.navnet.client.util.DefaultConnectionFuture;
 import dk.dma.navnet.client.util.ThreadManager;
+import dk.dma.navnet.messages.c2c.broadcast.BroadcastAck;
 
 /**
  * The default implementation of {@link BroadcastFuture}.
  * 
  * @author Kasper Nielsen
  */
-class DefaultBroadcastFuture implements BroadcastFuture {
+class DefaultOutstandingBroadcast implements BroadcastFuture {
 
     /** The logger. */
     private static final Logger LOG = LoggerFactory.getLogger(BroadcastManager.class);
@@ -58,7 +62,7 @@ class DefaultBroadcastFuture implements BroadcastFuture {
     /** A connection future used to determined if the broadcast message has been received on the server */
     final DefaultConnectionFuture<Void> receivedOnServer;
 
-    DefaultBroadcastFuture(ThreadManager tm, BroadcastOptions options) {
+    DefaultOutstandingBroadcast(ThreadManager tm, BroadcastOptions options) {
         this.receivedOnServer = tm.create();
         this.options = requireNonNull(options);
     }
@@ -87,7 +91,21 @@ class DefaultBroadcastFuture implements BroadcastFuture {
         }
     }
 
-    void onAckMessage(Ack ack) {
+    void onAckMessage(BroadcastAck ack) {
+        final PositionTime pt = ack.getPositionTime();
+        final MaritimeId mid = ack.getId();
+        onAckMessage0(new BroadcastMessage.Ack() {
+            public MaritimeId getId() {
+                return mid;
+            }
+
+            public PositionTime getPosition() {
+                return pt;
+            }
+        });
+    }
+
+    private void onAckMessage0(Ack ack) {
         requireNonNull(ack);
         lock.lock();
         try {

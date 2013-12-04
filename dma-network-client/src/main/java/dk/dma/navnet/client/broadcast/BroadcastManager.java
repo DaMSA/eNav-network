@@ -35,7 +35,6 @@ import dk.dma.enav.maritimecloud.broadcast.BroadcastMessageHeader;
 import dk.dma.enav.maritimecloud.broadcast.BroadcastOptions;
 import dk.dma.enav.maritimecloud.broadcast.BroadcastSubscription;
 import dk.dma.enav.model.MaritimeId;
-import dk.dma.enav.model.geometry.PositionTime;
 import dk.dma.enav.util.function.BiConsumer;
 import dk.dma.navnet.client.ClientContainer;
 import dk.dma.navnet.client.connection.ConnectionMessageBus;
@@ -58,16 +57,19 @@ public class BroadcastManager {
     /** The logger. */
     private static final Logger LOG = LoggerFactory.getLogger(BroadcastManager.class);
 
-    private final ConcurrentMap<Long, DefaultBroadcastFuture> broadcasts = new MapMaker().weakValues().makeMap();
+    private final ConcurrentMap<Long, DefaultOutstandingBroadcast> outstandingBroadcasts = new MapMaker().weakValues()
+            .makeMap();
 
-    private final ClientContainer client;
+    /** The client */
+    private final MaritimeId clientId;
 
     /** The network */
     private final ConnectionMessageBus connection;
 
-    /** A map of listeners. ChannelName -> List of listeners. */
+    /** A map of local broadcast listeners. ChannelName -> List of listeners. */
     final ConcurrentHashMapV8<String, CopyOnWriteArraySet<BroadcastMessageSubscription>> listeners = new ConcurrentHashMapV8<>();
 
+    /** Maintains latest position for the client. */
     private final PositionManager positionManager;
 
     /** Thread manager takes care of asynchronous processing. */
@@ -84,7 +86,7 @@ public class BroadcastManager {
         this.connection = requireNonNull(connection);
         this.positionManager = requireNonNull(positionManager);
         this.threadManager = requireNonNull(threadManager);
-        this.client = requireNonNull(client);
+        this.clientId = requireNonNull(client.getLocalId());
     }
 
     /**
@@ -118,30 +120,22 @@ public class BroadcastManager {
 
     @OnMessage
     public void onBroadcastAck(BroadcastAck ack) {
-        DefaultBroadcastFuture f = broadcasts.get(ack.getBroadcastId());
+        DefaultOutstandingBroadcast f = outstandingBroadcasts.get(ack.getBroadcastId());
+        // if we do not have a valid outstanding broadcast just ignore the ack
         if (f != null) {
-            final PositionTime pt = ack.getPositionTime();
-            final MaritimeId mid = ack.getId();
-            f.onAckMessage(new BroadcastMessage.Ack() {
-                public MaritimeId getId() {
-                    return mid;
-                }
-
-                public PositionTime getPosition() {
-                    return pt;
-                }
-            });
+            f.onAckMessage(ack);
         }
     }
 
     /**
-     * Invoked whenever a broadcast message was received.
+     * Invoked whenever a broadcast message is received from a remote actor.
      * 
      * @param broadcast
      *            the broadcast that was received
      */
     @OnMessage
     public void onBroadcastMessage(BroadcastDeliver broadcast) {
+        // Find out if we actually listens for it
         CopyOnWriteArraySet<BroadcastMessageSubscription> set = listeners.get(broadcast.getChannel());
         if (set != null && !set.isEmpty()) {
             BroadcastMessage bm = null;
@@ -169,28 +163,25 @@ public class BroadcastManager {
     public BroadcastFuture sendBroadcastMessage(BroadcastMessage broadcast, BroadcastOptions options) {
         requireNonNull(broadcast, "broadcast is null");
         requireNonNull(options, "options is null");
-        options = options.immutable(); // we make the options immutable just in case
+        options = options.immutable(); // Make the options immutable just in case
 
         // create the message we will send to the server
-        BroadcastSend b = BroadcastSend.create(client.getLocalId(), positionManager.getPositionTime(), broadcast,
-                options);
+        BroadcastSend b = BroadcastSend.create(clientId, positionManager.getPositionTime(), broadcast, options);
+
+        final DefaultOutstandingBroadcast dob = new DefaultOutstandingBroadcast(threadManager, options);
+        outstandingBroadcasts.put(b.getReplyTo(), dob);
 
         DefaultConnectionFuture<BroadcastSendAck> response = connection.sendMessage(b);
-
-
-        final DefaultBroadcastFuture dbf = new DefaultBroadcastFuture(threadManager, options);
-        broadcasts.put(b.getReplyTo(), dbf);
-
         response.handle(new BiConsumer<BroadcastSendAck, Throwable>() {
             public void accept(BroadcastSendAck ack, Throwable cause) {
                 if (ack != null) {
-                    dbf.receivedOnServer.complete(null);
+                    dob.receivedOnServer.complete(null);
                 } else {
-                    dbf.receivedOnServer.completeExceptionally(cause);
+                    dob.receivedOnServer.completeExceptionally(cause);
                     // remove from broadcasts??
                 }
             }
         });
-        return dbf;
+        return dob;
     }
 }

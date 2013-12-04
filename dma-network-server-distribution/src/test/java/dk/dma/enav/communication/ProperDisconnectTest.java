@@ -34,6 +34,7 @@ public class ProperDisconnectTest extends AbstractNetworkTest {
         super(true);
     }
 
+
     @Test
     @Ignore
     public void randomKilling() throws Exception {

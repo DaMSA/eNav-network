@@ -21,6 +21,7 @@ import static org.junit.Assert.fail;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 
+import org.junit.Ignore;
 import org.junit.Test;
 
 import test.stubs.HelloService;
@@ -37,6 +38,7 @@ import dk.dma.enav.maritimecloud.service.ServiceEndpoint;
  * @author Kasper Nielsen
  */
 @SuppressWarnings("resource")
+@Ignore
 public class NetworkFuturesOnCloseTest extends AbstractNetworkTest {
 
     @Test
