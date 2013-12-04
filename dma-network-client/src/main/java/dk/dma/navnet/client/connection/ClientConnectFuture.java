@@ -18,6 +18,7 @@ package dk.dma.navnet.client.connection;
 import static java.util.Objects.requireNonNull;
 
 import java.io.IOException;
+import java.util.Objects;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
@@ -25,8 +26,6 @@ import javax.websocket.DeploymentException;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.google.common.base.Objects;
 
 import dk.dma.enav.maritimecloud.ClosingCode;
 import dk.dma.enav.maritimecloud.MaritimeCloudConnection.Listener;
@@ -114,7 +113,7 @@ class ClientConnectFuture implements Runnable {
         } else {
             if (m instanceof ConnectedMessage) {
                 ConnectedMessage cm = (ConnectedMessage) m;
-                boolean isReconnected = Objects.equal(cm.getConnectionId(), connection.connectionId);
+                boolean isReconnected = Objects.equals(cm.getConnectionId(), connection.connectionId);
                 connection.connectionId = cm.getConnectionId();
                 // if (cm.getLastReceivedMessageId() >= 0) {
                 // List<OutstandingMessage> os = connection.rq.reConnected(cm);

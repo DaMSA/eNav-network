@@ -25,8 +25,6 @@ import jsr166e.ConcurrentHashMapV8;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.collect.MapMaker;
-
 import dk.dma.enav.maritimecloud.MaritimeCloudClient;
 import dk.dma.enav.maritimecloud.broadcast.BroadcastFuture;
 import dk.dma.enav.maritimecloud.broadcast.BroadcastListener;
@@ -39,6 +37,8 @@ import dk.dma.navnet.client.ClientContainer;
 import dk.dma.navnet.client.connection.ConnectionMessageBus;
 import dk.dma.navnet.client.connection.OnMessage;
 import dk.dma.navnet.client.service.PositionManager;
+import dk.dma.navnet.client.util.CustomConcurrentHashMap;
+import dk.dma.navnet.client.util.CustomConcurrentHashMap.Strength;
 import dk.dma.navnet.client.util.DefaultConnectionFuture;
 import dk.dma.navnet.client.util.ThreadManager;
 import dk.dma.navnet.messages.c2c.broadcast.BroadcastAck;
@@ -57,8 +57,9 @@ public class BroadcastManager {
     private static final Logger LOG = LoggerFactory.getLogger(BroadcastManager.class);
 
     /** Broadcast that have been sent. Will be cleared out as the user drops a reference to them */
-    private final ConcurrentMap<Long, DefaultOutstandingBroadcast> outstandingBroadcasts = new MapMaker().weakValues()
-            .makeMap();
+    private final ConcurrentMap<Long, DefaultOutstandingBroadcast> outstandingBroadcasts = new CustomConcurrentHashMap<>(
+            Strength.strong, Strength.weak);
+
 
     /** The client */
     private final ClientContainer client;

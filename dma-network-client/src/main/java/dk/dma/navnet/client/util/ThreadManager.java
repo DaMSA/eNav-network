@@ -29,7 +29,6 @@ import java.util.concurrent.TimeUnit;
 
 import org.picocontainer.Startable;
 
-import dk.dma.commons.util.concurrent.CustomConcurrentHashMap;
 import dk.dma.enav.maritimecloud.ConnectionClosedException;
 
 /**
