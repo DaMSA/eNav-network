@@ -23,7 +23,7 @@ import dk.dma.enav.maritimecloud.ClosingCode;
 import dk.dma.navnet.messages.ConnectionMessage;
 import dk.dma.navnet.server.InternalServer;
 import dk.dma.navnet.server.requests.ServerMessageBus;
-import dk.dma.navnet.server.target.Target;
+import dk.dma.navnet.server.targets.Target;
 
 /**
  * 

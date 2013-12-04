@@ -30,7 +30,7 @@ import dk.dma.navnet.server.connection.ConnectionManager;
 import dk.dma.navnet.server.connection.WebSocketServer;
 import dk.dma.navnet.server.requests.ServerMessageBus;
 import dk.dma.navnet.server.services.ServiceManager;
-import dk.dma.navnet.server.target.TargetManager;
+import dk.dma.navnet.server.targets.TargetManager;
 import dk.dma.navnet.server.util.ThreadManager;
 
 /**

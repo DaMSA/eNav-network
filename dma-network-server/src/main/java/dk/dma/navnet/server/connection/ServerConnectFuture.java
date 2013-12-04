@@ -25,8 +25,8 @@ import dk.dma.enav.model.geometry.PositionTime;
 import dk.dma.navnet.messages.TransportMessage;
 import dk.dma.navnet.messages.auxiliary.ConnectedMessage;
 import dk.dma.navnet.messages.auxiliary.HelloMessage;
-import dk.dma.navnet.server.target.Target;
-import dk.dma.navnet.server.target.TargetManager;
+import dk.dma.navnet.server.targets.Target;
+import dk.dma.navnet.server.targets.TargetManager;
 
 /**
  * 

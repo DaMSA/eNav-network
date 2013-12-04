@@ -24,8 +24,8 @@ import dk.dma.navnet.messages.c2c.ClientRelayedMessage;
 import dk.dma.navnet.messages.s2c.ServerRequestMessage;
 import dk.dma.navnet.messages.s2c.ServerResponseMessage;
 import dk.dma.navnet.server.connection.ServerConnection;
-import dk.dma.navnet.server.target.Target;
-import dk.dma.navnet.server.target.TargetManager;
+import dk.dma.navnet.server.targets.Target;
+import dk.dma.navnet.server.targets.TargetManager;
 
 /**
  * 

@@ -17,7 +17,7 @@ package dk.dma.navnet.server.connection;
 
 import static java.util.Objects.requireNonNull;
 import dk.dma.navnet.server.InternalServer;
-import dk.dma.navnet.server.target.TargetManager;
+import dk.dma.navnet.server.targets.TargetManager;
 
 /**
  * 

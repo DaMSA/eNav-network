@@ -22,7 +22,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import dk.dma.navnet.messages.s2c.service.RegisterService;
-import dk.dma.navnet.server.target.Target;
+import dk.dma.navnet.server.targets.Target;
 
 /**
  * Manages services for a single connected client.

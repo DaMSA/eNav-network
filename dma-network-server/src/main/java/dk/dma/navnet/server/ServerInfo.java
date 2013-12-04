@@ -18,8 +18,8 @@ package dk.dma.navnet.server;
 import static java.util.Objects.requireNonNull;
 import jsr166e.LongAdder;
 import dk.dma.enav.util.function.Consumer;
-import dk.dma.navnet.server.target.Target;
-import dk.dma.navnet.server.target.TargetManager;
+import dk.dma.navnet.server.targets.Target;
+import dk.dma.navnet.server.targets.TargetManager;
 
 /**
  * Provides information about the status of the maritime cloud

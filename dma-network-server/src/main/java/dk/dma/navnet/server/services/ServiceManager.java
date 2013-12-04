@@ -40,8 +40,8 @@ import dk.dma.navnet.server.connection.ServerConnection;
 import dk.dma.navnet.server.requests.RequestException;
 import dk.dma.navnet.server.requests.RequestProcessor;
 import dk.dma.navnet.server.requests.ServerMessageBus;
-import dk.dma.navnet.server.target.Target;
-import dk.dma.navnet.server.target.TargetManager;
+import dk.dma.navnet.server.targets.Target;
+import dk.dma.navnet.server.targets.TargetManager;
 
 /**
  * Manages services for all connected targets.
