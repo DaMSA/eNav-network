@@ -21,6 +21,7 @@
     <module>dma-network-client</module>
     <module>dma-network-server</module>
     <module>dma-network-server-distribution</module>
+    <module>dma-network-end2endtests</module>
   </modules>
 
   <repositories>

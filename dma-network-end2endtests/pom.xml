@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <parent>
+    <groupId>dk.dma.network</groupId>
+    <artifactId>dma-network-parent</artifactId>
+    <version>0.2-SNAPSHOT</version>
+    <relativePath>../pom.xml</relativePath>
+  </parent>
+
+  <artifactId>dma-network-end2endtests</artifactId>
+  <name>eNav end 2 end tests</name>
+  <description>eNav end to end tests</description>
+
+  <dependencies>
+    <dependency>
+      <groupId>dk.dma.network</groupId>
+      <artifactId>dma-network-server</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>dk.dma.network</groupId>
+      <artifactId>dma-network-client</artifactId>
+      <version>${project.version}</version>
+    </dependency>    
+    <dependency>
+      <groupId>org.slf4j</groupId>
+      <artifactId>slf4j-simple</artifactId>
+      <version>${dependencies.slf4j.version}</version>
+    </dependency>
+        <dependency>
+      <groupId>dk.dma.network</groupId>
+      <artifactId>dma-network-client</artifactId>
+      <version>${project.version}</version>
+      <type>test-jar</type>
+    </dependency>
+  </dependencies>
+
+  <build>
+    <plugins>
+  <plugin>
+    <groupId>org.apache.maven.plugins</groupId>
+    <artifactId>maven-surefire-plugin</artifactId>
+    <version>2.6</version>
+    <configuration>
+      <forkMode>always</forkMode>
+      <argLine>-Xms512m -Xmx512m</argLine>
+      <parallel>methods</parallel>
+      <threadCount>4</threadCount>
+    </configuration>
+  </plugin>
+  </plugins>
+  </build>
+</project>
