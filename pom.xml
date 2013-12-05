@@ -19,6 +19,7 @@
   <modules>
     <module>dma-network-messages</module>
     <module>dma-network-client</module>
+    <module>dma-network-client-android</module>
     <module>dma-network-server</module>
     <module>dma-network-server-distribution</module>
     <module>dma-network-end2endtests</module>
