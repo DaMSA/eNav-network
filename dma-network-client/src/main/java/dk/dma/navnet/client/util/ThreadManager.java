@@ -50,8 +50,7 @@ public class ThreadManager implements Startable {
     final ScheduledThreadPoolExecutor ses = new ScheduledThreadPoolExecutor(2);
 
     public <T> DefaultConnectionFuture<T> create() {
-        DefaultConnectionFuture<T> t = new DefaultConnectionFuture<>(getScheduler());
-
+        DefaultConnectionFuture<T> t = new DefaultConnectionFuture<>(this);
         futures.add(t);
         return t;
     }

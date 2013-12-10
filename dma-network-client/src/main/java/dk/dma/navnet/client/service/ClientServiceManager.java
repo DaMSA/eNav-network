@@ -20,8 +20,6 @@ import static java.util.Objects.requireNonNull;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
-import jsr166e.CompletableFuture;
-
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import dk.dma.enav.maritimecloud.service.ServiceLocator;
@@ -82,7 +80,7 @@ public class ClientServiceManager {
         final DefaultConnectionFuture<T> f = threadManager.create();
         DefaultConnectionFuture<InvokeServiceResult> fr = threadManager.create();
         invokers.put(is.getConversationId(), fr);
-        fr.thenAcceptAsync(new CompletableFuture.Action<Object>() {
+        fr.thenAcceptAsync(new DefaultConnectionFuture.Action<Object>() {
             @SuppressWarnings("unchecked")
             public void accept(Object ack) {
                 f.complete((T) ack);
@@ -144,7 +142,7 @@ public class ClientServiceManager {
         }
         final DefaultConnectionFuture<RegisterServiceResult> f = connection.sendMessage(new RegisterService(sip
                 .getName()));
-        f.thenAcceptAsync(new CompletableFuture.Action<RegisterServiceResult>() {
+        f.thenAcceptAsync(new DefaultConnectionFuture.Action<RegisterServiceResult>() {
             public void accept(RegisterServiceResult ack) {
                 reg.replied.countDown();
             }
