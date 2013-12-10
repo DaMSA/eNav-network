@@ -22,8 +22,6 @@ import java.util.Objects;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
-import javax.websocket.DeploymentException;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -64,7 +62,7 @@ class ClientConnectFuture implements Runnable {
     ClientConnectFuture(ClientConnection connection, long reconnectId) {
         this.connection = requireNonNull(connection);
         this.reconnectId = reconnectId;
-        transport = new ClientTransport(this, connection);
+        transport = new JavaxWebsocketTransport(this, connection);
     }
 
     /** {@inheritDoc} */
@@ -74,10 +72,9 @@ class ClientConnectFuture implements Runnable {
         thread = Thread.currentThread();
         while (cancelled.getCount() > 0) {
             try {
-                // System.out.println("Connecting " + transport);
-                cm.getWebsocketContainer().connectToServer(transport, cm.uri);
+                transport.connect(cm.uri);
                 return;
-            } catch (DeploymentException e) {
+            } catch (IllegalStateException e) {
                 LOG.error("A serious internal error", e);
             } catch (IOException e) {
                 if (cancelled.getCount() > 0) {// Only log the error if we are not cancelled

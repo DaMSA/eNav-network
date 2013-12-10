@@ -17,10 +17,9 @@ package dk.dma.navnet.client.broadcast;
 
 import static java.util.Objects.requireNonNull;
 
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.CopyOnWriteArraySet;
-
-import jsr166e.ConcurrentHashMapV8;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -68,7 +67,7 @@ public class BroadcastManager {
     private final ConnectionMessageBus connection;
 
     /** A map of local broadcast listeners. ChannelName -> List of listeners. */
-    final ConcurrentHashMapV8<String, CopyOnWriteArraySet<BroadcastMessageSubscription>> listeners = new ConcurrentHashMapV8<>();
+    final ConcurrentHashMap<String, CopyOnWriteArraySet<BroadcastMessageSubscription>> listeners = new ConcurrentHashMap<>();
 
     /** Maintains latest position for the client. */
     private final PositionManager positionManager;
@@ -109,12 +108,9 @@ public class BroadcastManager {
 
         BroadcastMessageSubscription sub = new BroadcastMessageSubscription(this, channelName, listener);
 
-        listeners.computeIfAbsent(messageType.getCanonicalName(),
-                new ConcurrentHashMapV8.Fun<String, CopyOnWriteArraySet<BroadcastMessageSubscription>>() {
-                    public CopyOnWriteArraySet<BroadcastMessageSubscription> apply(String t) {
-                        return new CopyOnWriteArraySet<>();
-                    }
-                }).add(sub);
+        listeners.putIfAbsent(messageType.getCanonicalName(), new CopyOnWriteArraySet<BroadcastMessageSubscription>());
+        CopyOnWriteArraySet<BroadcastMessageSubscription> set = listeners.get(messageType.getCanonicalName());
+        set.add(sub);
         return sub;
     }
 
@@ -145,6 +141,7 @@ public class BroadcastManager {
             } catch (Exception e) {
                 LOG.error("Exception while trying to deserialize an incoming broadcast message ", e);
                 LOG.error(broadcast.toJSON());
+                return;
             }
 
             final BroadcastMessage bmm = bm;
@@ -171,7 +168,6 @@ public class BroadcastManager {
                 options);
 
         DefaultConnectionFuture<BroadcastSendAck> response = connection.sendMessage(b);
-
 
         final DefaultOutstandingBroadcast dbf = new DefaultOutstandingBroadcast(threadManager, options);
         outstandingBroadcasts.put(b.getReplyTo(), dbf);

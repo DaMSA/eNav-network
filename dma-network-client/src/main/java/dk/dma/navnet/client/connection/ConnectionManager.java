@@ -24,9 +24,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.ReentrantLock;
 
-import javax.websocket.ContainerProvider;
-import javax.websocket.WebSocketContainer;
-
 import org.picocontainer.Startable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -48,9 +45,6 @@ public class ConnectionManager implements MaritimeCloudConnection, Startable {
     final ClientContainer client;
 
     volatile ClientConnection connection;
-
-    /** The actual WebSocket client. Changes when reconnecting. */
-    volatile WebSocketContainer container;
 
     ConnectionMessageBus hub;
 
@@ -155,14 +149,6 @@ public class ConnectionManager implements MaritimeCloudConnection, Startable {
         } finally {
             lock.unlock();
         }
-    }
-
-    synchronized WebSocketContainer getWebsocketContainer() {
-        WebSocketContainer container = this.container;
-        if (container == null) {
-            return this.container = ContainerProvider.getWebSocketContainer();
-        }
-        return container;
     }
 
     /** {@inheritDoc} */
