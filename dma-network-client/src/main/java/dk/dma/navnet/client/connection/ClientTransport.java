@@ -1,29 +1,24 @@
-/* Copyright (c) 2011 Danish Maritime Authority
+/*
+ * Copyright (c) 2008 Kasper Nielsen.
  *
- * This library is free software; you can redistribute it and/or
- * modify it under the terms of the GNU Lesser General Public
- * License as published by the Free Software Foundation; either
- * version 3 of the License, or (at your option) any later version.
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
  *
- * This library is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
- * Lesser General Public License for more details.
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
- * You should have received a copy of the GNU General Public License
- * along with this library.  If not, see <http://www.gnu.org/licenses/>.
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 package dk.dma.navnet.client.connection;
 
 import static java.util.Objects.requireNonNull;
 
-import javax.websocket.ClientEndpoint;
-import javax.websocket.CloseReason;
-import javax.websocket.CloseReason.CloseCode;
-import javax.websocket.OnClose;
-import javax.websocket.OnMessage;
-import javax.websocket.OnOpen;
-import javax.websocket.Session;
+import java.io.IOException;
+import java.net.URI;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -33,22 +28,16 @@ import dk.dma.navnet.messages.ConnectionMessage;
 import dk.dma.navnet.messages.TransportMessage;
 
 /**
- * The client implementation of a transport. Every time the client connects to a server a new transport is created.
- * Unlike {@link ClientConnection} which will persist over multiple connects, and provide smooth reconnect.
  * 
  * @author Kasper Nielsen
  */
-@ClientEndpoint
-public final class ClientTransport {
+public abstract class ClientTransport {
 
     /** The logger. */
     private static final Logger LOG = LoggerFactory.getLogger(ClientTransport.class);
 
     /** The connection that is using the transport. */
-    private final ClientConnection connection;
-
-    /** The websocket session. */
-    volatile Session session = null;
+    final ClientConnection connection;
 
     /** non-null while connecting. */
     ClientConnectFuture connectFuture;
@@ -58,38 +47,8 @@ public final class ClientTransport {
         this.connection = requireNonNull(connection);
     }
 
-    /** {@inheritDoc} */
-    void doClose(final ClosingCode reason) {
-        Session session = this.session;
-        if (session != null) {
-            CloseReason cr = new CloseReason(new CloseCode() {
-                public int getCode() {
-                    return reason.getId();
-                }
-            }, reason.getMessage());
+    abstract void doClose(final ClosingCode reason);
 
-            try {
-                session.close(cr);
-            } catch (Exception e) {
-                LOG.error("Failed to close connection", e);
-            }
-        }
-    }
-
-    /** {@inheritDoc} */
-    @OnClose
-    public void onClose(CloseReason closeReason) {
-        session = null;
-        ClosingCode reason = ClosingCode.create(closeReason.getCloseCode().getCode(), closeReason.getReasonPhrase());
-        connection.transportDisconnected(this, reason);
-    }
-
-    @OnOpen
-    public void onOpen(Session session) {
-        this.session = session; // wait on the server to send a hello message
-    }
-
-    @OnMessage
     public void onTextMessage(String textMessage) {
         TransportMessage msg;
         System.out.println("Received: " + textMessage);
@@ -113,14 +72,7 @@ public final class ClientTransport {
         }
     }
 
-    public void sendText(String text) {
-        Session session = this.session;
-        if (session != null) {
-            if (text.length() < 1000) {
-                System.out.println("Sending : " + text);
-                // System.out.println("Sending " + this + " " + text);
-            }
-            session.getAsyncRemote().sendText(text);
-        }
-    }
+    public abstract void sendText(String text);
+
+    abstract void connect(URI uri) throws IOException;
 }
