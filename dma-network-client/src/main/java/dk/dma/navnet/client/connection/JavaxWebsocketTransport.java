@@ -18,20 +18,9 @@ package dk.dma.navnet.client.connection;
 import java.io.IOException;
 import java.net.URI;
 
-import javax.websocket.ClientEndpoint;
-import javax.websocket.CloseReason;
-import javax.websocket.CloseReason.CloseCode;
-import javax.websocket.ContainerProvider;
-import javax.websocket.DeploymentException;
-import javax.websocket.OnClose;
-import javax.websocket.OnMessage;
-import javax.websocket.OnOpen;
-import javax.websocket.Session;
-import javax.websocket.WebSocketContainer;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
+import de.tavendo.autobahn.WebSocketConnection;
+import de.tavendo.autobahn.WebSocketException;
+import de.tavendo.autobahn.WebSocketHandler;
 import dk.dma.enav.maritimecloud.ClosingCode;
 
 /**
@@ -40,14 +29,10 @@ import dk.dma.enav.maritimecloud.ClosingCode;
  * 
  * @author Kasper Nielsen
  */
-@ClientEndpoint
 public final class JavaxWebsocketTransport extends ClientTransport {
 
-    /** The logger. */
-    private static final Logger LOG = LoggerFactory.getLogger(JavaxWebsocketTransport.class);
-
     /** The websocket session. */
-    volatile Session session = null;
+    private final WebSocketConnection mConnection = new WebSocketConnection();
 
     JavaxWebsocketTransport(ClientConnectFuture connectFuture, ClientConnection connection) {
         super(connectFuture, connection);
@@ -55,57 +40,48 @@ public final class JavaxWebsocketTransport extends ClientTransport {
 
     /** {@inheritDoc} */
     void doClose(final ClosingCode reason) {
-        Session session = this.session;
-        if (session != null) {
-            CloseReason cr = new CloseReason(new CloseCode() {
-                public int getCode() {
-                    return reason.getId();
-                }
-            }, reason.getMessage());
-
-            try {
-                session.close(cr);
-            } catch (Exception e) {
-                LOG.error("Failed to close connection", e);
-            }
-        }
+        mConnection.disconnect();
     }
 
     /** {@inheritDoc} */
-    @OnClose
-    public void onClose(CloseReason closeReason) {
-        session = null;
-        ClosingCode reason = ClosingCode.create(closeReason.getCloseCode().getCode(), closeReason.getReasonPhrase());
+    public void onClose(int code, String reasons) {
+        ClosingCode reason = ClosingCode.create(code, reasons);
         connection.transportDisconnected(this, reason);
     }
 
-    @OnOpen
-    public void onOpen(Session session) {
-        this.session = session; // wait on the server to send a hello message
-    }
-
-    @OnMessage
     public void onTextMessage(String textMessage) {
         super.onTextMessage(textMessage);
     }
 
     public void sendText(String text) {
-        Session session = this.session;
-        if (session != null) {
+        if (mConnection.isConnected()) {
             if (text.length() < 1000) {
                 System.out.println("Sending : " + text);
                 // System.out.println("Sending " + this + " " + text);
             }
-            session.getAsyncRemote().sendText(text);
+            mConnection.sendTextMessage(text);
         }
     }
 
     void connect(URI uri) throws IOException {
-        WebSocketContainer ws = ContainerProvider.getWebSocketContainer();
         try {
-            ws.connectToServer(this, uri);
-        } catch (DeploymentException e) {
-            throw new IllegalStateException("Internal Error", e);
+            mConnection.connect(uri.toString(), new WebSocketHandler() {
+
+                /** {@inheritDoc} */
+                @Override
+                public void onClose(int code, String reason) {
+                    JavaxWebsocketTransport.this.onClose(code, reason);
+                }
+
+                /** {@inheritDoc} */
+                @Override
+                public void onTextMessage(String payload) {
+                    JavaxWebsocketTransport.this.onTextMessage(payload);
+                }
+            });
+        } catch (WebSocketException e) {
+            throw new IOException(e);
         }
+
     }
 }
