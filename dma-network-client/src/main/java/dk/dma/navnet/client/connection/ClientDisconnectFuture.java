@@ -16,17 +16,13 @@
 package dk.dma.navnet.client.connection;
 
 import static java.util.Objects.requireNonNull;
-
-import java.util.concurrent.Callable;
-
-import jsr166e.CompletableFuture;
 import dk.dma.enav.maritimecloud.ClosingCode;
 
 /**
  * 
  * @author Kasper Nielsen
  */
-class ClientDisconnectFuture extends CompletableFuture<ClientTransport> implements Callable<Void> {
+class ClientDisconnectFuture implements Runnable {
 
     final ClientConnection connection;
 
@@ -39,13 +35,12 @@ class ClientDisconnectFuture extends CompletableFuture<ClientTransport> implemen
 
     /** {@inheritDoc} */
     @Override
-    public Void call() throws Exception {
+    public void run() {
         // TODO send poison pill
         transport.doClose(ClosingCode.NORMAL);
         // ClientTransport transport = new ClientTransport(connection, reconnectId);
         // ConnectionManager cm = connection.connectionManager;
         // cm.getWebsocketContainer().connectToServer(transport, cm.uri);
-        return null;
     }
 
     // void connect2() {
