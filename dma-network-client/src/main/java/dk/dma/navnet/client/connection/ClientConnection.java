@@ -17,8 +17,6 @@ package dk.dma.navnet.client.connection;
 
 import java.util.concurrent.locks.ReentrantLock;
 
-import jsr166e.ForkJoinPool;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -61,7 +59,9 @@ public class ClientConnection {
             if (transport == null && connectingFuture == null) {
                 LOG.info("Trying to connect");
                 connectingFuture = new ClientConnectFuture(this, -1);
-                ForkJoinPool.commonPool().submit(connectingFuture);
+                Thread t = new Thread(connectingFuture);
+                t.setDaemon(true);
+                t.start();
             }
         } finally {
             connectionManager.lock.unlock();
@@ -98,7 +98,9 @@ public class ClientConnection {
             if (transport != null) {
                 LOG.info("Trying to disconnect");
                 disconnectingFuture = new ClientDisconnectFuture(this, transport);
-                ForkJoinPool.commonPool().submit(disconnectingFuture);
+                Thread t = new Thread(disconnectingFuture);
+                t.setDaemon(true);
+                t.start();
             } else if (connectingFuture != null) {
                 LOG.info("Trying to disconnect");
                 // We are in the process of connecting, just cancel the connect

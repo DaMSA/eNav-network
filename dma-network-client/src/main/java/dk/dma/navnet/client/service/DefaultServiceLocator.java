@@ -20,7 +20,6 @@ import static java.util.Objects.requireNonNull;
 import java.util.ArrayList;
 import java.util.List;
 
-import jsr166e.CompletableFuture;
 import dk.dma.enav.maritimecloud.ConnectionFuture;
 import dk.dma.enav.maritimecloud.service.ServiceEndpoint;
 import dk.dma.enav.maritimecloud.service.ServiceLocator;
@@ -70,7 +69,7 @@ class DefaultServiceLocator<T, E extends ServiceMessage<T>> implements ServiceLo
     public ConnectionFuture<ServiceEndpoint<E, T>> nearest() {
         DefaultConnectionFuture<FindServiceResult> f = csm.serviceFindOne(new FindService(sip.getName(), distance, 1));
         final DefaultConnectionFuture<ServiceEndpoint<E, T>> result = threadManager.create();
-        f.thenAcceptAsync(new CompletableFuture.Action<FindServiceResult>() {
+        f.thenAcceptAsync(new DefaultConnectionFuture.Action<FindServiceResult>() {
             @Override
             public void accept(FindServiceResult ack) {
                 String[] st = ack.getMax();
@@ -94,7 +93,7 @@ class DefaultServiceLocator<T, E extends ServiceMessage<T>> implements ServiceLo
         DefaultConnectionFuture<FindServiceResult> f = csm.serviceFindOne(new FindService(sip.getName(), distance,
                 limit));
         final DefaultConnectionFuture<List<ServiceEndpoint<E, T>>> result = threadManager.create();
-        f.thenAcceptAsync(new CompletableFuture.Action<FindServiceResult>() {
+        f.thenAcceptAsync(new DefaultConnectionFuture.Action<FindServiceResult>() {
             @Override
             public void accept(FindServiceResult ack) {
                 String[] st = ack.getMax();
