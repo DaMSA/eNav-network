@@ -123,7 +123,7 @@ public class BroadcastDeliver extends ConnectionMessage {
         w.writeString(message);
     }
 
-    public static BroadcastDeliver create(MaritimeId sender, PositionTime position, BroadcastMessage message) {
-        return new BroadcastDeliver(sender, position, message.channel(), persistAndEscape(message));
+    public static BroadcastDeliver create(MaritimeId sender, PositionTime position, String channel, String message) {
+        return new BroadcastDeliver(sender, position, channel, escape(message));
     }
 }
