@@ -18,12 +18,11 @@ package dk.dma.navnet.server.broadcast;
 import static java.util.Objects.requireNonNull;
 import jsr166e.CompletableFuture;
 import jsr166e.CompletableFuture.Action;
-
-import org.picocontainer.Startable;
-
 import dk.dma.enav.maritimecloud.broadcast.BroadcastMessage;
 import dk.dma.enav.model.geometry.PositionTime;
 import dk.dma.enav.util.function.Consumer;
+import org.picocontainer.Startable;
+
 import dk.dma.navnet.messages.c2c.broadcast.BroadcastAck;
 import dk.dma.navnet.messages.c2c.broadcast.BroadcastDeliver;
 import dk.dma.navnet.messages.c2c.broadcast.BroadcastSend;
@@ -51,11 +50,6 @@ public class BroadcastManager implements Startable {
 
     BroadcastSendAck broadcast(final ServerConnection source, final BroadcastSend send) throws RequestException {
         final BroadcastMessage bm;
-        try {
-            bm = send.tryRead();
-        } catch (Exception e) {
-            throw new RequestException(e);
-        }
 
         final Target target = source.getTarget();
         final PositionTime sourcePositionTime = send.getPositionTime();
@@ -68,7 +62,11 @@ public class BroadcastManager implements Startable {
                     if (latest != null) {
                         double distance = sourcePositionTime.geodesicDistanceTo(latest);
                         if (distance < send.getDistance()) {
-                            BroadcastDeliver bd = BroadcastDeliver.create(send.getId(), send.getPositionTime(), bm);
+
+                            BroadcastDeliver bd = BroadcastDeliver.create(send.getId(), send.getPositionTime(),
+                                    send.getChannel(), send.getMessage());
+
+
                             final ServerConnection connection = t.getConnection();
                             CompletableFuture<Void> f = connection.messageSend(bd).protocolAcked();
                             if (send.isReceiverAck()) {
@@ -87,13 +85,13 @@ public class BroadcastManager implements Startable {
             }
         });
 
+
         return send.createReply();
     }
 
     void broadCastTo(BroadcastSend bs, Target target, BroadcastDeliver bd) {
 
     }
-
 
     /** {@inheritDoc} */
     @Override
