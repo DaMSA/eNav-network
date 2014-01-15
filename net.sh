@@ -1,7 +1,10 @@
 #!/bin/bash
 
+version=`mvn org.apache.maven.plugins:maven-help-plugin:2.1.1:evaluate -Dexpression=project.version | sed -n -e '/^\[.*\]/ !{ /^[0-9]/ { p; q } }'`
+
+
 if [ "$1" = "server" ]; then
-   java -jar dma-network-server-distribution/target/dma-network-server-distribution-0.2-SNAPSHOT.jar
+   java -jar dma-network-server-distribution/target/dma-network-server-distribution-$version.jar
   exit
 else
 	echo Unknown target: "$1"
