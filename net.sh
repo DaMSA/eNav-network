@@ -1,7 +1,7 @@
 #!/bin/bash
 
 if [ "$1" = "server" ]; then
-   java -jar dma-network-server-distribution/target/dma-network-server-distribution-0.1-SNAPSHOT.jar
+   java -jar dma-network-server-distribution/target/dma-network-server-distribution-0.2-SNAPSHOT.jar
   exit
 else
 	echo Unknown target: "$1"
