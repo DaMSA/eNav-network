@@ -18,12 +18,12 @@
     <dependency>
       <groupId>dk.dma.commons</groupId>
       <artifactId>dma-commons-management</artifactId>
-      <version>0.1-SNAPSHOT</version>
+      <version>0.1</version>
     </dependency>
     <dependency>
       <groupId>dk.dma.commons</groupId>
       <artifactId>dma-commons-tracker</artifactId>
-      <version>0.1-SNAPSHOT</version>
+      <version>0.1</version>
     </dependency>
   
     <dependency>
